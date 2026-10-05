@@ -1,0 +1,12 @@
+{
+  "name": "edunex",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --parallel --filter web --filter api dev",
+    "dev:web": "pnpm --filter web dev",
+    "dev:api": "pnpm --filter api dev",
+    "build": "pnpm --filter web build && pnpm --filter api build"
+  },
+  "packageManager": "pnpm@12.9.1"
+}
