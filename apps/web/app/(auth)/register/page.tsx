@@ -3,8 +3,12 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { authClient } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { authClient } from "@/lib/auth-client";
+import { RegisterFormValues, registerSchema } from "@/validation/register-schema";
+
 
 const departments = [
   "Computer Science",
@@ -21,32 +25,34 @@ const departments = [
 const semesters = ["S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8"];
 
 export default function RegisterPage() {
-     const router=useRouter()
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [department, setDepartment] = useState("");
-  const [semester, setSemester] = useState("");
+  const router = useRouter();
   const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
-  async function handleRegister(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      department: "",
+      semester: "",
+      password: "",
+    },
+  });
+
+  async function handleRegister(values: RegisterFormValues) {
     setMessage("");
-
-    if (password.length < 8) {
-      setMessage("Password must contain at least 8 characters.");
-      return;
-    }
-
-    setLoading(true);
-
+    setIsSuccess(false);
 
     try {
       const { error } = await authClient.signUp.email({
-        name,
-        email,
-        password,
+        name: values.name.trim(),
+        email: values.email.trim(),
+        password: values.password,
       });
 
       if (error) {
@@ -54,18 +60,19 @@ export default function RegisterPage() {
         return;
       }
 
-      // Department and semester still need to be saved
-      // through a backend student-profile API.
-      setMessage(
-        "Account created! Department and semester profile setup is still pending."
-      );
-      router.push("/dashbord")
+      // Department and semester are not yet saved to the database.
+      setIsSuccess(true);
+      setMessage("Account created successfully!");
+
+      router.push("/dashbord");
     } catch {
-      setMessage("Unable to connect to the server.");
-    } finally {
-      setLoading(false);
+      setMessage("Unable to connect to the server. Please try again.");
     }
   }
+
+  const inputClass =
+  "w-full rounded-xl border border-slate-200 px-4 py-3 text-black placeholder:text-slate-400 outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-50";
+  const errorClass = "mt-1 text-sm text-red-600";
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-cyan-50 via-white to-blue-50 px-4 py-10">
@@ -89,19 +96,24 @@ export default function RegisterPage() {
           Join your campus community.
         </p>
 
-        <form onSubmit={handleRegister} className="mt-8 space-y-5">
+        <form
+          onSubmit={handleSubmit(handleRegister)}
+          noValidate
+          className="mt-8 space-y-5"
+        >
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">
               Full name
             </label>
             <input
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              {...register("name")}
               placeholder="Enter your full name"
               autoComplete="name"
-              className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-50"
-              required
+              className={inputClass}
             />
+            {errors.name && (
+              <p className={errorClass}>{errors.name.message}</p>
+            )}
           </div>
 
           <div>
@@ -109,14 +121,15 @@ export default function RegisterPage() {
               Email address
             </label>
             <input
+              {...register("email")}
               type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
               placeholder="you@example.com"
               autoComplete="email"
-              className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-50"
-              required
+              className={inputClass}
             />
+            {errors.email && (
+              <p className={errorClass}>{errors.email.message}</p>
+            )}
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -124,12 +137,7 @@ export default function RegisterPage() {
               <label className="mb-2 block text-sm font-medium text-slate-700">
                 Department
               </label>
-              <select
-                value={department}
-                onChange={(e) => setDepartment(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-50"
-                required
-              >
+              <select {...register("department")} className={`${inputClass} bg-white`}>
                 <option value="">Select department</option>
                 {departments.map((item) => (
                   <option key={item} value={item}>
@@ -137,18 +145,16 @@ export default function RegisterPage() {
                   </option>
                 ))}
               </select>
+              {errors.department && (
+                <p className={errorClass}>{errors.department.message}</p>
+              )}
             </div>
 
             <div>
               <label className="mb-2 block text-sm font-medium text-slate-700">
                 Semester
               </label>
-              <select
-                value={semester}
-                onChange={(e) => setSemester(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-3 outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-50"
-                required
-              >
+              <select {...register("semester")} className={`${inputClass} bg-white`}>
                 <option value="">Select semester</option>
                 {semesters.map((item) => (
                   <option key={item} value={item}>
@@ -156,6 +162,9 @@ export default function RegisterPage() {
                   </option>
                 ))}
               </select>
+              {errors.semester && (
+                <p className={errorClass}>{errors.semester.message}</p>
+              )}
             </div>
           </div>
 
@@ -164,29 +173,36 @@ export default function RegisterPage() {
               Password
             </label>
             <input
+              {...register("password")}
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
               placeholder="At least 8 characters"
               autoComplete="new-password"
-              minLength={8}
-              className="w-full rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-50"
-              required
+              className={inputClass}
             />
+            {errors.password && (
+              <p className={errorClass}>{errors.password.message}</p>
+            )}
           </div>
 
           {message && (
-            <p role="status" className="text-sm text-slate-600">
+            <p
+              role={isSuccess ? "status" : "alert"}
+              className={`rounded-lg p-3 text-sm ${
+                isSuccess
+                  ? "bg-green-50 text-green-700"
+                  : "bg-red-50 text-red-700"
+              }`}
+            >
               {message}
             </p>
           )}
 
           <button
             type="submit"
-            disabled={loading}
-            className="w-full rounded-xl bg-cyan-600 py-3.5 font-semibold text-white shadow-lg shadow-cyan-100 transition hover:bg-cyan-700 disabled:opacity-60"
+            disabled={isSubmitting}
+            className="w-full rounded-xl bg-cyan-600 py-3.5 font-semibold text-white shadow-lg shadow-cyan-100 transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {loading ? "Creating account..." : "Create account"}
+            {isSubmitting ? "Creating account..." : "Create account"}
           </button>
         </form>
 
