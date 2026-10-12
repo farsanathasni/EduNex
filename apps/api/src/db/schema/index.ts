@@ -1,2 +1,2 @@
-
- // EduNex database tables will be defined here.
+// EduNex database schema exports will go here.
+export {};
