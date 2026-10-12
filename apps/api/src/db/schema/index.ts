@@ -1,2 +1,2 @@
-// EduNex database schema exports will go here.
-export {};
+
+export * from "./auth-schema.js";
