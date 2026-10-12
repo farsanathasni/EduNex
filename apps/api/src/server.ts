@@ -1,16 +1,28 @@
-import express from "express"
-import cors from "cors"
 
-const app=express()
-const PORT=5000
+import express from "express";
+import cors from "cors";
+import { toNodeHandler } from "better-auth/node";
+import { auth } from "./auth.js";
 
-app.use(cors())
-app.use(express.json())
+const app = express();
+const PORT = 5000;
 
-app.get("/",(req,res)=>{
-    res.send("running")
-})
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+  })
+);
 
-app.listen(PORT,()=>{
-    console.log("server running")
-})
+// Better Auth handler must come before express.json()
+app.all("/api/auth/{*any}", toNodeHandler(auth));
+
+app.use(express.json());
+
+app.get("/", (_req, res) => {
+  res.send("running");
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
