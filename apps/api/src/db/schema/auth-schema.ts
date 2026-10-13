@@ -12,7 +12,7 @@ export const user = pgTable("user", {
     .defaultNow()
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
-});
+})
 
 export const session = pgTable(
   "session",
@@ -31,7 +31,7 @@ export const session = pgTable(
       .references(() => user.id, { onDelete: "cascade" }),
   },
   (table) => [index("session_userId_idx").on(table.userId)],
-);
+)
 
 export const account = pgTable(
   "account",
