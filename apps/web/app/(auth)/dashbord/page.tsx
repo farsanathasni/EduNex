@@ -183,7 +183,7 @@ export default function Dashboard() {
 
           <div className="mx-auto max-w-7xl space-y-8 p-5 sm:p-8">
             {/* Welcome */}
-            <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-cyan-700 via-cyan-600 to-teal-500 p-6 text-white sm:p-9">
+            <section className="relative overflow-hidden rounded-3xl bg-linear-to-r from-cyan-700 via-cyan-600 to-teal-500 p-6 text-white sm:p-9">
               <div className="relative z-10 max-w-2xl">
                 <p className="text-sm font-medium text-cyan-100">
                   MONDAY MOTIVATION ✨

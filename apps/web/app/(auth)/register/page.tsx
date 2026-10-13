@@ -75,7 +75,7 @@ export default function RegisterPage() {
   const errorClass = "mt-1 text-sm text-red-600";
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-cyan-50 via-white to-blue-50 px-4 py-10">
+    <main className="flex min-h-screen items-center justify-center bg-linear-to-br from-cyan-50 via-white to-blue-50 px-4 py-10">
       <section className="w-full max-w-lg rounded-2xl border border-slate-100 bg-white p-8 shadow-xl shadow-cyan-100/60 sm:p-10">
         <Link href="/" className="mb-8 flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-600 text-xl font-bold text-white">
