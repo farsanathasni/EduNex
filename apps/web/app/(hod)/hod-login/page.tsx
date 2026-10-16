@@ -8,7 +8,7 @@ import { authClient } from "@/lib/auth-client";
 import {
   hodLoginSchema,
   type HodLoginInput,
-} from "@/lib/validations/hod-login-schema";
+} from "@/validation/hod-login-schema";
 
 export default function HODLoginPage() {
   const router = useRouter();
