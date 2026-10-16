@@ -4,7 +4,7 @@ import { api } from "./axios";
 export interface StudentProfileInput {
   admissionNumber: string;
   departmentId: string;
-  semester: string;
+  semester: number;
   phone: string | null;
 }
 
