@@ -10,19 +10,8 @@ import { authClient } from "@/lib/auth-client";
 import { RegisterFormValues, registerSchema } from "@/validation/register-schema";
 
 
-const departments = [
-  "Computer Science",
-  "Computer Science and Engineering",
-  "Electronics and Communication",
-  "Electrical and Electronics",
-  "Mechanical Engineering",
-  "Civil Engineering",
-  "Information Technology",
-  "Commerce",
-  "Management",
-];
 
-const semesters = ["S1", "S2", "S3", "S4", "S5", "S6", "S7", "S8"];
+
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -38,13 +27,12 @@ export default function RegisterPage() {
     defaultValues: {
       name: "",
       email: "",
-      department: "",
-      semester: "",
       password: "",
     },
   });
 
   async function handleRegister(values: RegisterFormValues) {
+    console.log("REGISTER FORM SUBMITTED", values);
     setMessage("");
     setIsSuccess(false);
 
@@ -64,7 +52,7 @@ export default function RegisterPage() {
       setIsSuccess(true);
       setMessage("Account created successfully!");
 
-      router.push("/dashboard");
+      router.push("/profile");
     } catch {
       setMessage("Unable to connect to the server. Please try again.");
     }
@@ -97,7 +85,9 @@ export default function RegisterPage() {
         </p>
 
         <form
-          onSubmit={handleSubmit(handleRegister)}
+          onSubmit={handleSubmit(handleRegister,(errors) => {
+      console.log("FORM VALIDATION ERRORS:", errors);
+    })}
           noValidate
           className="mt-8 space-y-5"
         >
@@ -130,42 +120,6 @@ export default function RegisterPage() {
             {errors.email && (
               <p className={errorClass}>{errors.email.message}</p>
             )}
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">
-                Department
-              </label>
-              <select {...register("department")} className={`${inputClass} bg-white`}>
-                <option value="">Select department</option>
-                {departments.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
-              {errors.department && (
-                <p className={errorClass}>{errors.department.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="mb-2 block text-sm font-medium text-slate-700">
-                Semester
-              </label>
-              <select {...register("semester")} className={`${inputClass} bg-white`}>
-                <option value="">Select semester</option>
-                {semesters.map((item) => (
-                  <option key={item} value={item}>
-                    {item}
-                  </option>
-                ))}
-              </select>
-              {errors.semester && (
-                <p className={errorClass}>{errors.semester.message}</p>
-              )}
-            </div>
           </div>
 
           <div>

@@ -1,0 +1,1 @@
+ALTER TABLE "student-profile" ADD COLUMN "name" text NOT NULL;
