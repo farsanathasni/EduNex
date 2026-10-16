@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -10,10 +9,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { authClient } from "@/lib/auth-client";
 import { LoginFormValues, loginSchema } from "@/validation/login-schema";
 
+import Button from "@/app/ui/button";
+import Card from "@/app/ui/card";
+import Input from "@/app/ui/input";
 
 export default function LoginPage() {
   const router = useRouter();
-
   const [serverError, setServerError] = useState("");
 
   const {
@@ -38,13 +39,10 @@ export default function LoginPage() {
       });
 
       if (error) {
-        setServerError(
-          error.message || "Invalid email or password."
-        );
+        setServerError(error.message || "Invalid email or password.");
         return;
       }
 
-      // Redirect after successful login
       router.push("/dashboard");
       router.refresh();
     } catch {
@@ -55,76 +53,62 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gradient-to-br from-cyan-50 via-white to-blue-50 px-4 py-10">
-      <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-xl sm:p-8">
-
-        {/* Logo and heading */}
+    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
+      <Card className="w-full max-w-md border border-border bg-surface p-6 shadow-lg sm:p-8">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-600 text-2xl font-bold text-white shadow-md">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-2xl font-bold text-primary-foreground">
             E
           </div>
 
-          <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+          <h1 className="text-3xl font-bold tracking-tight text-text">
             Welcome to EduNex
           </h1>
 
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-2 text-sm text-text-muted">
             Sign in to access your campus dashboard
           </p>
         </div>
 
-        {/* Login form */}
         <form
           onSubmit={handleSubmit(handleLogin)}
           noValidate
           className="space-y-5"
         >
-          {/* Email */}
           <div>
             <label
               htmlFor="email"
-              className="mb-2 block text-sm font-medium text-slate-700"
+              className="mb-2 block text-sm font-medium text-text"
             >
               Email address
             </label>
 
-            <input
+            <Input
               id="email"
               type="email"
               autoComplete="email"
               placeholder="you@example.com"
               aria-invalid={!!errors.email}
-              aria-describedby={
-                errors.email ? "email-error" : undefined
-              }
+              aria-describedby={errors.email ? "email-error" : undefined}
               {...register("email")}
-              className={`w-full rounded-xl border px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
-                errors.email
-                  ? "border-red-400 focus:ring-red-100"
-                  : "border-slate-200 focus:border-cyan-500 focus:ring-cyan-100"
-              }`}
+              className="w-full"
             />
 
             {errors.email && (
-              <p
-                id="email-error"
-                className="mt-1.5 text-sm text-red-600"
-              >
+              <p id="email-error" className="mt-1.5 text-sm text-red-600">
                 {errors.email.message}
               </p>
             )}
           </div>
 
-          {/* Password */}
           <div>
             <label
               htmlFor="password"
-              className="mb-2 block text-sm font-medium text-slate-700"
+              className="mb-2 block text-sm font-medium text-text"
             >
               Password
             </label>
 
-            <input
+            <Input
               id="password"
               type="password"
               autoComplete="current-password"
@@ -134,24 +118,16 @@ export default function LoginPage() {
                 errors.password ? "password-error" : undefined
               }
               {...register("password")}
-              className={`w-full rounded-xl border px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:ring-2 ${
-                errors.password
-                  ? "border-red-400 focus:ring-red-100"
-                  : "border-slate-200 focus:border-cyan-500 focus:ring-cyan-100"
-              }`}
+              className="w-full"
             />
 
             {errors.password && (
-              <p
-                id="password-error"
-                className="mt-1.5 text-sm text-red-600"
-              >
+              <p id="password-error" className="mt-1.5 text-sm text-red-600">
                 {errors.password.message}
               </p>
             )}
           </div>
 
-          {/* Server error */}
           {serverError && (
             <div
               role="alert"
@@ -161,44 +137,41 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Submit */}
-          <button
+          <Button
             type="submit"
             disabled={isSubmitting}
-            className="w-full rounded-xl bg-cyan-600 px-4 py-3 font-semibold text-white shadow-md transition hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full"
           >
             {isSubmitting ? "Signing in..." : "Sign in"}
-          </button>
+          </Button>
         </form>
 
-        {/* Register link */}
-        <p className="mt-6 text-center text-sm text-slate-600">
+        <p className="mt-6 text-center text-sm text-text-muted">
           Don't have an account?{" "}
           <Link
             href="/register"
-            className="font-semibold text-cyan-700 hover:text-cyan-800 hover:underline"
+            className="font-semibold text-primary hover:underline"
           >
             Create an account
           </Link>
         </p>
 
-        {/* Teacher login link */}
-        <div className="mt-5 border-t border-slate-100 pt-5 text-center">
-          <p className="text-sm text-slate-500">
+        <div className="mt-5 border-t border-border-subtle pt-5 text-center">
+          <p className="text-sm text-text-muted">
             Are you a teacher?{" "}
             <Link
               href="/teacher-login"
-              className="font-semibold text-blue-700 hover:text-blue-800 hover:underline"
+              className="font-semibold text-primary hover:underline"
             >
               Teacher Login
             </Link>
           </p>
         </div>
 
-        <p className="mt-6 text-center text-xs text-slate-400">
+        <p className="mt-6 text-center text-xs text-text-subtle">
           © {new Date().getFullYear()} EduNex Campus Management
         </p>
-      </div>
+      </Card>
     </main>
   );
 }

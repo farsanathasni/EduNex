@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -6,12 +5,16 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+
 import { authClient } from "@/lib/auth-client";
-import { RegisterFormValues, registerSchema } from "@/validation/register-schema";
+import {
+  RegisterFormValues,
+  registerSchema,
+} from "@/validation/register-schema";
 
-
-
-
+import Button from "@/app/ui/button";
+import Card from "@/app/ui/card";
+import Input from "@/app/ui/input";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -32,7 +35,6 @@ export default function RegisterPage() {
   });
 
   async function handleRegister(values: RegisterFormValues) {
-    console.log("REGISTER FORM SUBMITTED", values);
     setMessage("");
     setIsSuccess(false);
 
@@ -48,7 +50,6 @@ export default function RegisterPage() {
         return;
       }
 
-      // Department and semester are not yet saved to the database.
       setIsSuccess(true);
       setMessage("Account created successfully!");
 
@@ -58,118 +59,147 @@ export default function RegisterPage() {
     }
   }
 
-  const inputClass =
-  "w-full rounded-xl border border-slate-200 px-4 py-3 text-black placeholder:text-slate-400 outline-none focus:border-cyan-500 focus:ring-4 focus:ring-cyan-50";
-  const errorClass = "mt-1 text-sm text-red-600";
-
   return (
-    <main className="flex min-h-screen items-center justify-center bg-linear-to-br from-cyan-50 via-white to-blue-50 px-4 py-10">
-      <section className="w-full max-w-lg rounded-2xl border border-slate-100 bg-white p-8 shadow-xl shadow-cyan-100/60 sm:p-10">
+    <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
+      <Card className="w-full max-w-lg border border-border bg-surface p-6 shadow-lg sm:p-10">
         <Link href="/" className="mb-8 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-600 text-xl font-bold text-white">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary text-xl font-bold text-primary-foreground">
             E
           </div>
+
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">EduNex</h1>
-            <p className="text-xs tracking-wider text-slate-500">
+            <h1 className="text-2xl font-bold text-text">EduNex</h1>
+            <p className="text-xs tracking-wider text-text-muted">
               CAMPUS MANAGEMENT
             </p>
           </div>
         </Link>
 
-        <h2 className="text-3xl font-bold text-slate-900">
+        <h2 className="text-heading font-bold text-text">
           Create your account
         </h2>
-        <p className="mt-2 text-sm text-slate-500">
+
+        <p className="mt-2 text-sm text-text-muted">
           Join your campus community.
         </p>
 
         <form
-          onSubmit={handleSubmit(handleRegister,(errors) => {
-      console.log("FORM VALIDATION ERRORS:", errors);
-    })}
+          onSubmit={handleSubmit(handleRegister)}
           noValidate
           className="mt-8 space-y-5"
         >
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">
+            <label
+              htmlFor="name"
+              className="mb-2 block text-sm font-medium text-text"
+            >
               Full name
             </label>
-            <input
-              {...register("name")}
-              placeholder="Enter your full name"
+
+            <Input
+              id="name"
+              type="text"
               autoComplete="name"
-              className={inputClass}
+              placeholder="Enter your full name"
+              aria-invalid={!!errors.name}
+              aria-describedby={errors.name ? "name-error" : undefined}
+              {...register("name")}
+              className="w-full"
             />
+
             {errors.name && (
-              <p className={errorClass}>{errors.name.message}</p>
+              <p id="name-error" className="mt-1 text-sm text-red-600">
+                {errors.name.message}
+              </p>
             )}
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">
+            <label
+              htmlFor="email"
+              className="mb-2 block text-sm font-medium text-text"
+            >
               Email address
             </label>
-            <input
-              {...register("email")}
+
+            <Input
+              id="email"
               type="email"
-              placeholder="you@example.com"
               autoComplete="email"
-              className={inputClass}
+              placeholder="you@example.com"
+              aria-invalid={!!errors.email}
+              aria-describedby={errors.email ? "email-error" : undefined}
+              {...register("email")}
+              className="w-full"
             />
+
             {errors.email && (
-              <p className={errorClass}>{errors.email.message}</p>
+              <p id="email-error" className="mt-1 text-sm text-red-600">
+                {errors.email.message}
+              </p>
             )}
           </div>
 
           <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">
+            <label
+              htmlFor="password"
+              className="mb-2 block text-sm font-medium text-text"
+            >
               Password
             </label>
-            <input
-              {...register("password")}
+
+            <Input
+              id="password"
               type="password"
-              placeholder="At least 8 characters"
               autoComplete="new-password"
-              className={inputClass}
+              placeholder="At least 8 characters"
+              aria-invalid={!!errors.password}
+              aria-describedby={
+                errors.password ? "password-error" : undefined
+              }
+              {...register("password")}
+              className="w-full"
             />
+
             {errors.password && (
-              <p className={errorClass}>{errors.password.message}</p>
+              <p id="password-error" className="mt-1 text-sm text-red-600">
+                {errors.password.message}
+              </p>
             )}
           </div>
 
           {message && (
             <p
               role={isSuccess ? "status" : "alert"}
-              className={`rounded-lg p-3 text-sm ${
+              className={`rounded-xl border p-3 text-sm ${
                 isSuccess
-                  ? "bg-green-50 text-green-700"
-                  : "bg-red-50 text-red-700"
+                  ? "border-green-200 bg-green-50 text-green-700"
+                  : "border-red-200 bg-red-50 text-red-700"
               }`}
             >
               {message}
             </p>
           )}
 
-          <button
+          <Button
             type="submit"
             disabled={isSubmitting}
-            className="w-full rounded-xl bg-cyan-600 py-3.5 font-semibold text-white shadow-lg shadow-cyan-100 transition hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full"
           >
             {isSubmitting ? "Creating account..." : "Create account"}
-          </button>
+          </Button>
         </form>
 
-        <p className="mt-7 text-center text-sm text-slate-500">
+        <p className="mt-7 text-center text-sm text-text-muted">
           Already have an account?{" "}
           <Link
             href="/login"
-            className="font-semibold text-cyan-700 hover:underline"
+            className="font-semibold text-primary hover:underline"
           >
             Sign in
           </Link>
         </p>
-      </section>
+      </Card>
     </main>
   );
 }

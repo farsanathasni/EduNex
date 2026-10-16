@@ -61,9 +61,16 @@ export default function StudentProfile() {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    createProfile.mutate(formData, {
-      onSuccess: () => router.push("/dashboard"),
-    });
+    createProfile.mutate(
+  {
+    ...formData,
+    departmentId: formData.departmentId,
+    semester: Number(formData.semester.slice(1)),
+  },
+  {
+    onSuccess: () => router.push("/dashboard"),
+  }
+);
   };
 
   if (profileQuery.isLoading) {
