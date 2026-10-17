@@ -5,9 +5,12 @@ import {
   boolean,
   timestamp,
   index,
+  bigint
 } from "drizzle-orm/pg-core";
 
 import { user } from "./auth-schema.js";
+
+import { departments } from "./others-schema.js";
 
 export const staffRole = pgEnum("staff_role", [
   "faculty",
@@ -29,7 +32,8 @@ export const staff = pgTable(
 
     role: staffRole("role").default("faculty").notNull(),
 
-    departmentId: text("department_id"),
+    departmentId: bigint("department_id", { mode: "number" })
+  .references(() => departments.id, { onDelete: "set null" }),
 
     designation: text("designation"),
 

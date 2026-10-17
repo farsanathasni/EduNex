@@ -5,8 +5,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { authClient } from "@/lib/auth-client";
+import AddHodForm from "./AddHodForm";
 
-type Tab = "Overview" | "Events" | "Approvals";
+type Tab = "Overview" | "Events" | "Approvals" | "Add HOD"
 
 type PrincipalDashboardData = {
   staffId: string;
@@ -217,7 +218,7 @@ export default function PrincipalDashboardPage() {
         </section>
 
         <nav className="mb-8 flex flex-wrap gap-2 border-b border-border pb-3">
-          {(["Overview", "Events", "Approvals"] as Tab[]).map((tab) => (
+          {(["Overview", "Events", "Approvals" , "Add HOD"] as Tab[]).map((tab) => (
             <button
               key={tab}
               type="button"
@@ -285,6 +286,10 @@ export default function PrincipalDashboardPage() {
             </p>
           </section>
         )}
+
+        {activeTab === "Add HOD" && (
+  <AddHodForm />
+)}
       </div>
     </main>
   );
