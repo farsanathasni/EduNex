@@ -4,6 +4,8 @@ import cors from "cors";
 import { toNodeHandler } from "better-auth/node";
 import { auth } from "./auth.js";
 import studentRoutes from "./modules/students/student.router.js"
+import hodRouter from "./modules/hod/hod.router.js";
+import principalRouter from "./modules/principal/principal.router.js";
 
 import errorHandler from "./middleware/error.middleware.js";
 
@@ -26,6 +28,8 @@ app.get("/", (_req, res) => {
 });
 
 app.use("/api/students",studentRoutes)
+app.use("/api/hod", hodRouter);
+app.use("/api/principal", principalRouter);
 
 
 
