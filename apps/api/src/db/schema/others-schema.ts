@@ -2,10 +2,6 @@ import { pgTable, index, foreignKey, unique, text, timestamp, bigint, varchar, b
 import { sql } from "drizzle-orm"
 import { user } from "./auth-schema.js";
 
-export const staffRole = pgEnum("staff_role", ['faculty', 'hod', 'principal'])
-
-
-
 
 export const departments = pgTable("departments", {
     // You can use { mode: "bigint" } if numbers are exceeding js number limitations
