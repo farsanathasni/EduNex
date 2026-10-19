@@ -12,9 +12,14 @@ export const studentProfileSchema =z.object({
     .string().min(1, "Please select a department.")
     .regex(/^[1-9]\d*$/, "Please select a valid department."),
 
-    semester:z
-    .string()
-    .regex( /^[6-9]\d{9}$/,"Enter a valid 10-digit Indian mobile number."),
+    semester: z
+        .string()
+        .min(1, "Please select your semester")
+        .regex(/^[1-9]\d*$/, "Please select a valid semester")
+        .refine(
+          (value) => Number(value) <= 8,
+          "Semester must be between 1 and 8"
+        ),
 
     phone:z
     .string().trim()
