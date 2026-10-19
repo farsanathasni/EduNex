@@ -1,5 +1,5 @@
 
-import { string } from "zod";
+
 import { api } from "./axios";
 
 export interface StudentProfileInput {
@@ -20,13 +20,13 @@ export interface StudentProfile {
 }
 
 export const getStudentProfile = async () => {
-  const { data } = await api.get("/students/profile");
+  const { data } = await api.get("/api/students/profile");
   return data;
 };
 
 export const CreateStudentProfile = async (
   input: StudentProfileInput
 ) => {
-  const { data } = await api.post("/students/profile", input);
+const { data } = await api.post("/api/students/profile", input);
   return data;
 };
