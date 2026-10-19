@@ -1,12 +1,13 @@
 
+import { string } from "zod";
 import { api } from "./axios";
 
 export interface StudentProfileInput {
   admissionNumber: string;
-  departmentId: number;
-  semester: number;
-  phone: string | null;
-}
+  departmentId: string;   // ✅ number → string
+  semester: string;       // ✅ number → string
+  phone?: string;
+};
 
 export interface StudentProfile {
   id: number;
@@ -26,11 +27,6 @@ export const getStudentProfile = async () => {
 export const CreateStudentProfile = async (
   input: StudentProfileInput
 ) => {
-  const { data } = await api.post("/students/profile", {
-    ...input,
-    departmentId: Number(input.departmentId),
-    semester: Number(input.semester),
-  });
-
+  const { data } = await api.post("/students/profile", input);
   return data;
 };

@@ -15,24 +15,10 @@ import Button from "@/app/ui/button";
 import Input from "@/app/ui/input";
 import PageHeader from "@/app/ui/pageHeader";
 import { studentProfileSchema } from "@/validation/student-validation";
+import { Department } from "@/lib/department";
+import { useDepartment } from "@/app/(department)/departmentQuery";
 
-const departments = [
-  { id: "1", name: "Computer Science and Engineering (CSE)" },
-  { id: "2", name: "Electronics and Communication Engineering (ECE)" },
-  { id: "3", name: "Mechanical Engineering (ME)" },
-  { id: "4", name: "Commerce (B.Com)" },
-  { id: "5", name: "Business Administration (BBA)" },
-  { id: "6", name: "Mathematics (B.Sc Mathematics)" },
-  { id: "7", name: "English (BA English)" },
-  { id: "8", name: "Physics (B.Sc Physics)" },
-  { id: "9", name: "Chemistry (B.Sc Chemistry)" },
-  { id: "10", name: "Economics (BA Economics)" },
-  { id: "11", name: "Malayalam (BA Malayalam)" },
-  {
-    id: "12",
-    name: "Artificial Intelligence and Data Science (B.Sc AI & DS)",
-  },
-];
+
 
 const semesters = ["1", "2", "3", "4", "5", "6", "7", "8"];
 
@@ -51,6 +37,12 @@ export default function StudentProfile() {
   const profileQuery = useStudentProfile();
   const createProfile = useCreateStudentProfile();
 
+  const departmentQuery = useDepartment();
+
+const departments: Department[] = Array.isArray(departmentQuery.data)
+  ? departmentQuery.data
+  : [];
+
   const [formData, setFormData] = useState({
     admissionNumber: "",
     departmentId: "",
@@ -60,6 +52,7 @@ export default function StudentProfile() {
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [serverError, setServerError] = useState("");
+
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -109,12 +102,12 @@ export default function StudentProfile() {
     setServerError("");
 
     createProfile.mutate(
-      {
-        admissionNumber: validation.data.admissionNumber,
-        departmentId: Number(validation.data.departmentId),
-        semester: Number(validation.data.semester),
-        phone: validation.data.phone,
-      },
+  {
+    admissionNumber: validation.data.admissionNumber,
+    departmentId: validation.data.departmentId,
+    semester: validation.data.semester,
+    phone: validation.data.phone,
+  },
       {
         onSuccess: () => {
           router.push("/dashboard");
@@ -301,30 +294,43 @@ export default function StudentProfile() {
               </label>
 
               <select
-                id="departmentId"
-                name="departmentId"
-                value={formData.departmentId}
-                onChange={handleChange}
-                required
-                aria-invalid={!!errors.departmentId}
-                aria-describedby={
-                  errors.departmentId ? "departmentId-error" : undefined
-                }
-                className={selectClass}
-              >
-                <option value="">Choose your department</option>
-                {departments.map((department) => (
-                  <option key={department.id} value={department.id}>
-                    {department.name}
-                  </option>
-                ))}
-              </select>
+  id="departmentId"
+  name="departmentId"
+  value={formData.departmentId}
+  onChange={handleChange}
+  required
+  aria-invalid={!!errors.departmentId}
+  aria-describedby={
+    errors.departmentId ? "departmentId-error" : undefined
+  }
+  className={selectClass}
+>
+  <option value="">Choose your department</option>
 
-              {errors.departmentId && (
-                <p id="departmentId-error" className="mt-1 text-sm text-red-600">
-                  {errors.departmentId}
-                </p>
-              )}
+  {departments.map((department: Department) => (
+    <option key={department.id} value={String(department.id)}>
+      {department.name}
+    </option>
+  ))}
+</select>
+
+{departmentQuery.isLoading && (
+  <p className="mt-1 text-sm text-text-muted">
+    Loading departments...
+  </p>
+)}
+
+{departmentQuery.isError && (
+  <p className="mt-1 text-sm text-red-600">
+    Unable to load departments. Please try again.
+  </p>
+)}
+
+{errors.departmentId && (
+  <p id="departmentId-error" className="mt-1 text-sm text-red-600">
+    {errors.departmentId}
+  </p>
+)}
             </div>
 
             <div>
