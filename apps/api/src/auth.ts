@@ -31,9 +31,9 @@ export const auth = betterAuth({
 
   emailAndPassword: {
     enabled: true,
-<<<<<<< Updated upstream
 
-  disableSignUp: true,
+
+
   minPasswordLength: 8,
 
     sendResetPassword: async ({ user, url }) => {
@@ -50,10 +50,6 @@ export const auth = betterAuth({
     });
   },
 
-=======
-    disableSignUp: false,
-    minPasswordLength: 8,
->>>>>>> Stashed changes
   },
 
   plugins: [
