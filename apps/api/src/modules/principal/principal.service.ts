@@ -4,6 +4,7 @@ import { auth } from "../../auth.js";
 import { staff } from "../../db/schema/staff-schema.js";
 import type { CreateHodInput } from "../hod/hod.validation.js";
 import { departments } from "../../db/schema/others-schema.js";
+import { randomBytes } from "node:crypto";
 
 // Check whether the user is an active Principal
 export const getActivePrincipal = async (userId: string) => {
@@ -35,12 +36,15 @@ export const createHod = async (input: CreateHodInput) => {
     throw new Error("Employee ID is already registered");
   }
 
+  const temporaryPassword = randomBytes(32).toString("base64url");
+
+
   // Create the login account using Better Auth
   const result = await auth.api.signUpEmail({
     body: {
       name: input.name,
       email: input.email,
-      password: input.password,
+      password: temporaryPassword,
     },
   });
 
@@ -65,6 +69,14 @@ export const createHod = async (input: CreateHodInput) => {
     // The Better Auth user must be cleaned up separately if needed.
     throw error;
   }
+
+  // Send a password-setup email through Better Auth and Nodemailer.
+await auth.api.requestPasswordReset({
+  body: {
+    email: result.user.email,
+    redirectTo: `${process.env.WEB_URL || "http://localhost:3000"}/resetPassword`,
+  },
+});
 
   return {
     id: result.user.id,
