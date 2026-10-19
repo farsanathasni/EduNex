@@ -2,12 +2,14 @@
 import type { Request, Response } from "express";
 import asyncHandler from "../../middleware/asyncHandler.js";
 import {
-  createDepartment,
+  
+    createDepartment,
   deleteDepartment,
   getAllDepartments,
   getDepartmentById,
   updateDepartment,
 } from "./departments.service.js";
+import { createDepartmentsSchema, updateDepartmentSchema } from "./departments.validation.js";
 
 // Get all departments
 export const getDepartments = asyncHandler(
@@ -56,35 +58,27 @@ export const getDepartment = asyncHandler(
 
 
 // Create department
-export const createDepartments= asyncHandler(
+export const createDepartments = asyncHandler(
   async (req: Request, res: Response) => {
-    const { name, code, description } = req.body;
+    const validation = createDepartmentsSchema.safeParse(req.body);
 
-    if (
-      typeof name !== "string" ||
-      !name.trim() ||
-      typeof code !== "string" ||
-      !code.trim()
-    ) {
+    if (!validation.success) {
       return res.status(400).json({
         success: false,
-        message: "Department name and code are required",
+        message: "Department validation failed",
+        errors: validation.error.issues.map((issue) => ({
+          field: issue.path.join("."),
+          message: issue.message,
+        })),
       });
     }
 
-    const department = await createDepartment({
-      name: name.trim(),
-      code: code.trim(),
-      description:
-        typeof description === "string"
-          ? description.trim() || null
-          : null,
-    });
+    const createdDepartments = await createDepartment(validation.data);
 
     return res.status(201).json({
       success: true,
-      message: "Department created successfully",
-      data: department,
+      message: "Departments created successfully",
+      data: createdDepartments,
     });
   }
 );
@@ -103,63 +97,20 @@ export const editDepartment = asyncHandler(
       });
     }
 
-    const { name, code, description } = req.body;
+    const validation = updateDepartmentSchema.safeParse(req.body);
 
-    if (
-      name !== undefined &&
-      (typeof name !== "string" || !name.trim())
-    ) {
+    if (!validation.success) {
       return res.status(400).json({
         success: false,
-        message: "Department name must be a non-empty string",
+        message: "Department validation failed",
+        errors: validation.error.issues.map((issue) => ({
+          field: issue.path.join("."),
+          message: issue.message,
+        })),
       });
     }
 
-    if (
-      code !== undefined &&
-      (typeof code !== "string" || !code.trim())
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Department code must be a non-empty string",
-      });
-    }
-
-    if (
-      description !== undefined &&
-      description !== null &&
-      typeof description !== "string"
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Description must be a string or null",
-      });
-    }
-
-    const input: {
-      name?: string;
-      code?: string;
-      description?: string | null;
-    } = {};
-
-    if (name !== undefined) input.name = name.trim();
-    if (code !== undefined) input.code = code.trim();
-
-    if (description !== undefined) {
-      input.description =
-        typeof description === "string"
-          ? description.trim() || null
-          : null;
-    }
-
-    if (Object.keys(input).length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Provide at least one field to update",
-      });
-    }
-
-    const department = await updateDepartment(id, input);
+    const department = await updateDepartment(id, validation.data);
 
     if (!department) {
       return res.status(404).json({

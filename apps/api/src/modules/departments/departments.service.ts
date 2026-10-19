@@ -1,8 +1,8 @@
+
 import { asc, eq } from "drizzle-orm";
 import { db } from "../../config/database.js";
 import { departments } from "../../db/schema/others.schema.js";
-// import { db } from "../../db";
-// import { departments } from "../../db/schema";
+import type { DepartmentInput } from "./departments.validation.js";
 
 // Get all departments
 export const getAllDepartments = async () => {
@@ -23,22 +23,20 @@ export const getDepartmentById = async (id: number) => {
   return department ?? null;
 };
 
-// Create a department
-export const createDepartment = async (input: {
-  name: string;
-  code: string;
-  description?: string | null;
-}) => {
-  const [department] = await db
+// Create multiple departments
+export const createDepartment = async (
+  input: DepartmentInput[]
+) => {
+  return db
     .insert(departments)
-    .values({
-      name: input.name,
-      code: input.code,
-      description: input.description ?? null,
-    })
+    .values(
+      input.map((department) => ({
+        name: department.name,
+        code: department.code,
+        description: department.description ?? null,
+      }))
+    )
     .returning();
-
-  return department;
 };
 
 // Update a department
