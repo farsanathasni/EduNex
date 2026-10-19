@@ -1,6 +1,6 @@
 import { pgTable, index, foreignKey, unique, text, timestamp, bigint, varchar, boolean, check, integer, pgEnum } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
-import { user } from "../src/db/schema/auth-schema";
+import { user } from "../src/db/schema/auth-schema.js";
 
 export const staffRole = pgEnum("staff_role", ['faculty', 'hod', 'principal'])
 
