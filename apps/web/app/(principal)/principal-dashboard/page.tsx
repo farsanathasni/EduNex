@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState,useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { authClient } from "@/lib/auth-client";
@@ -21,6 +21,8 @@ type PrincipalDashboardResponse = {
   message: string;
   data: PrincipalDashboardData;
 };
+
+
 
 async function fetchPrincipalDashboard(): Promise<PrincipalDashboardResponse> {
   const response = await fetch(
@@ -45,6 +47,7 @@ async function fetchPrincipalDashboard(): Promise<PrincipalDashboardResponse> {
   return result as PrincipalDashboardResponse;
 }
 
+
 export default function PrincipalDashboardPage() {
   const router = useRouter();
 
@@ -53,6 +56,12 @@ export default function PrincipalDashboardPage() {
 
   const [activeTab, setActiveTab] = useState<Tab>("Overview");
   const [isSigningOut, setIsSigningOut] = useState(false);
+
+  useEffect(() => {
+  if (session === null) {
+    router.replace("/principal-login");
+  }
+}, [session, router]);
 
   const {
     data: dashboardResponse,
@@ -87,15 +96,13 @@ export default function PrincipalDashboardPage() {
     );
   }
 
-  if (!session) {
-    router.replace("/principal-login");
-
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-background">
-        <p className="text-text-muted">Redirecting to login...</p>
-      </main>
-    );
-  }
+if (session === null) {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-background">
+      <p>Redirecting to login...</p>
+    </main>
+  );
+}
 
   if (isDashboardPending) {
     return (
