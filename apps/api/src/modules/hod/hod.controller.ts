@@ -37,7 +37,7 @@ export const GetHodDashboard = asyncHandler(
         designation: hod.designation,
       },
     });
-  }
+  },
 );
 
 export const GetHodStudents = asyncHandler(
@@ -67,6 +67,7 @@ export const GetHodStudents = asyncHandler(
       });
     }
 
+    // Validate the semester query parameter.
     const validation = getHodStudentsSchema.safeParse(req.query);
 
     if (!validation.success) {
@@ -77,20 +78,44 @@ export const GetHodStudents = asyncHandler(
       });
     }
 
+    // Read and validate the optional department filter.
+    const departmentIdParam = req.query.departmentId;
+    let departmentId: number | undefined;
 
+    if (departmentIdParam !== undefined) {
+      if (
+        typeof departmentIdParam !== "string" ||
+        !/^\d+$/.test(departmentIdParam) ||
+        !Number.isSafeInteger(Number(departmentIdParam)) ||
+        Number(departmentIdParam) <= 0
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid department ID.",
+        });
+      }
 
-const semester =
-  validation.data.semester === undefined
-    ? undefined
-    : Number(validation.data.semester);
+      departmentId = Number(departmentIdParam);
+    }
 
-const students = await getHodStudents( semester);
+    const semester =
+      validation.data.semester === undefined
+        ? undefined
+        : Number(validation.data.semester);
+
+    // Apply both filters when provided.
+    const students = await getHodStudents(
+      departmentId,
+      semester,
+    );
 
     return res.status(200).json({
       success: true,
       message: "Students fetched successfully.",
       data: students,
     });
-  }
+  },
 );
 
+// Keep this export if the router from the other branch uses this name.
+export const GetStudentsByDepartment = GetHodStudents;

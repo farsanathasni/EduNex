@@ -1,10 +1,10 @@
-import { api } from "./axios";
+import { api } from "@/lib/axios";
 
 export interface HodDashboard {
-  staffId: string;
+  staffId: number | string;
   employeeId: string;
   role: "hod";
-  departmentId: string | null;
+  departmentId: number | string | null;
   designation: string | null;
 }
 
@@ -19,30 +19,63 @@ export interface HodStudent {
   name: string;
   admissionNumber: string;
   departmentId: number;
+  departmentName: string;
+  departmentCode?: string;
   semester: number;
   phone: string | null;
+  userId: string;
+  email: string;
 }
 
-export interface HodStudentsResponse {
+export interface Department {
+  id: number;
+  name: string;
+  code: string;
+  description: string | null;
+}
+
+export interface ApiResponse<T> {
   success: boolean;
   message: string;
-  data: HodStudent[];
+  data: T;
 }
 
-export const getHodDashboard = async (): Promise<HodDashboardResponse> => {
-  const response = await api.get<HodDashboardResponse>("/hod/dashboard");
-  return response.data;
+export const getHodDashboard = async (): Promise<HodDashboard> => {
+  const response = await api.get<HodDashboardResponse>(
+    "/hod/dashboard",
+  );
+
+  return response.data.data;
 };
 
 export const getHodStudents = async (
-  semester?: number
-): Promise<HodStudentsResponse> => {
-  const response = await api.get<HodStudentsResponse>(
+  departmentId?: number,
+  semester?: number,
+): Promise<HodStudent[]> => {
+  const response = await api.get<ApiResponse<HodStudent[]>>(
     "/hod/students",
     {
-      params: semester !== undefined ? { semester } : {},
-    }
+      params: {
+        ...(departmentId !== undefined && { departmentId }),
+        ...(semester !== undefined && { semester }),
+      },
+    },
   );
 
-  return response.data;
+  return response.data.data;
+};
+
+export const getDepartments = async (): Promise<Department[]> => {
+  const response = await api.get("/department");
+  const result = response.data;
+
+  if (Array.isArray(result)) {
+    return result;
+  }
+
+  if (Array.isArray(result?.data)) {
+    return result.data;
+  }
+
+  throw new Error("Invalid departments API response.");
 };
