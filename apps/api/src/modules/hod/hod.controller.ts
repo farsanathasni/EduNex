@@ -1,10 +1,13 @@
 import type { Request, Response } from "express";
 import asyncHandler from "../../middleware/asyncHandler.js";
-import { getActiveHod } from "./hod.service.js";
+import {
+  getActiveHod,
+  getHodStudents,
+} from "./hod.service.js";
+import { getHodStudentsSchema } from "./hod.validation.js";
 
 export const GetHodDashboard = asyncHandler(
   async (_req: Request, res: Response) => {
-    // Get authenticated user from Better Auth session
     const user = res.locals.user;
 
     if (!user) {
@@ -14,7 +17,6 @@ export const GetHodDashboard = asyncHandler(
       });
     }
 
-    // Check whether the user is an active HOD
     const hod = await getActiveHod(user.id);
 
     if (!hod) {
@@ -24,7 +26,6 @@ export const GetHodDashboard = asyncHandler(
       });
     }
 
-    // Return HOD dashboard information
     return res.status(200).json({
       success: true,
       message: "HOD dashboard fetched successfully.",
@@ -38,3 +39,58 @@ export const GetHodDashboard = asyncHandler(
     });
   }
 );
+
+export const GetHodStudents = asyncHandler(
+  async (req: Request, res: Response) => {
+    const user = res.locals.user;
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized. Please log in.",
+      });
+    }
+
+    const hod = await getActiveHod(user.id);
+
+    if (!hod) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Active HOD permission required.",
+      });
+    }
+
+    if (hod.departmentId === null) {
+      return res.status(400).json({
+        success: false,
+        message: "No department is assigned to this HOD.",
+      });
+    }
+
+    const validation = getHodStudentsSchema.safeParse(req.query);
+
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid query parameters.",
+        errors: validation.error.flatten(),
+      });
+    }
+
+
+
+const semester =
+  validation.data.semester === undefined
+    ? undefined
+    : Number(validation.data.semester);
+
+const students = await getHodStudents( semester);
+
+    return res.status(200).json({
+      success: true,
+      message: "Students fetched successfully.",
+      data: students,
+    });
+  }
+);
+

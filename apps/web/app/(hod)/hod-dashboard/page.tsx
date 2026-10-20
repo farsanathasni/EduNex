@@ -5,52 +5,35 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { authClient } from "@/lib/auth-client";
 
-type Tab = "Overview" | "Coordinators" | "Event Approvals";
+import {
+  getHodDashboard,
+  getHodStudents,
+  
+  type HodDashboardResponse,
+  type HodStudent,
+} from "@/lib/hod";
 
-type HodDashboardData = {
-  staffId: string;
-  employeeId: string;
-  role: "hod";
-  departmentId: string | null;
-  designation: string | null;
-};
-
-type HodDashboardResponse = {
-  success: boolean;
-  message: string;
-  data: HodDashboardData;
-};
-
-async function fetchHodDashboard(): Promise<HodDashboardResponse> {
-  const response = await fetch(
-    "http://localhost:5000/api/hod/dashboard",
-    {
-      method: "GET",
-      credentials: "include",
-    },
-  );
-
-  const result = await response.json();
-
-  if (!response.ok) {
-    const error = new Error(
-      result.message || "Failed to load HOD dashboard.",
-    ) as Error & { status?: number };
-
-    error.status = response.status;
-    throw error;
-  }
-
-  return result as HodDashboardResponse;
-}
+type Tab =
+  | "Overview"
+  | "Students"
+  | "Coordinators"
+  | "Event Approvals";
 
 export default function HODDashboardPage() {
   const router = useRouter();
-  const { data: session, isPending: isSessionPending } =
-    authClient.useSession();
+
+  const {
+    data: session,
+    isPending: isSessionPending,
+  } = authClient.useSession();
 
   const [activeTab, setActiveTab] = useState<Tab>("Overview");
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [semester, setSemester] = useState("");
+ 
+
+
+  
 
   const {
     data: dashboardResponse,
@@ -58,10 +41,31 @@ export default function HODDashboardPage() {
     isError,
     error,
     refetch,
-  } = useQuery({
+  } = useQuery<HodDashboardResponse>({
     queryKey: ["hod", "dashboard"],
-    queryFn: fetchHodDashboard,
+    queryFn: getHodDashboard,
     enabled: !!session && !isSessionPending,
+    retry: false,
+  });
+
+
+  const {
+    data: studentsResponse,
+    isPending: isStudentsPending,
+    isError: isStudentsError,
+    error: studentsError,
+    refetch: refetchStudents,
+  } = useQuery({
+    queryKey: ["hod", "students", semester],
+    queryFn: () =>
+      getHodStudents(
+        semester === "" ? undefined : Number(semester)
+      ),
+    enabled:
+      !!session &&
+      !isSessionPending &&
+      !!dashboardResponse?.data &&
+      activeTab === "Students",
     retry: false,
   });
 
@@ -86,8 +90,6 @@ export default function HODDashboardPage() {
   }
 
   if (!session) {
-    router.replace("/hod-login");
-
     return (
       <main className="flex min-h-screen items-center justify-center bg-background">
         <p className="text-text-muted">Redirecting to login...</p>
@@ -104,7 +106,9 @@ export default function HODDashboardPage() {
   }
 
   if (isError || !dashboardResponse?.data) {
-    const status = (error as Error & { status?: number } | null)?.status;
+    const status = (
+      error as (Error & { status?: number }) | null
+    )?.status;
 
     const message =
       status === 403
@@ -156,6 +160,7 @@ export default function HODDashboardPage() {
   }
 
   const hod = dashboardResponse.data;
+  const students: HodStudent[] = studentsResponse?.data ?? [];
 
   const stats = [
     {
@@ -213,27 +218,32 @@ export default function HODDashboardPage() {
           </p>
 
           <p className="mt-1 text-sm text-text-muted">
-            Department ID: {hod.departmentId || "Not assigned"}
+            Department ID: {hod.departmentId ?? "Not assigned"}
           </p>
         </section>
 
         <nav className="mb-8 flex flex-wrap gap-2 border-b border-border pb-3">
-          {(["Overview", "Coordinators", "Event Approvals"] as Tab[]).map(
-            (tab) => (
-              <button
-                key={tab}
-                type="button"
-                onClick={() => setActiveTab(tab)}
-                className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
-                  activeTab === tab
-                    ? "bg-primary text-primary-foreground"
-                    : "text-text-muted hover:bg-surface"
-                }`}
-              >
-                {tab}
-              </button>
-            ),
-          )}
+          {(
+            [
+              "Overview",
+              "Students",
+              "Coordinators",
+              "Event Approvals",
+            ] as Tab[]
+          ).map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => setActiveTab(tab)}
+              className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
+                activeTab === tab
+                  ? "bg-primary text-primary-foreground"
+                  : "text-text-muted hover:bg-surface"
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
         </nav>
 
         {activeTab === "Overview" && (
@@ -265,6 +275,122 @@ export default function HODDashboardPage() {
                 added when those APIs are implemented.
               </p>
             </div>
+          </section>
+        )}
+
+        {activeTab === "Students" && (
+          <section>
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-semibold">
+                  Department Students
+                </h3>
+                <p className="mt-1 text-sm text-text-muted">
+                  View students belonging to your department.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <label
+                  htmlFor="semester"
+                  className="text-sm font-medium"
+                >
+                  Semester
+                </label>
+
+                <select
+                  id="semester"
+                  value={semester}
+                  onChange={(event) => setSemester(event.target.value)}
+                  className="rounded-lg border border-border bg-surface px-3 py-2 text-sm"
+                >
+                  <option value="">All semesters</option>
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map((number) => (
+                    <option key={number} value={number}>
+                      Semester {number}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {isStudentsPending && (
+              <div className="rounded-xl border border-border bg-surface p-6">
+                <p className="text-sm text-text-muted">
+                  Loading students...
+                </p>
+              </div>
+            )}
+
+            {isStudentsError && (
+              <div className="rounded-xl border border-border bg-surface p-6">
+                <p className="text-sm text-red-500">
+                  {studentsError instanceof Error
+                    ? studentsError.message
+                    : "Unable to load students."}
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => void refetchStudents()}
+                  className="mt-4 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+                >
+                  Try again
+                </button>
+              </div>
+            )}
+
+            {!isStudentsPending &&
+              !isStudentsError &&
+              students.length === 0 && (
+                <div className="rounded-xl border border-border bg-surface p-8 text-center">
+                  <h4 className="font-semibold">No students found</h4>
+                  <p className="mt-2 text-sm text-text-muted">
+                    No students are available for this department and semester.
+                  </p>
+                </div>
+              )}
+
+            {!isStudentsPending &&
+              !isStudentsError &&
+              students.length > 0 && (
+                <div className="overflow-x-auto rounded-xl border border-border bg-surface">
+                  <table className="w-full text-left text-sm">
+                    <thead className="border-b border-border bg-background">
+                      <tr>
+                        <th className="px-4 py-3 font-semibold">Name</th>
+                        <th className="px-4 py-3 font-semibold">
+                          Admission Number
+                        </th>
+                        <th className="px-4 py-3 font-semibold">
+                          Semester
+                        </th>
+                        <th className="px-4 py-3 font-semibold">Phone</th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {students.map((student) => (
+                        <tr
+                          key={student.id}
+                          className="border-b border-border last:border-0"
+                        >
+                          <td className="px-4 py-3">{student.name}</td>
+                          <td className="px-4 py-3">
+                            {student.admissionNumber}
+                          </td>
+                          <td className="px-4 py-3">
+                            {student.semester}
+                          </td>
+                          <td className="px-4 py-3">
+                            {student.phone || "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
           </section>
         )}
 

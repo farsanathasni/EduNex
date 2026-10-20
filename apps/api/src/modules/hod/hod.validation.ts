@@ -9,4 +9,20 @@ export const createHodSchema = z.object({
   phone: z.string().trim().optional(),
 });
 
+export const getHodStudentsSchema = z.object({
+
+  
+    
+  semester: z
+    .string()
+    .regex(/^[1-8]$/, "Semester must be between 1 and 8.")
+    .optional(),
+});
+
+
+
+export type GetHodStudentsInput = z.infer<
+  typeof getHodStudentsSchema
+>
+
 export type CreateHodInput = z.infer<typeof createHodSchema>;
