@@ -1,10 +1,13 @@
 import type { Request, Response } from "express";
 import asyncHandler from "../../middleware/asyncHandler.js";
-import { getActiveHod, getAllStudents } from "./hod.service.js";
+import {
+  getActiveHod,
+  getHodStudents,
+} from "./hod.service.js";
+import { getHodStudentsSchema } from "./hod.validation.js";
 
 export const GetHodDashboard = asyncHandler(
   async (_req: Request, res: Response) => {
-    // Get authenticated user from Better Auth session
     const user = res.locals.user;
 
     if (!user) {
@@ -14,7 +17,6 @@ export const GetHodDashboard = asyncHandler(
       });
     }
 
-    // Check whether the user is an active HOD
     const hod = await getActiveHod(user.id);
 
     if (!hod) {
@@ -24,7 +26,6 @@ export const GetHodDashboard = asyncHandler(
       });
     }
 
-    // Return HOD dashboard information
     return res.status(200).json({
       success: true,
       message: "HOD dashboard fetched successfully.",
@@ -36,28 +37,49 @@ export const GetHodDashboard = asyncHandler(
         designation: hod.designation,
       },
     });
-  }
+  },
 );
 
+export const GetHodStudents = asyncHandler(
+  async (req: Request, res: Response) => {
+    const user = res.locals.user;
 
-
-export const GetStudentsByDepartment =asyncHandler(async(req:Request,res:Response)=>{
-  const user=res.locals.user
-
-  if(!user){
-    return res.status(401).json({
-        success: false,message: "Unauthorized. Please log in.",
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized. Please log in.",
       });
-  }
+    }
 
-  const hod=await getActiveHod(user.id)
-  if(!hod){
-     return res.status(403).json({
-        success: false,message: "Access denied. Active HOD permission required.",
+    const hod = await getActiveHod(user.id);
+
+    if (!hod) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. Active HOD permission required.",
       });
-  }
+    }
 
-  const departmentIdParam = req.query.departmentId;
+    if (hod.departmentId === null) {
+      return res.status(400).json({
+        success: false,
+        message: "No department is assigned to this HOD.",
+      });
+    }
+
+    // Validate the semester query parameter.
+    const validation = getHodStudentsSchema.safeParse(req.query);
+
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid query parameters.",
+        errors: validation.error.flatten(),
+      });
+    }
+
+    // Read and validate the optional department filter.
+    const departmentIdParam = req.query.departmentId;
     let departmentId: number | undefined;
 
     if (departmentIdParam !== undefined) {
@@ -76,12 +98,24 @@ export const GetStudentsByDepartment =asyncHandler(async(req:Request,res:Respons
       departmentId = Number(departmentIdParam);
     }
 
-    const students=await getAllStudents(departmentId)
+    const semester =
+      validation.data.semester === undefined
+        ? undefined
+        : Number(validation.data.semester);
+
+    // Apply both filters when provided.
+    const students = await getHodStudents(
+      departmentId,
+      semester,
+    );
 
     return res.status(200).json({
-      success: true,message: "Students fetched successfully.",
-      data:students
-    })
+      success: true,
+      message: "Students fetched successfully.",
+      data: students,
+    });
+  },
+);
 
-
-})
+// Keep this export if the router from the other branch uses this name.
+export const GetStudentsByDepartment = GetHodStudents;

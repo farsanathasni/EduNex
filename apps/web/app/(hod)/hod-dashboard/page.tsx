@@ -1,11 +1,13 @@
-
 "use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import { useHodDashboard, useHodDepartments, useHodStudents } from "../hodQuery";
-
+import {
+  useHodDashboard,
+  useHodDepartments,
+  useHodStudents,
+} from "../hodQuery";
 
 type Tab =
   | "Overview"
@@ -23,18 +25,17 @@ export default function HODDashboardPage() {
 
   const [activeTab, setActiveTab] = useState<Tab>("Overview");
   const [selectedDepartment, setSelectedDepartment] = useState("");
+  const [semester, setSemester] = useState("");
   const [isSigningOut, setIsSigningOut] = useState(false);
 
-  // HOD dashboard information
   const {
-    data: dashboardResponse,
+    data: hod,
     isPending: isDashboardPending,
     isError: isDashboardError,
     error: dashboardError,
     refetch: refetchDashboard,
   } = useHodDashboard();
 
-  // Fetch departments only when the Students tab is active
   const {
     data: departments = [],
     isPending: isDepartmentsPending,
@@ -49,7 +50,9 @@ export default function HODDashboardPage() {
       ? undefined
       : Number(selectedDepartment);
 
-  // Fetch all students or students from the selected department
+  const semesterNumber =
+    semester === "" ? undefined : Number(semester);
+
   const {
     data: students = [],
     isPending: isStudentsPending,
@@ -58,6 +61,7 @@ export default function HODDashboardPage() {
     refetch: refetchStudents,
   } = useHodStudents(
     departmentId,
+    semesterNumber,
     !!session && !isSessionPending && activeTab === "Students",
   );
 
@@ -86,7 +90,6 @@ export default function HODDashboardPage() {
       <main className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
           <p className="text-text-muted">Redirecting to login...</p>
-
           <button
             type="button"
             onClick={() => router.replace("/hod-login")}
@@ -107,9 +110,9 @@ export default function HODDashboardPage() {
     );
   }
 
-  if (isDashboardError || !dashboardResponse) {
+  if (isDashboardError || !hod) {
     const status = (
-      dashboardError as Error & { status?: number } | null
+      dashboardError as (Error & { status?: number }) | null
     )?.status;
 
     const message =
@@ -125,7 +128,6 @@ export default function HODDashboardPage() {
       <main className="flex min-h-screen items-center justify-center bg-background px-4">
         <section className="w-full max-w-md rounded-xl border border-border bg-surface p-6">
           <h1 className="text-xl font-bold">HOD Dashboard</h1>
-
           <p className="mt-3 text-sm text-text-muted">{message}</p>
 
           <div className="mt-5 flex flex-wrap gap-2">
@@ -157,8 +159,6 @@ export default function HODDashboardPage() {
     );
   }
 
-  const hod = dashboardResponse;
-
   const stats = [
     {
       title: "Department Coordinators",
@@ -179,7 +179,6 @@ export default function HODDashboardPage() {
 
   return (
     <main className="min-h-screen bg-background text-text">
-      {/* Header */}
       <header className="border-b border-border bg-surface">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
           <div>
@@ -201,7 +200,6 @@ export default function HODDashboardPage() {
       </header>
 
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* HOD Profile */}
         <section className="mb-8">
           <p className="text-sm font-medium text-text-muted">
             HOD WORKSPACE
@@ -215,13 +213,8 @@ export default function HODDashboardPage() {
             {hod.designation || "Head of Department"} · Employee ID:{" "}
             {hod.employeeId}
           </p>
-
-          <p className="mt-1 text-sm text-text-muted">
-            Department ID: {hod.departmentId ?? "Not assigned"}
-          </p>
         </section>
 
-        {/* Navigation */}
         <nav className="mb-8 flex flex-wrap gap-2 border-b border-border pb-3">
           {(
             [
@@ -246,12 +239,9 @@ export default function HODDashboardPage() {
           ))}
         </nav>
 
-        {/* Overview */}
         {activeTab === "Overview" && (
           <section>
-            <h3 className="mb-4 text-lg font-semibold">
-              Department Overview
-            </h3>
+            <h3 className="mb-4 text-lg font-semibold">Overview</h3>
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {stats.map((stat) => (
@@ -271,74 +261,91 @@ export default function HODDashboardPage() {
             <div className="mt-6 rounded-xl border border-border bg-surface p-6">
               <h3 className="font-semibold">Quick overview</h3>
               <p className="mt-2 text-sm leading-6 text-text-muted">
-                Your dashboard is connected to the backend. Coordinator
-                information, event counts, and approval statistics will
-                appear here when their APIs are implemented.
+                Coordinator information, event counts, and approval
+                statistics will appear here when their APIs are implemented.
               </p>
             </div>
           </section>
         )}
 
-        {/* Students */}
         {activeTab === "Students" && (
           <section className="space-y-6">
             <div>
               <h3 className="text-xl font-semibold">Students</h3>
               <p className="mt-1 text-sm text-text-muted">
-                View all students or filter by department.
+                Filter students by department, semester, or both.
               </p>
             </div>
 
-            {/* Department filter */}
-            <div className="rounded-xl border border-border bg-surface p-5">
-              <label
-                htmlFor="department"
-                className="mb-2 block text-sm font-medium"
-              >
-                Filter by department
-              </label>
+            <div className="grid gap-4 rounded-xl border border-border bg-surface p-5 sm:grid-cols-2">
+              <div>
+                <label
+                  htmlFor="department"
+                  className="mb-2 block text-sm font-medium"
+                >
+                  Department
+                </label>
 
-              <select
-                id="department"
-                value={selectedDepartment}
-                onChange={(event) =>
-                  setSelectedDepartment(event.target.value)
-                }
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 sm:max-w-sm"
-              >
-                <option value="">All Departments</option>
+                <select
+                  id="department"
+                  value={selectedDepartment}
+                  onChange={(event) =>
+                    setSelectedDepartment(event.target.value)
+                  }
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2"
+                >
+                  <option value="">All Departments</option>
+                  {departments.map((department) => (
+                    <option key={department.id} value={department.id}>
+                      {department.name} ({department.code})
+                    </option>
+                  ))}
+                </select>
 
-                {departments.map((department) => (
-                  <option
-                    key={department.id}
-                    value={department.id}
-                  >
-                    {department.name} ({department.code})
-                  </option>
-                ))}
-              </select>
+                {isDepartmentsPending && (
+                  <p className="mt-2 text-sm text-text-muted">
+                    Loading departments...
+                  </p>
+                )}
 
-              {isDepartmentsPending && (
-                <p className="mt-2 text-sm text-text-muted">
-                  Loading departments...
-                </p>
-              )}
+                {isDepartmentsError && (
+                  <div className="mt-2 text-sm text-red-500">
+                    <p>Unable to load departments.</p>
+                    <button
+                      type="button"
+                      onClick={() => void refetchDepartments()}
+                      className="mt-1 underline"
+                    >
+                      Try again
+                    </button>
+                  </div>
+                )}
+              </div>
 
-              {isDepartmentsError && (
-                <div className="mt-2 text-sm text-red-500">
-                  <p>Unable to load departments.</p>
-                  <button
-                    type="button"
-                    onClick={() => void refetchDepartments()}
-                    className="mt-1 underline"
-                  >
-                    Try again
-                  </button>
-                </div>
-              )}
+              <div>
+                <label
+                  htmlFor="semester"
+                  className="mb-2 block text-sm font-medium"
+                >
+                  Semester
+                </label>
+
+                <select
+                  id="semester"
+                  value={semester}
+                  onChange={(event) => setSemester(event.target.value)}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2"
+                >
+                  <option value="">All Semesters</option>
+                  {[1, 2, 3, 4, 5, 6, 7, 8].map((number) => (
+                    <option key={number} value={number}>
+                      Semester {number}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            {/* Students table */}
             {isStudentsPending ? (
               <div className="rounded-xl border border-border bg-surface p-6">
                 <p className="text-sm text-text-muted">
@@ -374,9 +381,7 @@ export default function HODDashboardPage() {
                       <th className="px-4 py-3 font-semibold">
                         Department
                       </th>
-                      <th className="px-4 py-3 font-semibold">
-                        Semester
-                      </th>
+                      <th className="px-4 py-3 font-semibold">Semester</th>
                       <th className="px-4 py-3 font-semibold">Phone</th>
                     </tr>
                   </thead>
@@ -385,10 +390,10 @@ export default function HODDashboardPage() {
                     {students.length === 0 ? (
                       <tr>
                         <td
-                          colSpan={5}
+                          colSpan={6}
                           className="px-4 py-8 text-center text-text-muted"
                         >
-                          No students found.
+                          No students match the selected filters.
                         </td>
                       </tr>
                     ) : (
@@ -405,9 +410,7 @@ export default function HODDashboardPage() {
                           <td className="px-4 py-3">
                             {student.departmentName}
                           </td>
-                          <td className="px-4 py-3">
-                            {student.semester}
-                          </td>
+                          <td className="px-4 py-3">{student.semester}</td>
                           <td className="px-4 py-3">
                             {student.phone || "—"}
                           </td>
@@ -425,26 +428,24 @@ export default function HODDashboardPage() {
           </section>
         )}
 
-        {/* Coordinators */}
         {activeTab === "Coordinators" && (
           <section className="rounded-xl border border-border bg-surface p-6">
             <h3 className="text-lg font-semibold">
               Department Coordinators
             </h3>
             <p className="mt-2 text-sm text-text-muted">
-              Coordinator details will appear here after the
-              coordinators API is connected.
+              Coordinator details will appear here after the coordinators API
+              is connected.
             </p>
           </section>
         )}
 
-        {/* Event Approvals */}
         {activeTab === "Event Approvals" && (
           <section className="rounded-xl border border-border bg-surface p-6">
             <h3 className="text-lg font-semibold">Event Approvals</h3>
             <p className="mt-2 text-sm text-text-muted">
-              Event requests and approval actions will appear here
-              after the event approval API is connected.
+              Event requests and approval actions will appear here after the
+              event approval API is connected.
             </p>
           </section>
         )}

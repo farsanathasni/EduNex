@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -27,52 +28,78 @@ export default function HODLoginPage() {
     },
   });
 
-const onSubmit = async (data: HodLoginInput) => {
-  setLoginError("");
+  const onSubmit = async (data: HodLoginInput) => {
+    setLoginError("");
 
-  try {
-    
-    const result = await authClient.signIn.email({
-      email: data.email,
-      password: data.password,
-    });
+    let loginSucceeded = false;
 
-    if (result.error) {
-      setLoginError(
-        result.error.message || "Login failed. Please try again.",
-      );
-      return;
+    try {
+      const result = await authClient.signIn.email({
+        email: data.email,
+        password: data.password,
+      });
+
+      if (result.error) {
+        setLoginError(
+          result.error.message || "Login failed. Please try again.",
+        );
+        return;
+      }
+
+      loginSucceeded = true;
+
+      // Verify that the signed-in user has HOD access.
+      await getHodDashboard();
+
+      router.replace("/hod-dashboard");
+      router.refresh();
+    } catch (error) {
+      console.error("HOD login or verification failed:", error);
+
+      // Sign out only if login succeeded but HOD verification failed.
+      if (loginSucceeded) {
+        try {
+          await authClient.signOut();
+        } catch (signOutError) {
+          console.error("Sign-out request failed:", signOutError);
+        }
+      }
+
+      const responseError = error as {
+        response?: {
+          status?: number;
+          data?: { message?: string };
+        };
+        status?: number;
+        message?: string;
+      };
+
+      const status =
+        responseError.response?.status ?? responseError.status;
+
+      const message =
+        responseError.response?.data?.message ??
+        responseError.message;
+
+      if (status === 403) {
+        setLoginError(
+          "Your account does not have active HOD permissions.",
+        );
+      } else if (status === 401) {
+        setLoginError(
+          "Your session is not authorized. Please sign in again.",
+        );
+      } else if (status) {
+        setLoginError(
+          message || "Unable to verify HOD access. Please try again.",
+        );
+      } else {
+        setLoginError(
+          "Unable to log in or verify HOD access. Please check your connection.",
+        );
+      }
     }
-
-    
-    await getHodDashboard();
-
-    
-    router.replace("/hod-dashboard");
-    router.refresh();
-  } catch (error) {
-    // If login succeeded but HOD verification failed, sign out
-    await authClient.signOut();
-
-    const status = (
-      error as { response?: { status?: number; data?: { message?: string } } }
-    ).response?.status;
-
-    const message = (
-      error as { response?: { data?: { message?: string } } }
-    ).response?.data?.message;
-
-    if (status === 403) {
-      setLoginError("Your account does not have active HOD permissions.");
-    } else if (status) {
-      setLoginError(message || "Unable to verify HOD access. Please try again.");
-    } else {
-      setLoginError(
-        "Unable to log in or verify HOD access. Please check your connection.",
-      );
-    }
-  }
-};
+  };
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10">

@@ -1,12 +1,14 @@
-
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const token = searchParams.get("token") || "";
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -14,14 +16,8 @@ export default function ResetPasswordPage() {
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
 
-const searchParams = useSearchParams();
-
-const token = searchParams.get("token") || "";
-
-  
-
   async function handleSubmit(
-    event: React.FormEvent<HTMLFormElement>
+    event: React.FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
 
@@ -30,7 +26,7 @@ const token = searchParams.get("token") || "";
 
     if (!token) {
       setError(
-        "Invalid or missing reset link. Please request a new email."
+        "Invalid or missing reset link. Please request a new email.",
       );
       return;
     }
@@ -55,20 +51,18 @@ const token = searchParams.get("token") || "";
 
       if (result.error) {
         setError(
-          result.error.message || "Unable to reset password."
+          result.error.message || "Unable to reset password.",
         );
         return;
       }
 
       setSuccess(
-        "Password created successfully! You can now log in."
+        "Password created successfully! You can now log in.",
       );
       setPassword("");
       setConfirmPassword("");
     } catch {
-      setError(
-        "Something went wrong. Please try again."
-      );
+      setError("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -86,7 +80,10 @@ const token = searchParams.get("token") || "";
         </p>
 
         {error && (
-          <p className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">
+          <p
+            role="alert"
+            className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700"
+          >
             {error}
           </p>
         )}
@@ -164,5 +161,19 @@ const token = searchParams.get("token") || "";
         )}
       </div>
     </main>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="flex min-h-screen items-center justify-center bg-[#f5f7fc]">
+          <p className="text-gray-600">Loading reset password page...</p>
+        </main>
+      }
+    >
+      <ResetPasswordForm />
+    </Suspense>
   );
 }

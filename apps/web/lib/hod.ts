@@ -1,4 +1,3 @@
-
 import { api } from "@/lib/axios";
 
 export interface HodDashboard {
@@ -9,9 +8,9 @@ export interface HodDashboard {
   designation: string | null;
 }
 
-interface HodDashboardResponse {
+export interface HodDashboardResponse {
   success: boolean;
-  message: string;
+  message?: string;
   data: HodDashboard;
 }
 
@@ -21,6 +20,7 @@ export interface HodStudent {
   admissionNumber: string;
   departmentId: number;
   departmentName: string;
+  departmentCode?: string;
   semester: number;
   phone: string | null;
   userId: string;
@@ -40,10 +40,9 @@ export interface ApiResponse<T> {
   data: T;
 }
 
-
 export const getHodDashboard = async (): Promise<HodDashboard> => {
   const response = await api.get<HodDashboardResponse>(
-    "/hod/dashboard"
+    "/hod/dashboard",
   );
 
   return response.data.data;
@@ -51,27 +50,25 @@ export const getHodDashboard = async (): Promise<HodDashboard> => {
 
 export const getHodStudents = async (
   departmentId?: number,
+  semester?: number,
 ): Promise<HodStudent[]> => {
   const response = await api.get<ApiResponse<HodStudent[]>>(
     "/hod/students",
     {
-      params:
-        departmentId !== undefined
-          ? { departmentId }
-          : undefined,
+      params: {
+        ...(departmentId !== undefined && { departmentId }),
+        ...(semester !== undefined && { semester }),
+      },
     },
   );
 
   return response.data.data;
 };
 
-
-
 export const getDepartments = async (): Promise<Department[]> => {
   const response = await api.get("/department");
   const result = response.data;
 
-  // Supports either an array or { success, data: [...] }.
   if (Array.isArray(result)) {
     return result;
   }

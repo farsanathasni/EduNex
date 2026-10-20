@@ -1,7 +1,9 @@
-
-import { getDepartments, getHodDashboard, getHodStudents } from "@/lib/hod";
+import {
+  getDepartments,
+  getHodDashboard,
+  getHodStudents,
+} from "@/lib/hod";
 import { useQuery } from "@tanstack/react-query";
-
 
 export const useHodDashboard = () => {
   return useQuery({
@@ -10,7 +12,6 @@ export const useHodDashboard = () => {
     retry: false,
   });
 };
-
 
 export const useHodDepartments = (enabled = true) => {
   return useQuery({
@@ -23,13 +24,18 @@ export const useHodDepartments = (enabled = true) => {
 
 export const useHodStudents = (
   departmentId?: number,
+  semester?: number,
   enabled = true,
 ) => {
   return useQuery({
-    queryKey: ["hod", "students", departmentId ?? "all"],
-    queryFn: () => getHodStudents(departmentId),
+    queryKey: [
+      "hod",
+      "students",
+      departmentId ?? "all",
+      semester ?? "all",
+    ],
+    queryFn: () => getHodStudents(departmentId, semester),
     enabled,
     retry: false,
   });
 };
-
