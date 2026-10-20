@@ -4,7 +4,7 @@ import asyncHandler from "../../middleware/asyncHandler.js";
 import { studentService } from "./student.service.js";
 import { createStudentProfileSchema } from "./student.validation.js";
 import { db } from "../../config/database.js";
-import { departments } from "../../db/schema/others.schema.js";
+import { departments } from "../../db/schema/others-schema.js";
 import { eq } from "drizzle-orm";
 
 export const CreateStudentProfile = asyncHandler(

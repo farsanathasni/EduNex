@@ -1,7 +1,7 @@
 
 import { asc, eq } from "drizzle-orm";
 import { db } from "../../config/database.js";
-import { departments } from "../../db/schema/others.schema.js";
+import { departments } from "../../db/schema/others-schema.js";
 import type { DepartmentInput } from "./departments.validation.js";
 
 // Get all departments
