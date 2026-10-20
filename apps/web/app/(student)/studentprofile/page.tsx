@@ -110,7 +110,7 @@ const departments: Department[] = Array.isArray(departmentQuery.data)
   },
       {
         onSuccess: () => {
-          router.push("/dashboard");
+          router.push("/studentDashboard");
         },
         onError: (error: any) => {
           const status = error.response?.status;
