@@ -7,6 +7,8 @@ import { useQuery } from "@tanstack/react-query";
 import { authClient } from "@/lib/auth-client";
 import AddHodForm from "./AddHodForm";
 
+import { getPrincipalDashboard } from "@/lib/principal";
+
 type Tab = "Overview" | "Events" | "Approvals" | "Add HOD"
 
 type PrincipalDashboardData = {
@@ -23,31 +25,6 @@ type PrincipalDashboardResponse = {
 };
 
 
-
-async function fetchPrincipalDashboard(): Promise<PrincipalDashboardResponse> {
-  const response = await fetch(
-    "http://localhost:5000/api/principal/dashboard",
-    {
-      method: "GET",
-      credentials: "include",
-    },
-  );
-
-  const result = await response.json();
-
-  if (!response.ok || !result.success) {
-    const error = new Error(
-      result.message || "Failed to load Principal dashboard.",
-    ) as Error & { status?: number };
-
-    error.status = response.status;
-    throw error;
-  }
-
-  return result as PrincipalDashboardResponse;
-}
-
-
 export default function PrincipalDashboardPage() {
   const router = useRouter();
 
@@ -57,11 +34,11 @@ export default function PrincipalDashboardPage() {
   const [activeTab, setActiveTab] = useState<Tab>("Overview");
   const [isSigningOut, setIsSigningOut] = useState(false);
 
-  useEffect(() => {
-  if (session === null) {
+useEffect(() => {
+  if (!isSessionPending && !session) {
     router.replace("/principal-login");
   }
-}, [session, router]);
+}, [isSessionPending, session, router]);
 
   const {
     data: dashboardResponse,
@@ -69,9 +46,9 @@ export default function PrincipalDashboardPage() {
     isError,
     error,
     refetch,
-  } = useQuery({
+  } = useQuery<PrincipalDashboardResponse>({
     queryKey: ["principal", "dashboard"],
-    queryFn: fetchPrincipalDashboard,
+    queryFn: getPrincipalDashboard,
     enabled: !!session && !isSessionPending,
     retry: false,
   });
@@ -96,7 +73,7 @@ export default function PrincipalDashboardPage() {
     );
   }
 
-if (session === null) {
+if (!isSessionPending && !session) {
   return (
     <main className="flex min-h-screen items-center justify-center bg-background">
       <p>Redirecting to login...</p>
@@ -215,8 +192,8 @@ if (session === null) {
           </p>
 
           <h2 className="mt-2 text-3xl font-bold">
-            Welcome, {session.user.name}
-          </h2>
+  Welcome, {session?.user?.name ?? "Principal"}
+</h2>
 
           <p className="mt-2 text-text-muted">
             {principal.designation || "Principal"} · Employee ID:{" "}

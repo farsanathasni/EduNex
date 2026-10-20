@@ -11,13 +11,8 @@ export interface Department {
 export const getDepartment = async (): Promise<Department[]> => {
   try {
 
-    // console.log("1. getDepartment() called");
-    // console.log("2. API base URL:", api.defaults.baseURL);
-    // console.log("3. Request path:", "/department");
-  const response = await api.get("/api/department");
+  const response = await api.get("/department");
 
-    //  console.log("4. Full request URL:", response.config.url);
-    // console.log("5. Response data:", response.data);
     const result = response.data;
 
     if (Array.isArray(result)) {
@@ -32,9 +27,10 @@ export const getDepartment = async (): Promise<Department[]> => {
   } catch (error) {
     if (axios.isAxiosError(error)) {
       console.error("Request URL:", error.config?.baseURL, error.config?.url);
-      // console.error("Status:", error.response?.status);
-      // console.error("Response:", error.response?.data);
-      // console.error("Department API error:", error.response?.status, error.response?.data);
+       console.error("Request URL:", error.config?.baseURL, error.config?.url);
+    console.error("Status:", error.response?.status);
+    console.error("Response:", error.response?.data);
+
     }
     throw error;
   }

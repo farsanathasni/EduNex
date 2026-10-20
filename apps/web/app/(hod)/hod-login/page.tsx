@@ -9,6 +9,7 @@ import {
   hodLoginSchema,
   type HodLoginInput,
 } from "@/validation/hod-login-schema";
+import { getHodDashboard } from "@/lib/hod";
 
 export default function HODLoginPage() {
   const router = useRouter();
@@ -26,60 +27,52 @@ export default function HODLoginPage() {
     },
   });
 
-  const onSubmit = async (data: HodLoginInput) => {
-    setLoginError("");
+const onSubmit = async (data: HodLoginInput) => {
+  setLoginError("");
 
-    try {
-      // Step 1: Sign in using Better Auth
-      const result = await authClient.signIn.email({
-        email: data.email,
-        password: data.password,
-      });
+  try {
+    
+    const result = await authClient.signIn.email({
+      email: data.email,
+      password: data.password,
+    });
 
-      if (result.error) {
-        setLoginError(
-          result.error.message || "Login failed. Please try again.",
-        );
-        return;
-      }
-
-      // Step 2: Verify that the logged-in user has HOD access
-      const response = await fetch(
-        "http://localhost:5000/api/hod/dashboard",
-        {
-          method: "GET",
-          credentials: "include",
-        },
+    if (result.error) {
+      setLoginError(
+        result.error.message || "Login failed. Please try again.",
       );
+      return;
+    }
 
-      const dashboardResult = await response.json();
+    
+    await getHodDashboard();
 
-      if (!response.ok) {
-        await authClient.signOut();
+    
+    router.replace("/hod-dashboard");
+    router.refresh();
+  } catch (error) {
+    // If login succeeded but HOD verification failed, sign out
+    await authClient.signOut();
 
-        if (response.status === 403) {
-          setLoginError(
-            "Your account does not have active HOD permissions.",
-          );
-        } else {
-          setLoginError(
-            dashboardResult.message ||
-              "Unable to verify HOD access. Please try again.",
-          );
-        }
+    const status = (
+      error as { response?: { status?: number; data?: { message?: string } } }
+    ).response?.status;
 
-        return;
-      }
+    const message = (
+      error as { response?: { data?: { message?: string } } }
+    ).response?.data?.message;
 
-      // Step 3: Open the HOD dashboard
-      router.replace("/hod-dashboard");
-      router.refresh();
-    } catch {
+    if (status === 403) {
+      setLoginError("Your account does not have active HOD permissions.");
+    } else if (status) {
+      setLoginError(message || "Unable to verify HOD access. Please try again.");
+    } else {
       setLoginError(
         "Unable to log in or verify HOD access. Please check your connection.",
       );
     }
-  };
+  }
+};
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
