@@ -1,6 +1,13 @@
+"use client";
+
 
 import Link from "next/link";
 import PageHeader from "@/app/ui/pageHeader";
+// import { useRouter } from "next/router";
+import { useState } from "react";
+import { authClient } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
+import Button from "@/app/ui/button";
 
 const stats = [
   { title: "Study Materials", value: "24", icon: "📚", color: "bg-primary-subtle text-primary" },
@@ -54,6 +61,33 @@ const menuItems = [
 ];
 
 export default function Dashboard() {
+  const router=useRouter()
+  const[isSigningOut,setIsSigningOut]=useState(false)
+  const {data:session,isPending}=authClient.useSession()
+  const studentName = session?.user?.name || "Student";
+  const studentInitial = studentName.charAt(0).toUpperCase();
+
+  const handleSignOut=async()=>{
+    setIsSigningOut(true)
+    try{
+      await authClient.signOut({
+        fetchOptions:{
+          onSuccess:()=>{
+            router.replace("/");
+            router.refresh()
+          }
+        }
+      })
+    }
+    catch(error){
+      console.error("Logout failed:", error);
+    }
+    finally{
+      setIsSigningOut(false)
+    }
+  }
+
+
   return (
     <div className="min-h-screen bg-background text-text">
       <div className="flex min-h-screen">
@@ -128,26 +162,33 @@ export default function Dashboard() {
             </div>
 
             <div className="flex items-center gap-3">
-              <button
-                type="button"
-                aria-label="Notifications"
-                className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-border transition hover:bg-secondary"
-              >
-                🔔
-                <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-accent" />
-              </button>
+  {/* Notifications */}
+  <button
+    type="button"
+    aria-label="Notifications"
+    className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-border transition hover:bg-secondary"
+  >
+    🔔
+    <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-accent" />
+  </button>
 
-              <div className="flex items-center gap-3">
-                <div className="hidden text-right sm:block">
-                  <p className="text-sm font-semibold">Student</p>
-                  <p className="text-xs text-text-muted">Student Account</p>
-                </div>
+  {/* Logout */}
+  <Button
+    type="button"
+    onClick={handleSignOut}
+    disabled={isSigningOut}
+    className="rounded-xl  "
+  >
+    {isSigningOut ? "Signing out..." : "Logout"}
+  </Button>
 
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-subtle font-bold text-primary">
-                  S
-                </div>
-              </div>
-            </div>
+  {/* Student Profile */}
+  <div className="flex items-center gap-3">
+  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-subtle font-bold text-primary">
+    {isPending ? "..." : studentInitial} 
+  </div>
+</div>
+</div>
           </header>
 
           <div className="mx-auto max-w-7xl space-y-8 p-5 sm:p-8">
@@ -159,7 +200,7 @@ export default function Dashboard() {
                 </p>
 
                 <h2 className="mt-3 text-2xl font-bold sm:text-3xl">
-                  Welcome back, Student!
+                  Welcome back, {isPending ? "Loading..." : studentName}!
                 </h2>
 
                 <p className="mt-3 max-w-lg text-sm leading-6 opacity-90 sm:text-base">
