@@ -3,8 +3,8 @@ import asyncHandler from "../../middleware/asyncHandler.js";
 import {
   getActiveHod,
   getHodStudents,
-  getHodClubs,
-  createCoordinator,getCoordinatorAssignments
+  createCoordinator,
+  getCoordinatorAssignments,
 } from "./hod.service.js";
 import { getHodStudentsSchema , createCoordinatorSchema } from "./hod.validation.js";
 
@@ -123,35 +123,7 @@ export const GetHodStudents = asyncHandler(
 export const GetStudentsByDepartment = GetHodStudents;
 
 
-export const GetHodClubs = asyncHandler(
-  async (_req: Request, res: Response) => {
-    const currentUser = res.locals.user;
 
-    if (!currentUser) {
-      return res.status(401).json({
-        success: false,
-        message: "Please log in.",
-      });
-    }
-
-    const hod = await getActiveHod(currentUser.id);
-
-    if (!hod) {
-      return res.status(403).json({
-        success: false,
-        message: "Active HOD permission required.",
-      });
-    }
-
-    const data = await getHodClubs();
-
-    return res.status(200).json({
-      success: true,
-      message: "Clubs fetched successfully.",
-      data,
-    });
-  },
-);
 
 export const CreateCoordinator = asyncHandler(
   async (req: Request, res: Response) => {
