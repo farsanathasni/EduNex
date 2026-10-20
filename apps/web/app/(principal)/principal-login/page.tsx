@@ -11,6 +11,8 @@ import {
   type PrincipalLoginInput,
 } from "@/validation/principal-login-schema";
 
+import { getPrincipalDashboard } from "@/lib/principal";
+
 export default function PrincipalLoginPage() {
   const router = useRouter();
   const [loginError, setLoginError] = useState("");
@@ -27,64 +29,76 @@ export default function PrincipalLoginPage() {
     },
   });
 
-  const onSubmit = async (data: PrincipalLoginInput) => {
-    setLoginError("");
+const onSubmit = async (data: PrincipalLoginInput) => {
+  setLoginError("");
 
-    try {
-      // Step 1: Sign in using Better Auth
-      const result = await authClient.signIn.email({
-        email: data.email,
-        password: data.password,
-      });
+  let loginSucceeded = false;
 
-      if (result.error) {
-        setLoginError(
-          result.error.message || "Login failed. Please try again.",
-        );
-        return;
-      }
+  try {
+    
+    const result = await authClient.signIn.email({
+      email: data.email,
+      password: data.password,
+    });
 
-      // Step 2: Verify that the logged-in user has Principal access
-      const response = await fetch(
-        "http://localhost:5000/api/principal/dashboard",
-        {
-          method: "GET",
-          credentials: "include",
-        },
+    if (result.error) {
+      setLoginError(
+        result.error.message || "Login failed. Please try again.",
       );
+      return;
+    }
 
-      const dashboardResult = await response.json();
+    loginSucceeded = true;
 
-      if (!response.ok || !dashboardResult.success) {
-        await authClient.signOut();
+    
+    const dashboardResult = await getPrincipalDashboard();
 
-        if (response.status === 403) {
-          setLoginError(
-            "Your account does not have active Principal permissions.",
-          );
-        } else if (response.status === 401) {
-          setLoginError(
-            "Your session could not be verified. Please sign in again.",
-          );
-        } else {
-          setLoginError(
-            dashboardResult.message ||
-              "Unable to verify Principal access. Please try again.",
-          );
-        }
+    if (!dashboardResult.success) {
+      await authClient.signOut();
+      setLoginError(
+        dashboardResult.message ||
+          "Your account does not have Principal access.",
+      );
+      return;
+    }
 
-        return;
-      }
+    
+    router.replace("/principal-dashboard");
+    router.refresh();
+  } catch (error) {
+    if (loginSucceeded) {
+      await authClient.signOut();
+    }
 
-      // Step 3: Open the Principal dashboard
-      router.replace("/principal-dashboard");
-      router.refresh();
-    } catch {
+    const apiError = error as {
+      response?: {
+        status?: number;
+        data?: { message?: string };
+      };
+    };
+
+    const status = apiError.response?.status;
+    const message = apiError.response?.data?.message;
+
+    if (status === 403) {
+      setLoginError(
+        "Your account does not have active Principal permissions.",
+      );
+    } else if (status === 401) {
+      setLoginError(
+        "Your session could not be verified. Please sign in again.",
+      );
+    } else if (status) {
+      setLoginError(
+        message || "Unable to verify Principal access. Please try again.",
+      );
+    } else {
       setLoginError(
         "Unable to log in or verify Principal access. Please check your connection.",
       );
     }
-  };
+  }
+};
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
