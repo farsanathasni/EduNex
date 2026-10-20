@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { getDepartments,getDepartment,createDepartments,removeDepartment ,editDepartment } from "./departments.controller.js"
 import { requireAuth } from "../../middleware/auth.middleware.js";
-import { from } from "node:stream/iter";
 
 
 const router=Router()
