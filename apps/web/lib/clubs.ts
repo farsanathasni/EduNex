@@ -39,125 +39,93 @@ export interface ClubCoordinator {
   email?: string;
 }
 
-const logApiError = (error: unknown) => {
-  if (axios.isAxiosError(error)) {
-    console.error("Request URL:", error.config?.baseURL, error.config?.url);
-    console.error("Status:", error.response?.status);
-    console.error("Response:", error.response?.data);
-  }
-};
+
 
 
 
 
 
 export const getClubs = async (): Promise<Club[]> => {
-  try {
-    const response = await api.get("/");
+
+    const response = await api.get("/clubs");
     return response.data.data;
-  } 
-  catch (error) {
-    logApiError(error);
-    throw error;
-  }
+ 
 };
 
 
 export const createClub=async(data:CreateClubInput,):Promise<Club>=>{
-  try{
-    const response=await api.post("/",data)
+ 
+    const response=await api.post("/clubs",data)
     return response.data.data
-  }
-catch (error) {
-    logApiError(error);
-    throw error;
-  }
+ 
 }
 
 
 export const getStudentClubs = async (): Promise<Club[]> => {
-  try {
-    const response = await api.get("/student");
+
+    const response = await api.get("/clubs/student");
     return response.data.data;
-  } catch (error) {
-    logApiError(error);
-    throw error;
-  }
+  
 };
 
 
 
 export const getStudentClubById =async(clubId:number,):Promise<Club>=>{
-  try{
-    const response = await api.get(`/student/${clubId}`);
+  
+    const response = await api.get(`/clubs/student/${clubId}`);
     return response.data.data;
-  }
-  catch(error){
-    logApiError(error);
-    throw error;
-  }
+  
 }
 
 
   export const getStudentClubCoordinators  =async(clubId:number):Promise<ClubCoordinator[]>=>{
-    try{
-      const response = await api.get(`/student/${clubId}/coordinators`);
+ 
+      const response = await api.get(`/clubs/student/${clubId}/coordinators`);
       return response.data.data;
-    }
-    catch (error) {
-    logApiError(error);
-    throw error;
-  }
+    
   }
 
 
   export const getStudentClubEvents = async (
   clubId: number,
 ): Promise<ClubEvent[]> => {
-  try {
-    const response = await api.get(`/student/${clubId}/events`);
+
+    const response = await api.get(`/clubs/student/${clubId}/events`);
     return response.data.data;
-  } catch (error) {
-    logApiError(error);
-    throw error;
-  }
+  
 };
+
 
 
 export const getStudentClubAnnouncements = async (
-  clubId: number,
+  clubId: number
 ): Promise<ClubAnnouncement[]> => {
-  try {
-    const response = await api.get(`/student/${clubId}/announcements`,);
+
+    const response = await api.get(
+      `/clubs/student/${clubId}/announcements`
+    );
+
     return response.data.data;
-  } catch (error) {
-    logApiError(error);
-    throw error;
-  }
+ 
 };
+
 
 
 export const createStudentMembershipRequest = async (
   clubId: number,
 ): Promise<ClubMembershipRequest> => {
-  try {
-    const response = await api.post(`/student/${clubId}/membership`,);
+  
+    const response = await api.post(`/clubs/student/${clubId}/membership`,);
     return response.data.data;
-  } catch (error) {
-    logApiError(error);
-    throw error;
-  }
+
 };
 
 
 export const getMyStudentMembershipRequests = async (): Promise<
   ClubMembershipRequest[]
 > => {
-  try {
-    const response = await api.get("/student/my/memberships");
+ 
+    const response = await api.get("/clubs/student/my/memberships");
     return response.data.data;
-  } catch (error) {
-    logApiError(error);
-    throw error;
-  }
+  
 };
