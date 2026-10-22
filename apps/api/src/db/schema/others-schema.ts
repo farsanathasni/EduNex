@@ -1,6 +1,7 @@
 import { pgTable, index, foreignKey, unique, text, timestamp, bigint, varchar, boolean, check, integer, pgEnum } from "drizzle-orm/pg-core"
 import { sql } from "drizzle-orm"
 import { user } from "./auth-schema.js";
+import { StudentProfile } from "./student-profile.js";
 
 
 export const departments = pgTable("departments", {
@@ -49,13 +50,27 @@ export const clubMemberships = pgTable("club_memberships", {
     requestedAt: timestamp("requested_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
     reviewedAt: timestamp("reviewed_at", { withTimezone: true, mode: 'string' }),
 }, (table) => [
-    foreignKey({
-            columns: [table.clubId],
-            foreignColumns: [clubs.id],
-            name: "club_memberships_club_id_fkey"
-        }).onDelete("cascade"),
-    unique("club_memberships_club_id_student_id_key").on(table.clubId, table.studentId),
-    check("club_memberships_status_check", sql`(status)::text = ANY ((ARRAY['pending'::character varying, 'approved'::character varying, 'rejected'::character varying])::text[])`),
+  foreignKey({
+    columns: [table.clubId],
+    foreignColumns: [clubs.id],
+    name: "club_memberships_club_id_fkey",
+  }).onDelete("cascade"),
+
+  foreignKey({
+    columns: [table.studentId],
+    foreignColumns: [StudentProfile.id],
+    name: "club_memberships_student_id_fkey",
+  }).onDelete("cascade"),
+
+  unique("club_memberships_club_id_student_id_key").on(
+    table.clubId,
+    table.studentId,
+  ),
+
+  check(
+    "club_memberships_status_check",
+    sql`status IN ('pending', 'approved', 'rejected')`,
+  ),
 ]);
 
 export const events = pgTable("events", {
@@ -155,16 +170,22 @@ export const announcements = pgTable("announcements", {
     // You can use { mode: "bigint" } if numbers are exceeding js number limitations
     publishedBy: bigint("published_by", { mode: "number" }).notNull(),
     audience: varchar({ length: 20 }).default('campus').notNull(),
+    clubId: bigint("club_id", { mode: "number" }),
     publishedAt: timestamp("published_at", { withTimezone: true, mode: 'string' }),
     createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
 }, (table) => [
     foreignKey({
-            columns: [table.departmentId],
-            foreignColumns: [departments.id],
-            name: "announcements_department_id_fkey"
-        }).onDelete("set null"),
-    check("announcements_audience_check", sql`(audience)::text = ANY ((ARRAY['campus'::character varying, 'department'::character varying])::text[])`),
+            columns: [table.clubId],
+  foreignColumns: [clubs.id],
+  name: "announcements_club_id_fkey",
+        }).onDelete("cascade"),
+    check(
+  "announcements_audience_check",
+  sql`(audience)::text = ANY (
+    (ARRAY['campus', 'department', 'club']::varchar[])::text[]
+  )`,
+),
 ]);
 
 export const issues = pgTable("issues", {
