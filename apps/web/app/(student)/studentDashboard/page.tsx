@@ -28,7 +28,7 @@ const stats = [
     value: "2",
     icon: "🎭",
     color: "bg-accent-subtle text-accent",
-    href: "/student/my-memberships",
+    href: "/student",
   },
   {
     title: "Pending Issues",
@@ -112,7 +112,7 @@ const menuItems = [
   { icon: "▦", label: "Dashboard", href: "/student" },
   { icon: "📚", label: "Study Materials", href: "/student/materials" },
   { icon: "📅", label: "Campus Events", href: "/student/events" },
-  { icon: "🎭", label: "Clubs", href: "/clubs" },
+  { icon: "🎭", label: "Clubs", href: "/student" },
   { icon: "👥", label: "Study Groups", href: "/student/groups" },
   { icon: "🛠️", label: "Report an Issue", href: "/student/issues" },
   { icon: "🔎", label: "Lost & Found", href: "/student/lost-found" },
