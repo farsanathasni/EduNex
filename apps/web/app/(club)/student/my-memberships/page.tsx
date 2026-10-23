@@ -1,84 +1,109 @@
-
 "use client";
 
 import Link from "next/link";
 import { useMyStudentMembershipRequestsQuery } from "../../clubQuery";
-// import { useMyStudentMembershipRequestsQuery } from "../../../clubQuery";
+import PageHeader from "@/app/ui/pageHeader";
+import Card from "@/app/ui/card";
+import Button from "@/app/ui/button";
+// import Card from "@/components/ui/Card";
+// import Button from "@/components/ui/Button";
+// import PageHeader from "@/components/ui/PageHeader";
 
 export default function MyMembershipsPage() {
-  const { data: memberships = [], isLoading, isError, refetch } =
-    useMyStudentMembershipRequestsQuery();
+  const {
+    data: memberships = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useMyStudentMembershipRequestsQuery();
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-8">
+    <main className="min-h-screen bg-background px-4 py-8 sm:px-8">
       <div className="mx-auto max-w-5xl">
         <Link
-          href="/student/clubs"
-          className="text-sm font-semibold text-teal-700 hover:underline"
+          href="/clubs"
+          className="text-label font-semibold text-primary hover:text-primary-hover hover:underline"
         >
           ← Back to clubs
         </Link>
 
-        <h1 className="mt-5 text-3xl font-bold text-slate-900">
-          My Membership Requests
-        </h1>
-        <p className="mt-2 text-slate-500">
-          Track the status of your club applications.
-        </p>
+        <div className="mt-6">
+          <PageHeader
+            eyebrow="Campus Life"
+            title="My Membership Requests"
+            description="Track the status of your club applications."
+          />
+        </div>
 
         {isLoading && (
-          <p className="py-10 text-slate-500">Loading requests...</p>
+          <div className="mt-6 space-y-4">
+            {[1, 2, 3].map((item) => (
+              <Card key={item} className="animate-pulse">
+                <div className="h-5 w-1/3 rounded bg-secondary" />
+                <div className="mt-3 h-4 w-1/4 rounded bg-secondary" />
+              </Card>
+            ))}
+          </div>
         )}
 
         {isError && (
-          <div className="mt-6 rounded-xl bg-white p-6">
-            <p className="text-red-600">Unable to load membership requests.</p>
+          <Card className="mt-6">
+            <p className="text-text">
+              Unable to load membership requests.
+            </p>
             <button
+              type="button"
               onClick={() => refetch()}
-              className="mt-3 font-semibold text-teal-700"
+              className="mt-3 text-label font-semibold text-primary hover:underline"
             >
               Try again
             </button>
-          </div>
+          </Card>
         )}
 
         {!isLoading && !isError && (
           <div className="mt-6 space-y-4">
             {memberships.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
-                <h2 className="font-semibold text-slate-800">
+              <Card className="border-dashed py-10 text-center">
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-primary-subtle text-xl text-primary">
+                  ✦
+                </div>
+
+                <h2 className="mt-4 text-subheading font-bold text-text">
                   No membership requests yet
                 </h2>
-                <p className="mt-2 text-sm text-slate-500">
-                  Explore clubs and send your first request.
+
+                <p className="mt-2 text-label text-text-muted">
+                  Explore clubs and send your first membership request.
                 </p>
-                <Link
-                  href="/student/clubs"
-                  className="mt-5 inline-flex rounded-xl bg-teal-700 px-5 py-3 text-sm font-semibold text-white hover:bg-teal-800"
-                >
-                  Explore clubs
-                </Link>
-              </div>
+
+                <div className="mt-5 flex justify-center">
+                  <Link href="/clubs">
+                    <Button>Explore clubs</Button>
+                  </Link>
+                </div>
+              </Card>
             ) : (
               memberships.map((membership) => (
-                <article
+                <Card
                   key={membership.id}
-                  className="flex flex-col justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-5 sm:flex-row sm:items-center"
+                  className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center"
                 >
                   <div>
-                    <h2 className="font-semibold text-slate-900">
+                    <h2 className="text-body font-bold text-text">
                       {membership.club?.name ??
                         `Club #${membership.clubId}`}
                     </h2>
-                    <p className="mt-1 text-sm text-slate-500">
+
+                    <p className="mt-1 text-caption text-text-muted">
                       Request ID: {membership.id}
                     </p>
                   </div>
 
-                  <span className="w-fit rounded-full bg-slate-100 px-4 py-2 text-sm font-semibold capitalize text-slate-700">
+                  <span className="w-fit rounded-full border border-border bg-secondary px-4 py-2 text-caption font-semibold capitalize text-secondary-foreground">
                     {membership.status}
                   </span>
-                </article>
+                </Card>
               ))
             )}
           </div>
