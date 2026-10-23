@@ -2,8 +2,11 @@ import {
   getDepartments,
   getHodDashboard,
   getHodStudents,
+  updateStudent,
+  deleteStudent,
+  type UpdateStudentData
 } from "@/lib/hod";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation ,useQuery, useQueryClient } from "@tanstack/react-query";
 
 export const useHodDashboard = () => {
   return useQuery({
@@ -37,5 +40,41 @@ export const useHodStudents = (
     queryFn: () => getHodStudents(departmentId, semester),
     enabled,
     retry: false,
+  });
+};
+
+
+export const useUpdateStudent = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      studentId,
+      data,
+    }: {
+      studentId: number;
+      data: UpdateStudentData;
+    }) => updateStudent(studentId, data),
+
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["hod", "students"],
+      });
+    },
+  });
+};
+
+export const useDeleteStudent = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (studentId: number) =>
+      deleteStudent(studentId),
+
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["hod", "students"],
+      });
+    },
   });
 };

@@ -45,6 +45,14 @@ export interface ApiResponse<T> {
   data: T;
 }
 
+export type UpdateStudentData = {
+  name: string;
+  admissionNumber: string;
+  departmentId: string;
+  semester: string;
+  phone: string;
+};
+
 export const getHodDashboard = async (): Promise<HodDashboard> => {
   const response = await api.get<HodDashboardResponse>(
     "/hod/dashboard",
@@ -83,4 +91,27 @@ export const getDepartments = async (): Promise<Department[]> => {
   }
 
   throw new Error("Invalid departments API response.");
+};
+
+
+
+
+export const updateStudent = async (
+  studentId: number,
+  data: UpdateStudentData,
+) => {
+  const response = await api.patch<ApiResponse<HodStudent>>(
+    `/students/${studentId}`,
+    data,
+  );
+
+  return response.data;
+};
+
+export const deleteStudent = async (studentId: number) => {
+  const response = await api.delete<ApiResponse<null>>(
+    `/students/${studentId}`,
+  );
+
+  return response.data;
 };

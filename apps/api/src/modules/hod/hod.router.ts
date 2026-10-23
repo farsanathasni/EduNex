@@ -5,6 +5,7 @@ import {
   GetHodStudents,
   CreateCoordinator,
   GetCoordinatorAssignments,
+  UpdateCoordinator,
   GetPendingEvents,
   ReviewEvent
 } from "./hod.controller.js";
@@ -34,6 +35,11 @@ hodRouter.patch(
   "/events/:eventId/review",
   requireAuth,
   ReviewEvent,
+);
+hodRouter.patch(
+  "/coordinators/:id",
+  requireAuth,
+  UpdateCoordinator,
 );
 
 export default hodRouter;

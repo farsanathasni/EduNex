@@ -1,28 +1,77 @@
+
 "use client";
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+
 import {
   useHodDepartments,
   useHodStudents,
+  useUpdateStudent,
+  useDeleteStudent,
 } from "../../hodQuery";
+
+import {
+  studentUpdateSchema,
+  type StudentUpdateInput,
+} from "@/validation/student-validation";
+
 import type { HodStudent } from "@/lib/hod";
 
 export default function HODStudentsPage() {
   const router = useRouter();
 
+  // Better Auth session
   const {
     data: session,
     isPending: isSessionPending,
   } = authClient.useSession();
 
+  // Search and filter states
   const [search, setSearch] = useState("");
   const [selectedDepartment, setSelectedDepartment] = useState("");
   const [semester, setSemester] = useState("");
+
+  // Selected student and dialog states
   const [selectedStudent, setSelectedStudent] =
     useState<HodStudent | null>(null);
 
+  const [editingStudent, setEditingStudent] =
+    useState<HodStudent | null>(null);
+
+  const [showDeleteConfirm, setShowDeleteConfirm] =
+    useState<HodStudent | null>(null);
+
+  // Messages
+  const [formError, setFormError] = useState("");
+  const [deleteError, setDeleteError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
+
+  // React Query mutations
+  const updateMutation = useUpdateStudent();
+  const deleteMutation = useDeleteStudent();
+
+  // React Hook Form + Zod validation
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<StudentUpdateInput>({
+    resolver: zodResolver(studentUpdateSchema),
+    defaultValues: {
+      name: "",
+      admissionNumber: "",
+      departmentId: "",
+      semester: "",
+      phone: "",
+    },
+  });
+
+  // Convert filters into numbers for the API
   const departmentId =
     selectedDepartment === ""
       ? undefined
@@ -33,6 +82,7 @@ export default function HODStudentsPage() {
       ? undefined
       : Number(semester);
 
+  // Fetch departments
   const {
     data: departments = [],
     isPending: isDepartmentsPending,
@@ -40,6 +90,7 @@ export default function HODStudentsPage() {
     refetch: refetchDepartments,
   } = useHodDepartments(!!session && !isSessionPending);
 
+  // Fetch students
   const {
     data: students = [],
     isPending: isStudentsPending,
@@ -52,6 +103,7 @@ export default function HODStudentsPage() {
     !!session && !isSessionPending,
   );
 
+  // Search students by name, email, admission number or department
   const filteredStudents = useMemo(() => {
     const searchText = search.trim().toLowerCase();
 
@@ -71,6 +123,101 @@ export default function HODStudentsPage() {
     );
   }, [students, search]);
 
+  // Start editing a student
+  const handleEditClick = (student: HodStudent) => {
+    setFormError("");
+    setSuccessMessage("");
+    setEditingStudent(student);
+
+    reset({
+      name: student.name,
+      admissionNumber: student.admissionNumber,
+      departmentId:
+        student.departmentId != null
+          ? String(student.departmentId)
+          : "",
+      semester: String(student.semester),
+      phone: student.phone ?? "",
+    });
+  };
+
+  // Update student using React Hook Form and React Query
+  const onUpdateStudent = async (data: StudentUpdateInput) => {
+    if (!editingStudent) {
+      return;
+    }
+
+    setFormError("");
+    setSuccessMessage("");
+
+    try {
+      await updateMutation.mutateAsync({
+        studentId: Number(editingStudent.id),
+        data,
+      });
+
+      // Update the details panel if this student was selected
+      if (selectedStudent?.id === editingStudent.id) {
+        setSelectedStudent({
+          ...selectedStudent,
+          name: data.name.trim(),
+          admissionNumber: data.admissionNumber.trim(),
+          semester: Number(data.semester),
+          phone: data.phone.trim(),
+        });
+      }
+
+      setEditingStudent(null);
+      reset();
+
+      setSuccessMessage("Student details updated successfully.");
+    } catch (error: unknown) {
+      setFormError(
+        error instanceof Error
+          ? error.message
+          : "Unable to update student. Please try again.",
+      );
+    }
+  };
+
+  // Open the delete confirmation dialog
+  const handleDeleteClick = (student: HodStudent) => {
+    setDeleteError("");
+    setSuccessMessage("");
+    setShowDeleteConfirm(student);
+  };
+
+  // Delete student using React Query
+  const handleDeleteStudent = async () => {
+    if (!showDeleteConfirm) {
+      return;
+    }
+
+    setDeleteError("");
+    setSuccessMessage("");
+
+    try {
+      await deleteMutation.mutateAsync(
+        Number(showDeleteConfirm.id),
+      );
+
+      if (selectedStudent?.id === showDeleteConfirm.id) {
+        setSelectedStudent(null);
+      }
+
+      setShowDeleteConfirm(null);
+
+      setSuccessMessage("Student deleted successfully.");
+    } catch (error: unknown) {
+      setDeleteError(
+        error instanceof Error
+          ? error.message
+          : "Unable to delete student. Please try again.",
+      );
+    }
+  };
+
+  // Loading state while Better Auth checks the session
   if (isSessionPending) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-background">
@@ -81,6 +228,7 @@ export default function HODStudentsPage() {
     );
   }
 
+  // Ask unauthenticated users to sign in
   if (!session) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-background">
@@ -103,31 +251,9 @@ export default function HODStudentsPage() {
 
   return (
     <main className="min-h-screen bg-background text-text">
-      <header className="border-b border-border bg-surface">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-          <div>
-            <h1 className="text-xl font-bold">EduNex</h1>
-            <p className="text-sm text-text-muted">
-              Head of Department Portal
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => router.push("/hod/dashboard")}
-            className="rounded-lg border border-border px-4 py-2 text-sm font-medium transition hover:bg-background"
-          >
-            Back to Dashboard
-          </button>
-        </div>
-      </header>
-
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Page heading */}
         <section className="mb-8">
-          <p className="text-sm font-medium text-text-muted">
-            HOD WORKSPACE
-          </p>
-
           <h2 className="mt-2 text-3xl font-bold">
             Student Directory
           </h2>
@@ -137,32 +263,30 @@ export default function HODStudentsPage() {
           </p>
         </section>
 
-        <section className="mb-6 grid gap-4 sm:grid-cols-2">
-          <article className="rounded-xl border border-border bg-surface p-5">
-            <p className="text-sm text-text-muted">
-              Students Retrieved
-            </p>
-            <p className="mt-2 text-3xl font-bold">
-              {students.length}
-            </p>
-          </article>
+        {/* Success message */}
+        {successMessage && (
+          <div
+            role="status"
+            className="mb-6 rounded-lg border border-green-500/30 bg-green-500/10 p-4 text-sm text-green-700"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <p>{successMessage}</p>
 
-          <article className="rounded-xl border border-border bg-surface p-5">
-            <p className="text-sm text-text-muted">
-              Matching Students
-            </p>
-            <p className="mt-2 text-3xl font-bold">
-              {filteredStudents.length}
-            </p>
-          </article>
-        </section>
+              <button
+                type="button"
+                onClick={() => setSuccessMessage("")}
+                className="font-medium underline"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
 
+        {/* Search and filters */}
         <section className="mb-6 rounded-xl border border-border bg-surface p-5">
-          <h3 className="mb-4 font-semibold">
-            Search and Filters
-          </h3>
-
           <div className="grid gap-4 md:grid-cols-3">
+            {/* Search */}
             <div>
               <label
                 htmlFor="student-search"
@@ -175,12 +299,15 @@ export default function HODStudentsPage() {
                 id="student-search"
                 type="search"
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) =>
+                  setSearch(event.target.value)
+                }
                 placeholder="Name, email or admission number"
                 className="w-full rounded-lg border border-border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary"
               />
             </div>
 
+            {/* Department filter */}
             <div>
               <label
                 htmlFor="department"
@@ -219,6 +346,7 @@ export default function HODStudentsPage() {
               {isDepartmentsError && (
                 <div className="mt-2 text-sm text-red-500">
                   <p>Unable to load departments.</p>
+
                   <button
                     type="button"
                     onClick={() => void refetchDepartments()}
@@ -230,6 +358,7 @@ export default function HODStudentsPage() {
               )}
             </div>
 
+            {/* Semester filter */}
             <div>
               <label
                 htmlFor="semester"
@@ -272,9 +401,11 @@ export default function HODStudentsPage() {
           </button>
         </section>
 
+        {/* Students table */}
         <section className="overflow-hidden rounded-xl border border-border bg-surface">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-5">
             <h3 className="font-semibold">Students</h3>
+
             <p className="text-sm text-text-muted">
               {filteredStudents.length} student(s) found
             </p>
@@ -305,15 +436,21 @@ export default function HODStudentsPage() {
               <table className="w-full text-left text-sm">
                 <thead className="border-b border-border bg-background">
                   <tr>
-                    <th className="px-4 py-3 font-semibold">Student</th>
+                    <th className="px-4 py-3 font-semibold">
+                      Student
+                    </th>
                     <th className="px-4 py-3 font-semibold">
                       Admission Number
                     </th>
                     <th className="px-4 py-3 font-semibold">
                       Department
                     </th>
-                    <th className="px-4 py-3 font-semibold">Semester</th>
-                    <th className="px-4 py-3 font-semibold">Action</th>
+                    <th className="px-4 py-3 font-semibold">
+                      Semester
+                    </th>
+                    <th className="px-4 py-3 font-semibold">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
 
@@ -338,7 +475,10 @@ export default function HODStudentsPage() {
                         }`}
                       >
                         <td className="px-4 py-3">
-                          <p className="font-medium">{student.name}</p>
+                          <p className="font-medium">
+                            {student.name}
+                          </p>
+
                           <p className="mt-1 text-xs text-text-muted">
                             {student.email}
                           </p>
@@ -357,13 +497,33 @@ export default function HODStudentsPage() {
                         </td>
 
                         <td className="px-4 py-3">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedStudent(student)}
-                            className="font-medium text-primary underline underline-offset-4"
-                          >
-                            View Details
-                          </button>
+                          <div className="flex flex-wrap items-center gap-3">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setSelectedStudent(student)
+                              }
+                              className="font-medium text-primary underline underline-offset-4"
+                            >
+                              View
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleEditClick(student)}
+                              className="rounded-lg border border-blue-600 px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50"
+                            >
+                              Edit
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteClick(student)}
+                              className="rounded-lg border border-red-600 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50"
+                            >
+                              Delete
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -374,6 +534,7 @@ export default function HODStudentsPage() {
           )}
         </section>
 
+        {/* Student details */}
         {selectedStudent && (
           <section className="mt-6 rounded-xl border border-border bg-surface p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
@@ -381,6 +542,7 @@ export default function HODStudentsPage() {
                 <p className="text-sm text-text-muted">
                   STUDENT DETAILS
                 </p>
+
                 <h3 className="mt-1 text-xl font-bold">
                   {selectedStudent.name}
                 </h3>
@@ -400,6 +562,7 @@ export default function HODStudentsPage() {
                 <p className="text-sm text-text-muted">
                   Admission Number
                 </p>
+
                 <p className="mt-1 font-medium">
                   {selectedStudent.admissionNumber}
                 </p>
@@ -407,6 +570,7 @@ export default function HODStudentsPage() {
 
               <div>
                 <p className="text-sm text-text-muted">Email</p>
+
                 <p className="mt-1 break-all font-medium">
                   {selectedStudent.email}
                 </p>
@@ -414,6 +578,7 @@ export default function HODStudentsPage() {
 
               <div>
                 <p className="text-sm text-text-muted">Phone</p>
+
                 <p className="mt-1 font-medium">
                   {selectedStudent.phone || "Not provided"}
                 </p>
@@ -423,6 +588,7 @@ export default function HODStudentsPage() {
                 <p className="text-sm text-text-muted">
                   Department
                 </p>
+
                 <p className="mt-1 font-medium">
                   {selectedStudent.departmentName}
                   {selectedStudent.departmentCode
@@ -432,20 +598,284 @@ export default function HODStudentsPage() {
               </div>
 
               <div>
-                <p className="text-sm text-text-muted">Semester</p>
+                <p className="text-sm text-text-muted">
+                  Semester
+                </p>
+
                 <p className="mt-1 font-medium">
                   {selectedStudent.semester}
                 </p>
               </div>
 
               <div>
-                <p className="text-sm text-text-muted">Student ID</p>
+                <p className="text-sm text-text-muted">
+                  Student ID
+                </p>
+
                 <p className="mt-1 font-medium">
                   {selectedStudent.id}
                 </p>
               </div>
             </div>
           </section>
+        )}
+
+        {/* Edit student dialog */}
+        {editingStudent && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/50 p-4">
+            <section
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="edit-student-title"
+              className="my-auto max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl bg-surface p-6 shadow-xl"
+            >
+              <h3
+                id="edit-student-title"
+                className="text-xl font-bold"
+              >
+                Edit Student
+              </h3>
+
+              <p className="mt-2 text-sm text-text-muted">
+                Update the students details and save your changes.
+              </p>
+
+              <form
+                onSubmit={handleSubmit(onUpdateStudent)}
+                className="mt-5 space-y-4"
+              >
+                {/* Student name */}
+                <div>
+                  <label
+                    htmlFor="edit-name"
+                    className="mb-1 block text-sm font-medium"
+                  >
+                    Student Name
+                  </label>
+
+                  <input
+                    id="edit-name"
+                    {...register("name")}
+                    aria-invalid={!!errors.name}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2"
+                  />
+
+                  {errors.name && (
+                    <p className="mt-1 text-sm text-red-500">
+                      {errors.name.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Admission number */}
+                <div>
+                  <label
+                    htmlFor="edit-admission"
+                    className="mb-1 block text-sm font-medium"
+                  >
+                    Admission Number
+                  </label>
+
+                  <input
+                    id="edit-admission"
+                    {...register("admissionNumber")}
+                    aria-invalid={!!errors.admissionNumber}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2"
+                  />
+
+                  {errors.admissionNumber && (
+                    <p className="mt-1 text-sm text-red-500">
+                      {errors.admissionNumber.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Department */}
+                <div>
+                  <label
+                    htmlFor="edit-department"
+                    className="mb-1 block text-sm font-medium"
+                  >
+                    Department
+                  </label>
+
+                  <select
+                    id="edit-department"
+                    {...register("departmentId")}
+                    aria-invalid={!!errors.departmentId}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2"
+                  >
+                    <option value="">Select department</option>
+
+                    {departments.map((department) => (
+                      <option
+                        key={department.id}
+                        value={department.id}
+                      >
+                        {department.name} ({department.code})
+                      </option>
+                    ))}
+                  </select>
+
+                  {errors.departmentId && (
+                    <p className="mt-1 text-sm text-red-500">
+                      {errors.departmentId.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Semester */}
+                <div>
+                  <label
+                    htmlFor="edit-semester"
+                    className="mb-1 block text-sm font-medium"
+                  >
+                    Semester
+                  </label>
+
+                  <select
+                    id="edit-semester"
+                    {...register("semester")}
+                    aria-invalid={!!errors.semester}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2"
+                  >
+                    <option value="">Select semester</option>
+
+                    {[1, 2, 3, 4, 5, 6, 7, 8].map((number) => (
+                      <option key={number} value={number}>
+                        Semester {number}
+                      </option>
+                    ))}
+                  </select>
+
+                  {errors.semester && (
+                    <p className="mt-1 text-sm text-red-500">
+                      {errors.semester.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Phone */}
+                <div>
+                  <label
+                    htmlFor="edit-phone"
+                    className="mb-1 block text-sm font-medium"
+                  >
+                    Phone
+                  </label>
+
+                  <input
+                    id="edit-phone"
+                    type="tel"
+                    {...register("phone")}
+                    aria-invalid={!!errors.phone}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2"
+                  />
+
+                  {errors.phone && (
+                    <p className="mt-1 text-sm text-red-500">
+                      {errors.phone.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* API error */}
+                {formError && (
+                  <p role="alert" className="text-sm text-red-500">
+                    {formError}
+                  </p>
+                )}
+
+                {/* Form buttons */}
+                <div className="flex justify-end gap-3">
+                  <button
+                    type="button"
+                    disabled={isSubmitting || updateMutation.isPending}
+                    onClick={() => {
+                      setEditingStudent(null);
+                      setFormError("");
+                      reset();
+                    }}
+                    className="rounded-lg border border-border px-4 py-2 disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={
+                      isSubmitting || updateMutation.isPending
+                    }
+                    className="rounded-lg bg-primary px-4 py-2 text-primary-foreground disabled:opacity-50"
+                  >
+                    {isSubmitting || updateMutation.isPending
+                      ? "Saving..."
+                      : "Save Changes"}
+                  </button>
+                </div>
+              </form>
+            </section>
+          </div>
+        )}
+
+        {/* Delete confirmation dialog */}
+        {showDeleteConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <section
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="delete-student-title"
+              className="w-full max-w-md rounded-xl bg-surface p-6 shadow-xl"
+            >
+              <h3
+                id="delete-student-title"
+                className="text-xl font-bold"
+              >
+                Delete Student?
+              </h3>
+
+              <p className="mt-3 text-sm text-text-muted">
+                Are you sure you want to delete{" "}
+                <strong>{showDeleteConfirm.name}</strong>?
+              </p>
+
+              <p className="mt-2 text-sm text-text-muted">
+                This action will remove the student from the active
+                student directory.
+              </p>
+
+              {deleteError && (
+                <p role="alert" className="mt-3 text-sm text-red-500">
+                  {deleteError}
+                </p>
+              )}
+
+              <div className="mt-6 flex justify-end gap-3">
+                <button
+                  type="button"
+                  disabled={deleteMutation.isPending}
+                  onClick={() => {
+                    setShowDeleteConfirm(null);
+                    setDeleteError("");
+                  }}
+                  className="rounded-lg border border-border px-4 py-2 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  disabled={deleteMutation.isPending}
+                  onClick={() => void handleDeleteStudent()}
+                  className="rounded-lg bg-red-600 px-4 py-2 text-white disabled:opacity-50"
+                >
+                  {deleteMutation.isPending
+                    ? "Deleting..."
+                    : "Confirm Delete"}
+                </button>
+              </div>
+            </section>
+          </div>
         )}
       </div>
     </main>

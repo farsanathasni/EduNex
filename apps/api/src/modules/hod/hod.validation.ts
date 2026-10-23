@@ -36,6 +36,11 @@ export const createCoordinatorSchema = z.object({
 export type CreateCoordinatorInput = z.infer<
   typeof createCoordinatorSchema
 >;
+export const updateCoordinatorSchema = createCoordinatorSchema;
+
+export type UpdateCoordinatorInput = z.infer<
+  typeof updateCoordinatorSchema
+>;
 
 
 

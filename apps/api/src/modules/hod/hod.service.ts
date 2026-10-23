@@ -34,9 +34,10 @@ export const getHodDashboardStats = async () => {
     approvalResult,
   ] = await Promise.all([
     // Count all students
-    db
-      .select({ total: count() })
-      .from(StudentProfile),
+   db
+  .select({ total: count() })
+  .from(StudentProfile)
+  .where(eq(StudentProfile.isActive, true)),
 
     // Count all staff members
     db
@@ -63,23 +64,26 @@ export const getHodDashboardStats = async () => {
   };
 };
 
+
+
+
 export const getHodStudents = async (
   departmentId?: number,
   semester?: number,
 ) => {
-  const conditions = [];
+  const conditions = [
+    eq(StudentProfile.isActive, true),
+  ];
 
-  // Apply the department filter when one is selected.
   if (departmentId !== undefined) {
     conditions.push(eq(StudentProfile.departmentId, departmentId));
   }
 
-  // Apply the semester filter when one is selected.
   if (semester !== undefined) {
     conditions.push(eq(StudentProfile.semester, semester));
   }
 
-  const query = db
+  return db
     .select({
       id: StudentProfile.id,
       name: StudentProfile.name,
@@ -100,16 +104,10 @@ export const getHodStudents = async (
     .innerJoin(
       user,
       eq(StudentProfile.userId, user.id),
-    );
-
-  // AND means students must match every selected filter.
-  if (conditions.length > 0) {
-    return query.where(and(...conditions));
-  }
-
-  // If neither filter is selected, return all students.
-  return query;
+    )
+    .where(and(...conditions));
 };
+
 
 
 export const getHodClubs = async () => {
@@ -312,6 +310,76 @@ export const getCoordinatorAssignments = async () => {
       clubs,
       eq(coordinatorAssignments.clubId, clubs.id),
     );
+};
+
+export const updateCoordinator = async (
+  assignmentId: number,
+  studentId: number,
+  clubId: number,
+) => {
+  // 1. Check whether the coordinator assignment exists.
+  const [existingAssignment] = await db
+    .select()
+    .from(coordinatorAssignments)
+    .where(eq(coordinatorAssignments.id, assignmentId))
+    .limit(1);
+
+  if (!existingAssignment) {
+    throw new Error("COORDINATOR_ASSIGNMENT_NOT_FOUND");
+  }
+
+  // 2. Check whether the selected student exists.
+  const [student] = await db
+    .select({ id: StudentProfile.id })
+    .from(StudentProfile)
+    .where(eq(StudentProfile.id, studentId))
+    .limit(1);
+
+  if (!student) {
+    throw new Error("STUDENT_NOT_FOUND");
+  }
+
+  // 3. Check whether the selected club exists.
+  const [club] = await db
+    .select({ id: clubs.id })
+    .from(clubs)
+    .where(eq(clubs.id, clubId))
+    .limit(1);
+
+  if (!club) {
+    throw new Error("CLUB_NOT_FOUND");
+  }
+
+  // 4. Prevent duplicate student-club assignments.
+  const [duplicateAssignment] = await db
+    .select({ id: coordinatorAssignments.id })
+    .from(coordinatorAssignments)
+    .where(
+      and(
+        eq(coordinatorAssignments.studentId, studentId),
+        eq(coordinatorAssignments.clubId, clubId),
+      ),
+    )
+    .limit(1);
+
+  if (
+    duplicateAssignment &&
+    duplicateAssignment.id !== assignmentId
+  ) {
+    throw new Error("COORDINATOR_ALREADY_ASSIGNED");
+  }
+
+  // 5. Update the existing assignment.
+  const [updatedAssignment] = await db
+    .update(coordinatorAssignments)
+    .set({
+      studentId,
+      clubId,
+    })
+    .where(eq(coordinatorAssignments.id, assignmentId))
+    .returning();
+
+  return updatedAssignment;
 };
 
 // Get events waiting for HOD approval

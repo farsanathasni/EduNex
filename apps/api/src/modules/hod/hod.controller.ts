@@ -6,10 +6,11 @@ import {
   getHodStudents,
   createCoordinator,
   getCoordinatorAssignments,
+  updateCoordinator,
   getPendingEvents,
   reviewEvent
 } from "./hod.service.js";
-import { getHodStudentsSchema , createCoordinatorSchema } from "./hod.validation.js";
+import { getHodStudentsSchema , createCoordinatorSchema , updateCoordinatorSchema} from "./hod.validation.js";
 
 export const GetHodDashboard = asyncHandler(
   async (_req: Request, res: Response) => {
@@ -233,6 +234,93 @@ export const GetCoordinatorAssignments = asyncHandler(
       message: "Coordinator assignments fetched successfully.",
       data,
     });
+  },
+);
+
+export const UpdateCoordinator = asyncHandler(
+  async (req: Request, res: Response) => {
+    const currentUser = res.locals.user;
+
+    // 1. Check whether the user is logged in.
+    if (!currentUser) {
+      return res.status(401).json({
+        success: false,
+        message: "Please log in.",
+      });
+    }
+
+    // 2. Check whether the user is an active HOD.
+    const hod = await getActiveHod(currentUser.id);
+
+    if (!hod) {
+      return res.status(403).json({
+        success: false,
+        message: "Active HOD permission required.",
+      });
+    }
+
+    // 3. Validate the assignment ID from the URL.
+    const assignmentId = Number(req.params.id);
+
+    if (
+      !Number.isSafeInteger(assignmentId) ||
+      assignmentId <= 0
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid coordinator assignment ID.",
+      });
+    }
+
+   const validation = updateCoordinatorSchema.safeParse(req.body);
+
+if (!validation.success) {
+  return res.status(400).json({
+    success: false,
+    message: "Invalid coordinator details.",
+    errors: validation.error.flatten(),
+  });
+}
+
+    // 5. Update the existing assignment.
+    try {
+      const updatedAssignment = await updateCoordinator(
+        assignmentId,
+        validation.data.studentId,
+        validation.data.clubId,
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: "Coordinator assignment updated successfully.",
+        data: updatedAssignment,
+      });
+    } catch (error) {
+      if (error instanceof Error) {
+        const messages: Record<string, string> = {
+          COORDINATOR_ASSIGNMENT_NOT_FOUND:
+            "Coordinator assignment not found.",
+          STUDENT_NOT_FOUND: "Student not found.",
+          CLUB_NOT_FOUND: "Club not found.",
+          COORDINATOR_ALREADY_ASSIGNED:
+            "This student is already assigned to this club.",
+        };
+
+        if (messages[error.message]) {
+          const status =
+            error.message === "COORDINATOR_ASSIGNMENT_NOT_FOUND"
+              ? 404
+              : 400;
+
+          return res.status(status).json({
+            success: false,
+            message: messages[error.message],
+          });
+        }
+      }
+
+      throw error;
+    }
   },
 );
 

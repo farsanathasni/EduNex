@@ -8,7 +8,7 @@ import {
   GraduationCap,
   UserCheck,
   CalendarCheck,
-  Building2,
+
 } from "lucide-react";
 
 import { authClient } from "@/lib/auth-client";
@@ -111,36 +111,7 @@ export default function HodDashboardPage() {
     },
   ];
 
-  const sections = [
-    {
-      title: "Student Management",
-      description:
-        "Browse students and filter by department and semester.",
-      href: "/hod/students",
-      icon: Users,
-    },
-    {
-      title: "Coordinator Management",
-      description:
-        "Appoint student coordinators and view their assignments.",
-      href: "/hod/coordinators",
-      icon: UserCheck,
-    },
-    {
-      title: "Club Management",
-      description:
-        "Create clubs and view existing college clubs.",
-      href: "/hod/clubs",
-      icon: Building2,
-    },
-    {
-      title: "Event Approvals",
-      description:
-        "Review and manage event approval requests.",
-      href: "/hod/approvals",
-      icon: CalendarCheck,
-    },
-  ];
+
 
   return (
     <div className="space-y-8">
@@ -188,45 +159,7 @@ export default function HodDashboardPage() {
         </div>
       </Card>
 
-      <section>
-        <h2 className="mb-4 text-xl font-bold">
-          Quick Access
-        </h2>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {sections.map((section) => {
-            const Icon = section.icon;
-
-            return (
-              <Card
-                key={section.href}
-                padding="lg"
-                className="transition hover:-translate-y-0.5 hover:shadow-md"
-              >
-                <div className="mb-4 flex size-11 items-center justify-center rounded-xl bg-secondary text-primary">
-                  <Icon size={22} />
-                </div>
-
-                <h3 className="font-semibold">
-                  {section.title}
-                </h3>
-
-                <p className="mt-2 text-sm leading-6 text-text-muted">
-                  {section.description}
-                </p>
-
-                <Button
-                  variant="outline"
-                  className="mt-5"
-                  onClick={() => router.push(section.href)}
-                >
-                  Open page →
-                </Button>
-              </Card>
-            );
-          })}
-        </div>
-      </section>
     </div>
   );
 }
