@@ -7,9 +7,7 @@ import ClubCard from "./clubCard";
 import PageHeader from "@/app/ui/pageHeader";
 import Input from "@/app/ui/input";
 import Card from "@/app/ui/card";
-// import Input from "@/components/ui/Input";
-// import Card from "@/components/ui/Card";
-// import PageHeader from "@/components/ui/PageHeader";
+
 
 export default function StudentClubsPage() {
   const [search, setSearch] = useState("");
@@ -33,8 +31,14 @@ export default function StudentClubsPage() {
   return (
     <main className="min-h-screen bg-background px-4 py-8 sm:px-8">
       <div className="mx-auto max-w-7xl">
-        <header className="overflow-hidden rounded-3xl bg-brand p-8 text-text-inverse sm:p-10">
-          <p className="text-label font-semibold uppercase tracking-[0.2em] text-white/75">
+        <Link
+  href="/studentDashboard"
+  className="mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-surface px-5 py-3 text-sm font-semibold text-text-muted shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-primary hover:text-primary hover:shadow-md"
+>
+  <span aria-hidden="true">←</span>
+  Back to Dashboard
+</Link>
+        <header className="mt-2 overflow-hidden rounded-3xl bg-brand p-8 text-text-inverse sm:p-10">          <p className="text-label font-semibold uppercase tracking-[0.2em] text-white/75">
             EduNex · Campus Life
           </p>
 
