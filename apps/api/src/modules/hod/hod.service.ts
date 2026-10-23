@@ -5,6 +5,7 @@ import { StudentProfile } from "../../db/schema/student-profile.js";
 import { departments, clubs, events,eventApprovals } from "../../db/schema/others-schema.js";
 import { user } from "../../db/schema/auth-schema.js";
 import { coordinatorAssignments } from "../../db/schema/coordinator-schema.js";
+import { sendEmail } from "../../utils/email.js";
 
 
 
@@ -125,9 +126,14 @@ export const createCoordinator = async (
   clubId: number,
   appointedBy: string,
 ) => {
+  // 1. Check whether the student exists and get their email.
   const [student] = await db
-    .select({ id: StudentProfile.id })
+    .select({
+      id: StudentProfile.id,
+      email: user.email,
+    })
     .from(StudentProfile)
+    .innerJoin(user, eq(StudentProfile.userId, user.id))
     .where(eq(StudentProfile.id, studentId))
     .limit(1);
 
@@ -135,8 +141,12 @@ export const createCoordinator = async (
     throw new Error("STUDENT_NOT_FOUND");
   }
 
+  // 2. Check whether the club exists.
   const [club] = await db
-    .select({ id: clubs.id })
+    .select({
+      id: clubs.id,
+      name: clubs.name,
+    })
     .from(clubs)
     .where(eq(clubs.id, clubId))
     .limit(1);
@@ -145,8 +155,9 @@ export const createCoordinator = async (
     throw new Error("CLUB_NOT_FOUND");
   }
 
-  const [existing] = await db
-    .select({ id: coordinatorAssignments.id })
+  // 3. Check whether this student is already assigned to this club.
+  const [existingAssignment] = await db
+    .select()
     .from(coordinatorAssignments)
     .where(
       and(
@@ -156,10 +167,11 @@ export const createCoordinator = async (
     )
     .limit(1);
 
-  if (existing) {
+  if (existingAssignment) {
     throw new Error("COORDINATOR_ALREADY_ASSIGNED");
   }
 
+  // 4. Save the coordinator assignment.
   const [assignment] = await db
     .insert(coordinatorAssignments)
     .values({
@@ -168,6 +180,29 @@ export const createCoordinator = async (
       appointedBy,
     })
     .returning();
+
+  // 5. Send the appointment notification.
+  await sendEmail({
+    to: student.email,
+    subject: "You have been appointed as a Club Coordinator - EduNex",
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6;">
+        <h2>Congratulations!</h2>
+
+        <p>You have been appointed as a club coordinator at EduNex.</p>
+
+        <p>
+          <strong>Club:</strong> ${club.name}
+        </p>
+
+        <p>
+          Please log in to your EduNex account to continue.
+        </p>
+
+        <p>Best regards,<br />EduNex Team</p>
+      </div>
+    `,
+  });
 
   return assignment;
 };

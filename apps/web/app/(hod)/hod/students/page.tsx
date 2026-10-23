@@ -114,7 +114,7 @@ export default function HODStudentsPage() {
 
           <button
             type="button"
-            onClick={() => router.push("/hod-dashboard")}
+            onClick={() => router.push("/hod/dashboard")}
             className="rounded-lg border border-border px-4 py-2 text-sm font-medium transition hover:bg-background"
           >
             Back to Dashboard

@@ -51,7 +51,7 @@ export default function HODLoginPage() {
       // Verify that the signed-in user has HOD access.
       await getHodDashboard();
 
-      router.replace("/hod-dashboard");
+      router.replace("/hod/dashboard");
       router.refresh();
     } catch (error) {
       console.error("HOD login or verification failed:", error);
