@@ -135,6 +135,8 @@ export const GetStudentsByDepartment = GetHodStudents;
 
 
 
+
+
 export const CreateCoordinator = asyncHandler(
   async (req: Request, res: Response) => {
     const currentUser = res.locals.user;
@@ -166,7 +168,7 @@ export const CreateCoordinator = asyncHandler(
     }
 
     try {
-      const assignment = await createCoordinator(
+      const result = await createCoordinator(
         validation.data.studentId,
         validation.data.clubId,
         currentUser.id,
@@ -174,8 +176,11 @@ export const CreateCoordinator = asyncHandler(
 
       return res.status(201).json({
         success: true,
-        message: "Coordinator appointed successfully.",
-        data: assignment,
+        message: result.emailSent
+          ? "Coordinator appointed successfully. Confirmation email sent."
+          : "Coordinator appointed successfully, but the confirmation email could not be sent.",
+        data: result.assignment,
+        emailSent: result.emailSent,
       });
     } catch (error) {
       if (error instanceof Error) {
@@ -198,6 +203,8 @@ export const CreateCoordinator = asyncHandler(
     }
   },
 );
+
+
 
 export const GetCoordinatorAssignments = asyncHandler(
   async (_req: Request, res: Response) => {

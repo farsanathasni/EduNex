@@ -37,19 +37,17 @@ export const auth = betterAuth({
   minPasswordLength: 8,
 
     sendResetPassword: async ({ user, url }) => {
-    await sendEmail({
-      to: user.email,
-      subject: "Set up your EduNex account",
-      html: `
-        <h2>Welcome to EduNex!</h2>
-        <p>Your HOD account has been created.</p>
-        <p>Click the link below to choose your password.</p>
-        <a href="${url}">Set Your Password</a>
-        <p>If you did not expect this email, you can ignore it.</p>
-      `,
-    });
-  },
-
+  await sendEmail({
+    to: user.email,
+    subject: "Set Up or Reset Your EduNex Password",
+    html: `
+      <h2>EduNex Password Setup</h2>
+      <p>Use the link below to set or reset your EduNex password.</p>
+      <a href="${url}">Set Up or Reset Password</a>
+      <p>If you did not request this, you can ignore this email.</p>
+    `,
+  });
+},
   },
 
   plugins: [
