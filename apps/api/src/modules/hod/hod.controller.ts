@@ -2,9 +2,12 @@ import type { Request, Response } from "express";
 import asyncHandler from "../../middleware/asyncHandler.js";
 import {
   getActiveHod,
+  getHodDashboardStats,
   getHodStudents,
   createCoordinator,
   getCoordinatorAssignments,
+  getPendingEvents,
+  reviewEvent
 } from "./hod.service.js";
 import { getHodStudentsSchema , createCoordinatorSchema } from "./hod.validation.js";
 
@@ -28,6 +31,8 @@ export const GetHodDashboard = asyncHandler(
       });
     }
 
+    const stats = await getHodDashboardStats()
+
     return res.status(200).json({
       success: true,
       message: "HOD dashboard fetched successfully.",
@@ -37,6 +42,11 @@ export const GetHodDashboard = asyncHandler(
         role: hod.role,
         departmentId: hod.departmentId,
         designation: hod.designation,
+
+        totalStudents: stats.totalStudents,
+        totalStaff: stats.totalStaff,
+        totalCoordinators: stats.totalCoordinators,
+        pendingApprovals: stats.pendingApprovals,
       },
     });
   },
@@ -215,6 +225,98 @@ export const GetCoordinatorAssignments = asyncHandler(
       success: true,
       message: "Coordinator assignments fetched successfully.",
       data,
+    });
+  },
+);
+
+// Get events waiting for HOD approval
+export const GetPendingEvents = asyncHandler(
+  async (_req: Request, res: Response) => {
+    const currentUser = res.locals.user;
+
+    if (!currentUser) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const hod = await getActiveHod(currentUser.id);
+
+    if (!hod) {
+      return res.status(403).json({
+        success: false,
+        message: "Only an active HOD can view pending events",
+      });
+    }
+
+    const pendingEvents = await getPendingEvents();
+
+    return res.status(200).json({
+      success: true,
+      message: "Pending events fetched successfully",
+      data: pendingEvents,
+    });
+  },
+);
+
+// Approve or reject an event
+export const ReviewEvent = asyncHandler(
+  async (req: Request, res: Response) => {
+    const currentUser = res.locals.user;
+
+    if (!currentUser) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const hod = await getActiveHod(currentUser.id);
+
+    if (!hod) {
+      return res.status(403).json({
+        success: false,
+        message: "Only an active HOD can review events",
+      });
+    }
+
+    const eventId = Number(req.params.eventId);
+
+    if (!Number.isSafeInteger(eventId) || eventId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid event ID",
+      });
+    }
+
+    const { decision, comments } = req.body ?? {};
+
+    if (decision !== "approved" && decision !== "rejected") {
+      return res.status(400).json({
+        success: false,
+        message: "Decision must be approved or rejected",
+      });
+    }
+
+    if (comments !== undefined && typeof comments !== "string") {
+      return res.status(400).json({
+        success: false,
+        message: "Comments must be a string",
+      });
+    }
+
+    const result = await reviewEvent(
+      eventId,
+      hod.id,
+      decision,
+      comments,
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: `Event ${decision} successfully`,
+      data: result,
     });
   },
 );

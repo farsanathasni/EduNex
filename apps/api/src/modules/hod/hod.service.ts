@@ -1,8 +1,8 @@
-import { eq, and } from "drizzle-orm";
+import { eq, and, count } from "drizzle-orm";
 import { db } from "../../config/database.js";
 import { staff } from "../../db/schema/staff-schema.js";
 import { StudentProfile } from "../../db/schema/student-profile.js";
-import { departments, clubs } from "../../db/schema/others-schema.js";
+import { departments, clubs, events,eventApprovals } from "../../db/schema/others-schema.js";
 import { user } from "../../db/schema/auth-schema.js";
 import { coordinatorAssignments } from "../../db/schema/coordinator-schema.js";
 
@@ -22,6 +22,43 @@ export const getActiveHod = async (userId: string) => {
     .limit(1);
 
   return hod ?? null;
+};
+
+export const getHodDashboardStats = async () => {
+  const [
+    studentResult,
+    staffResult,
+    coordinatorResult,
+    approvalResult,
+  ] = await Promise.all([
+    // Count all students
+    db
+      .select({ total: count() })
+      .from(StudentProfile),
+
+    // Count all staff members
+    db
+      .select({ total: count() })
+      .from(staff),
+
+    // Count coordinator assignments
+    db
+      .select({ total: count() })
+      .from(coordinatorAssignments),
+
+    // Count events awaiting approval
+    db
+      .select({ total: count() })
+      .from(events)
+      .where(eq(events.status, "pending")),
+  ]);
+
+  return {
+    totalStudents: studentResult[0].total,
+    totalStaff: staffResult[0].total,
+    totalCoordinators: coordinatorResult[0].total,
+    pendingApprovals: approvalResult[0].total,
+  };
 };
 
 export const getHodStudents = async (
@@ -156,4 +193,73 @@ export const getCoordinatorAssignments = async () => {
       clubs,
       eq(coordinatorAssignments.clubId, clubs.id),
     );
+};
+
+// Get events waiting for HOD approval
+export const getPendingEvents = async () => {
+  return db
+    .select({
+      id: events.id,
+      title: events.title,
+      description: events.description,
+      location: events.location,
+      startTime: events.startTime,
+      endTime: events.endTime,
+      status: events.status,
+      clubId: clubs.id,
+      clubName: clubs.name,
+    })
+    .from(events)
+    .innerJoin(clubs, eq(events.clubId, clubs.id))
+    .where(eq(events.status, "pending"));
+};
+
+// Approve or reject an event
+export const reviewEvent = async (
+  eventId: number,
+  reviewerId: string,
+  decision: "approved" | "rejected",
+  comments?: string,
+) => {
+  return db.transaction(async (tx) => {
+    const [event] = await tx
+      .select({
+        id: events.id,
+        status: events.status,
+      })
+      .from(events)
+      .where(
+        and(
+          eq(events.id, eventId),
+          eq(events.status, "pending"),
+        ),
+      )
+      .limit(1);
+
+    if (!event) {
+      throw new Error("EVENT_NOT_PENDING");
+    }
+
+    await tx
+      .update(events)
+      .set({
+        status: decision,
+        updatedAt: new Date().toISOString(),
+      })
+      .where(eq(events.id, eventId));
+
+    await tx.insert(eventApprovals).values({
+      eventId,
+      reviewerId,
+      reviewerRole: "hod",
+      decision,
+      comments: comments || null,
+      reviewedAt: new Date().toISOString(),
+    });
+
+    return {
+      id: eventId,
+      status: decision,
+    };
+  });
 };

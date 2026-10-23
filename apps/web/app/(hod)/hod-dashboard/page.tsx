@@ -1,455 +1,867 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import type { ElementType } from "react";
+import {
+  LayoutDashboard,
+  Users,
+  UserCheck,
+  CalendarCheck,
+  LogOut,
+  Menu,
+  X,
+  GraduationCap,
+  RefreshCw,
+} from "lucide-react";
+
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+
 import { authClient } from "@/lib/auth-client";
+
 import {
   useHodDashboard,
   useHodDepartments,
   useHodStudents,
 } from "../hodQuery";
 
-type Tab =
-  | "Overview"
-  | "Students"
-  | "Coordinators"
-  | "Event Approvals";
+import {
+  useCoordinatorAssignments,
+  useCreateCoordinator,
+  useClubs
+} from "../coordinatorsQuery";
 
-export default function HODDashboardPage() {
+import {
+  coordinatorSchema,
+  type CoordinatorFormInput,
+} from "@/validation/coordinator-schema";
+
+type Section =
+  | "dashboard"
+  | "students"
+  | "coordinators"
+  | "approvals";
+
+type SidebarItemProps = {
+  icon: ElementType;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+};
+
+function SidebarItem({
+  icon: Icon,
+  label,
+  active,
+  onClick,
+}: SidebarItemProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-left text-sm font-medium transition ${
+        active
+          ? "bg-blue-600 text-white"
+          : "text-gray-600 hover:bg-gray-100"
+      }`}
+    >
+      <Icon size={19} />
+      <span>{label}</span>
+    </button>
+  );
+}
+
+type SummaryCardProps = {
+  title: string;
+  value: string | number;
+  icon: ElementType;
+  description?: string;
+};
+
+function SummaryCard({
+  title,
+  value,
+  icon: Icon,
+  description,
+}: SummaryCardProps) {
+  return (
+    <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+      <div className="flex items-start justify-between">
+        <div>
+          <p className="text-sm text-gray-500">{title}</p>
+
+          <h2 className="mt-2 text-2xl font-bold text-gray-900">
+            {value}
+          </h2>
+
+          {description && (
+            <p className="mt-1 text-xs text-gray-500">
+              {description}
+            </p>
+          )}
+        </div>
+
+        <div className="rounded-lg bg-blue-50 p-3 text-blue-600">
+          <Icon size={22} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LoadingMessage({ message }: { message: string }) {
+  return (
+    <div className="flex items-center gap-2 py-8 text-sm text-gray-500">
+      <RefreshCw size={17} className="animate-spin" />
+      {message}
+    </div>
+  );
+}
+
+function ErrorMessage({ message }: { message: string }) {
+  return (
+    <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-600">
+      {message}
+    </div>
+  );
+}
+
+function EmptyMessage({ message }: { message: string }) {
+  return (
+    <div className="py-8 text-center text-sm text-gray-500">
+      {message}
+    </div>
+  );
+}
+
+export default function HodDashboardPage() {
   const router = useRouter();
+  const clubsQuery = useClubs();
 
-  const {
-    data: session,
-    isPending: isSessionPending,
-  } = authClient.useSession();
+  const [activeSection, setActiveSection] =
+    useState<Section>("dashboard");
 
-  const [activeTab, setActiveTab] = useState<Tab>("Overview");
-  const [selectedDepartment, setSelectedDepartment] = useState("");
-  const [semester, setSemester] = useState("");
-  const [isSigningOut, setIsSigningOut] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [departmentId, setDepartmentId] = useState<number | undefined>();
+  const [semester, setSemester] = useState<number | undefined>();
 
-  const {
-    data: hod,
-    isPending: isDashboardPending,
-    isError: isDashboardError,
-    error: dashboardError,
-    refetch: refetchDashboard,
-  } = useHodDashboard();
+  const sessionQuery = authClient.useSession();
 
-  const {
-    data: departments = [],
-    isPending: isDepartmentsPending,
-    isError: isDepartmentsError,
-    refetch: refetchDepartments,
-  } = useHodDepartments(
-    !!session && !isSessionPending && activeTab === "Students",
+  const dashboardQuery = useHodDashboard();
+
+  const studentsTabEnabled =
+    !sessionQuery.isPending &&
+    !!sessionQuery.data?.user &&
+    (activeSection === "students" ||
+      activeSection === "coordinators");
+
+  const departmentsQuery = useHodDepartments(
+    studentsTabEnabled
   );
 
-  const departmentId =
-    selectedDepartment === ""
-      ? undefined
-      : Number(selectedDepartment);
-
-  const semesterNumber =
-    semester === "" ? undefined : Number(semester);
-
-  const {
-    data: students = [],
-    isPending: isStudentsPending,
-    isError: isStudentsError,
-    error: studentsError,
-    refetch: refetchStudents,
-  } = useHodStudents(
+  const studentsQuery = useHodStudents(
     departmentId,
-    semesterNumber,
-    !!session && !isSessionPending && activeTab === "Students",
+    semester,
+    studentsTabEnabled
   );
 
-  const handleSignOut = async () => {
-    setIsSigningOut(true);
+  const coordinatorsQuery = useCoordinatorAssignments();
 
-    try {
-      await authClient.signOut();
+  const createCoordinatorMutation = useCreateCoordinator();
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<CoordinatorFormInput>({
+    resolver: zodResolver(coordinatorSchema),
+    defaultValues: {
+      studentId: 0,
+      clubId: 0,
+    },
+  });
+
+  useEffect(() => {
+    if (!sessionQuery.isPending && !sessionQuery.data?.user) {
       router.replace("/hod-login");
-      router.refresh();
-    } finally {
-      setIsSigningOut(false);
+    }
+  }, [
+    sessionQuery.isPending,
+    sessionQuery.data,
+    router,
+  ]);
+
+  const onAppointCoordinator = async (
+    values: CoordinatorFormInput
+  ) => {
+    try {
+      await createCoordinatorMutation.mutateAsync({
+        studentId: values.studentId,
+        clubId: values.clubId,
+      });
+
+      reset();
+
+      await coordinatorsQuery.refetch();
+    } catch {
+      // The mutation error is displayed in the form.
     }
   };
 
-  if (isSessionPending) {
+  const handleLogout = async () => {
+    await authClient.signOut();
+    router.replace("/hod-login");
+  };
+
+  if (sessionQuery.isPending) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-background">
-        <p className="text-text-muted">Checking your session...</p>
-      </main>
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <LoadingMessage message="Checking your session..." />
+      </div>
     );
   }
 
-  if (!session) {
+  if (!sessionQuery.data?.user) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-background">
-        <div className="text-center">
-          <p className="text-text-muted">Redirecting to login...</p>
-          <button
-            type="button"
-            onClick={() => router.replace("/hod-login")}
-            className="mt-4 rounded-lg bg-primary px-4 py-2 text-primary-foreground"
-          >
-            Go to login
-          </button>
-        </div>
-      </main>
+      <div className="flex min-h-screen items-center justify-center bg-gray-50">
+        <LoadingMessage message="Redirecting to login..." />
+      </div>
     );
   }
 
-  if (isDashboardPending) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-background">
-        <p className="text-text-muted">Loading your dashboard...</p>
-      </main>
-    );
-  }
+  const dashboard = dashboardQuery.data;
+  const students = studentsQuery.data ?? [];
+  const departments = departmentsQuery.data ?? [];
+  const assignments = coordinatorsQuery.data ?? [];
 
-  if (isDashboardError || !hod) {
-    const status = (
-      dashboardError as (Error & { status?: number }) | null
-    )?.status;
-
-    const message =
-      status === 403
-        ? "Access denied. This account does not have active HOD permissions."
-        : status === 401
-          ? "Your session is not authorized. Please sign in again."
-          : dashboardError instanceof Error
-            ? dashboardError.message
-            : "Unable to load the HOD dashboard.";
-
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-background px-4">
-        <section className="w-full max-w-md rounded-xl border border-border bg-surface p-6">
-          <h1 className="text-xl font-bold">HOD Dashboard</h1>
-          <p className="mt-3 text-sm text-text-muted">{message}</p>
-
-          <div className="mt-5 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                if (status === 401) {
-                  router.replace("/hod-login");
-                } else {
-                  void refetchDashboard();
-                }
-              }}
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
-            >
-              {status === 401 ? "Go to login" : "Try again"}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleSignOut}
-              disabled={isSigningOut}
-              className="rounded-lg border border-border px-4 py-2 text-sm font-medium disabled:opacity-60"
-            >
-              {isSigningOut ? "Signing out..." : "Sign out"}
-            </button>
-          </div>
-        </section>
-      </main>
-    );
-  }
-
-  const stats = [
-    {
-      title: "Department Coordinators",
-      value: "—",
-      description: "Coordinator records",
-    },
-    {
-      title: "Pending Approvals",
-      value: "—",
-      description: "Events awaiting review",
-    },
-    {
-      title: "Approved Events",
-      value: "—",
-      description: "Approved department events",
-    },
-  ];
+  const sectionTitle: Record<Section, string> = {
+    dashboard: "Dashboard",
+    students: "Students",
+    coordinators: "Coordinator Management",
+    approvals: "Event Approvals",
+  };
 
   return (
-    <main className="min-h-screen bg-background text-text">
-      <header className="border-b border-border bg-surface">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-          <div>
-            <h1 className="text-xl font-bold">EduNex</h1>
-            <p className="text-sm text-text-muted">
-              Head of Department Portal
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleSignOut}
-            disabled={isSigningOut}
-            className="rounded-lg border border-border px-4 py-2 text-sm font-medium transition hover:bg-background disabled:opacity-60"
-          >
-            {isSigningOut ? "Signing out..." : "Sign out"}
-          </button>
+    <div className="min-h-screen bg-gray-50">
+      {/* Mobile header */}
+      <header className="sticky top-0 z-30 flex items-center justify-between border-b bg-white px-4 py-3 lg:hidden">
+        <div className="flex items-center gap-2">
+          <GraduationCap className="text-blue-700" size={27} />
+          <span className="text-lg font-bold text-gray-900">
+            EduNex
+          </span>
         </div>
+
+        <button
+          type="button"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="rounded-lg p-2 text-gray-600 hover:bg-gray-100"
+          aria-label="Toggle navigation"
+        >
+          {sidebarOpen ? <X size={22} /> : <Menu size={22} />}
+        </button>
       </header>
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <section className="mb-8">
-          <p className="text-sm font-medium text-text-muted">
-            HOD WORKSPACE
-          </p>
-
-          <h2 className="mt-2 text-3xl font-bold">
-            Welcome, {session.user.name}
-          </h2>
-
-          <p className="mt-2 text-text-muted">
-            {hod.designation || "Head of Department"} · Employee ID:{" "}
-            {hod.employeeId}
-          </p>
-        </section>
-
-        <nav className="mb-8 flex flex-wrap gap-2 border-b border-border pb-3">
-          {(
-            [
-              "Overview",
-              "Students",
-              "Coordinators",
-              "Event Approvals",
-            ] as Tab[]
-          ).map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setActiveTab(tab)}
-              className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
-                activeTab === tab
-                  ? "bg-primary text-primary-foreground"
-                  : "text-text-muted hover:bg-surface"
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
-        </nav>
-
-        {activeTab === "Overview" && (
-          <section>
-            <h3 className="mb-4 text-lg font-semibold">Overview</h3>
-
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {stats.map((stat) => (
-                <article
-                  key={stat.title}
-                  className="rounded-xl border border-border bg-surface p-5"
-                >
-                  <p className="text-sm text-text-muted">{stat.title}</p>
-                  <p className="mt-3 text-3xl font-bold">{stat.value}</p>
-                  <p className="mt-2 text-sm text-text-muted">
-                    {stat.description}
-                  </p>
-                </article>
-              ))}
-            </div>
-
-            <div className="mt-6 rounded-xl border border-border bg-surface p-6">
-              <h3 className="font-semibold">Quick overview</h3>
-              <p className="mt-2 text-sm leading-6 text-text-muted">
-                Coordinator information, event counts, and approval
-                statistics will appear here when their APIs are implemented.
-              </p>
-            </div>
-          </section>
+      <div className="flex min-h-screen">
+        {/* Mobile sidebar backdrop */}
+        {sidebarOpen && (
+          <button
+            type="button"
+            aria-label="Close navigation"
+            onClick={() => setSidebarOpen(false)}
+            className="fixed inset-0 z-30 bg-black/40 lg:hidden"
+          />
         )}
 
-        {activeTab === "Students" && (
-          <section className="space-y-6">
+        {/* Sidebar */}
+        <aside
+          className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-gray-200 bg-white transition-transform lg:static lg:translate-x-0 ${
+            sidebarOpen
+              ? "translate-x-0"
+              : "-translate-x-full"
+          }`}
+        >
+          <div className="flex h-20 items-center gap-3 border-b border-gray-100 px-6">
+            <GraduationCap size={32} className="text-blue-700" />
+
             <div>
-              <h3 className="text-xl font-semibold">Students</h3>
-              <p className="mt-1 text-sm text-text-muted">
-                Filter students by department, semester, or both.
+              <h1 className="text-xl font-bold text-gray-900">
+                EduNex
+              </h1>
+              <p className="text-xs text-gray-500">
+                College Management
+              </p>
+            </div>
+          </div>
+
+          <div className="px-5 py-5">
+            <p className="mb-3 px-2 text-xs font-semibold uppercase tracking-wider text-gray-400">
+              HOD Workspace
+            </p>
+
+            <nav className="space-y-1">
+              <SidebarItem
+                icon={LayoutDashboard}
+                label="Dashboard"
+                active={activeSection === "dashboard"}
+                onClick={() => {
+                  setActiveSection("dashboard");
+                  setSidebarOpen(false);
+                }}
+              />
+
+              <SidebarItem
+                icon={Users}
+                label="Students"
+                active={activeSection === "students"}
+                onClick={() => {
+                  setActiveSection("students");
+                  setSidebarOpen(false);
+                }}
+              />
+
+              <SidebarItem
+                icon={UserCheck}
+                label="Coordinators"
+                active={activeSection === "coordinators"}
+                onClick={() => {
+                  setActiveSection("coordinators");
+                  setSidebarOpen(false);
+                }}
+              />
+
+              <SidebarItem
+                icon={CalendarCheck}
+                label="Event Approvals"
+                active={activeSection === "approvals"}
+                onClick={() => {
+                  setActiveSection("approvals");
+                  setSidebarOpen(false);
+                }}
+              />
+            </nav>
+          </div>
+
+          <div className="mt-auto border-t border-gray-100 p-5">
+            <div className="mb-4 rounded-lg bg-blue-50 p-3">
+              <p className="text-sm font-semibold text-blue-900">
+                Head of Department
+              </p>
+              <p className="mt-1 truncate text-xs text-blue-700">
+                {sessionQuery.data.user.email}
               </p>
             </div>
 
-            <div className="grid gap-4 rounded-xl border border-border bg-surface p-5 sm:grid-cols-2">
-              <div>
-                <label
-                  htmlFor="department"
-                  className="mb-2 block text-sm font-medium"
-                >
-                  Department
-                </label>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50"
+            >
+              <LogOut size={19} />
+              Logout
+            </button>
+          </div>
+        </aside>
 
-                <select
-                  id="department"
-                  value={selectedDepartment}
-                  onChange={(event) =>
-                    setSelectedDepartment(event.target.value)
-                  }
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2"
-                >
-                  <option value="">All Departments</option>
-                  {departments.map((department) => (
-                    <option key={department.id} value={department.id}>
-                      {department.name} ({department.code})
-                    </option>
-                  ))}
-                </select>
+        {/* Main content */}
+        <main className="min-w-0 flex-1">
+          <header className="hidden items-center justify-between border-b border-gray-200 bg-white px-8 py-5 lg:flex">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {sectionTitle[activeSection]}
+              </h1>
+              <p className="mt-1 text-sm text-gray-500">
+                Manage your department through EduNex.
+              </p>
+            </div>
 
-                {isDepartmentsPending && (
-                  <p className="mt-2 text-sm text-text-muted">
-                    Loading departments...
+            <div className="text-right">
+              <p className="text-sm font-semibold text-gray-800">
+                {sessionQuery.data.user.name ||
+                  sessionQuery.data.user.email}
+              </p>
+              <p className="text-xs text-gray-500">
+                HOD Account
+              </p>
+            </div>
+          </header>
+
+          <div className="p-4 sm:p-6 lg:p-8">
+            {/* Dashboard */}
+            {activeSection === "dashboard" && (
+              <section>
+                <div className="mb-6">
+                  <h2 className="text-xl font-bold text-gray-900">
+                    Welcome back!
+                  </h2>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Here is an overview of your department.
                   </p>
-                )}
+                </div>
 
-                {isDepartmentsError && (
-                  <div className="mt-2 text-sm text-red-500">
-                    <p>Unable to load departments.</p>
+                {dashboardQuery.isPending ? (
+                  <LoadingMessage message="Loading dashboard..." />
+                ) : dashboardQuery.isError ? (
+                  <ErrorMessage message="Unable to load dashboard information. Please try again." />
+                ) : (
+                  <>
+<div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+  <SummaryCard
+    title="Total Students"
+    value={dashboard?.totalStudents ?? "—"}
+    icon={Users}
+    description="Across all departments"
+  />
+
+  <SummaryCard
+    title="Total Staff"
+    value={dashboard?.totalStaff ?? "—"}
+    icon={GraduationCap}
+    description="Registered staff members"
+  />
+
+  <SummaryCard
+    title="Total Coordinators"
+    value={dashboard?.totalCoordinators ?? "—"}
+    icon={UserCheck}
+    description="Coordinator assignments"
+  />
+
+  <SummaryCard
+    title="Pending Approvals"
+    value={dashboard?.pendingApprovals ?? "—"}
+    icon={CalendarCheck}
+    description="Events awaiting approval"
+  />
+</div>
+
+                    <div className="mt-8 rounded-xl border border-gray-200 bg-white p-6">
+                      <h3 className="text-lg font-semibold text-gray-900">
+                        Quick Actions
+                      </h3>
+
+                      <p className="mt-1 text-sm text-gray-500">
+                        Choose a section to manage your department.
+                      </p>
+
+                      <div className="mt-5 flex flex-wrap gap-3">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setActiveSection("students")
+                          }
+                          className="rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-blue-700"
+                        >
+                          View Students
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setActiveSection("coordinators")
+                          }
+                          className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                        >
+                          Manage Coordinators
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setActiveSection("approvals")
+                          }
+                          className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                        >
+                          Event Approvals
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                )}
+              </section>
+            )}
+
+            {/* Students */}
+            {activeSection === "students" && (
+              <section>
+                <div className="mb-6">
+                  <h2 className="text-xl font-bold text-gray-900">
+                    Students
+                  </h2>
+                  <p className="mt-1 text-sm text-gray-500">
+                    View students and filter by department and semester.
+                  </p>
+                </div>
+
+                <div className="mb-6 grid grid-cols-1 gap-4 rounded-xl border border-gray-200 bg-white p-5 sm:grid-cols-2">
+                  <div>
+                    <label
+                      htmlFor="departmentFilter"
+                      className="mb-2 block text-sm font-medium text-gray-700"
+                    >
+                      Department
+                    </label>
+
+                    <select
+                      id="departmentFilter"
+                      value={departmentId ?? ""}
+                      onChange={(event) => {
+                        const value = event.target.value;
+
+                        setDepartmentId(
+                          value ? Number(value) : undefined
+                        );
+                      }}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    >
+                      <option value="">All departments</option>
+
+                      {departments.map((department) => (
+                        <option
+                          key={department.id}
+                          value={department.id}
+                        >
+                          {department.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="semesterFilter"
+                      className="mb-2 block text-sm font-medium text-gray-700"
+                    >
+                      Semester
+                    </label>
+
+                    <select
+                      id="semesterFilter"
+                      value={semester ?? ""}
+                      onChange={(event) => {
+                        const value = event.target.value;
+
+                        setSemester(
+                          value ? Number(value) : undefined
+                        );
+                      }}
+                      className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    >
+                      <option value="">All semesters</option>
+
+                      {[1, 2, 3, 4, 5, 6].map((number) => (
+                        <option key={number} value={number}>
+                          Semester {number}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+                  <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+                    <h3 className="font-semibold text-gray-900">
+                      Student List
+                    </h3>
+
+                    <span className="text-sm text-gray-500">
+                      {students.length} students
+                    </span>
+                  </div>
+
+                  {departmentsQuery.isError ? (
+                    <div className="p-5">
+                      <ErrorMessage message="Unable to load departments." />
+                    </div>
+                  ) : studentsQuery.isPending ? (
+                    <div className="p-5">
+                      <LoadingMessage message="Loading students..." />
+                    </div>
+                  ) : studentsQuery.isError ? (
+                    <div className="p-5">
+                      <ErrorMessage message="Unable to load students. Please try again." />
+                    </div>
+                  ) : students.length === 0 ? (
+                    <EmptyMessage message="No students found for the selected filters." />
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-sm">
+                        <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+                          <tr>
+                            <th className="px-5 py-3 font-semibold">
+                              Student
+                            </th>
+                            <th className="px-5 py-3 font-semibold">
+                              Admission No.
+                            </th>
+                            <th className="px-5 py-3 font-semibold">
+                              Department
+                            </th>
+                            <th className="px-5 py-3 font-semibold">
+                              Semester
+                            </th>
+                            <th className="px-5 py-3 font-semibold">
+                              Email
+                            </th>
+                          </tr>
+                        </thead>
+
+                        <tbody className="divide-y divide-gray-100">
+                          {students.map((student) => (
+                            <tr
+                              key={student.id}
+                              className="hover:bg-gray-50"
+                            >
+                              <td className="whitespace-nowrap px-5 py-4 font-medium text-gray-900">
+                                {student.name}
+                              </td>
+
+                              <td className="whitespace-nowrap px-5 py-4 text-gray-600">
+                                {student.admissionNumber}
+                              </td>
+
+                              <td className="whitespace-nowrap px-5 py-4 text-gray-600">
+                                {student.departmentName}
+                              </td>
+
+                              <td className="whitespace-nowrap px-5 py-4 text-gray-600">
+                                {student.semester}
+                              </td>
+
+                              <td className="whitespace-nowrap px-5 py-4 text-gray-600">
+                                {student.email}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </section>
+            )}
+
+            {/* Coordinator management */}
+            {activeSection === "coordinators" && (
+              <section>
+                <div className="mb-6">
+                  <h2 className="text-xl font-bold text-gray-900">
+                    Coordinator Management
+                  </h2>
+
+                  <p className="mt-1 text-sm text-gray-500">
+                    Appoint an existing student as a club coordinator.
+                  </p>
+                </div>
+
+                <div className="mb-8 rounded-xl border border-gray-200 bg-white p-5 sm:p-6">
+                  <h3 className="text-lg font-semibold text-gray-900">
+                    Appoint Coordinator
+                  </h3>
+
+                  <p className="mt-1 text-sm text-gray-500">
+                    Select a student and enter the club ID for the assignment.
+                  </p>
+
+                  <form
+                    onSubmit={handleSubmit(onAppointCoordinator)}
+                    className="mt-5 space-y-5"
+                  >
+                    <div>
+                      <label
+                        htmlFor="studentId"
+                        className="mb-2 block text-sm font-medium text-gray-700"
+                      >
+                        Student
+                      </label>
+
+                      <select
+                        id="studentId"
+                        {...register("studentId", {
+                          valueAsNumber: true,
+                        })}
+                        className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      >
+                        <option value={0}>
+                          Select a student
+                        </option>
+
+                        {students.map((student) => (
+                          <option
+                            key={student.id}
+                            value={student.id}
+                          >
+                            {student.name} — {student.admissionNumber}
+                          </option>
+                        ))}
+                      </select>
+
+                      {errors.studentId && (
+                        <p className="mt-1 text-sm text-red-600">
+                          {errors.studentId.message}
+                        </p>
+                      )}
+                    </div>
+
+<div>
+  <label
+    htmlFor="clubId"
+    className="mb-2 block text-sm font-medium text-gray-700"
+  >
+    Club
+  </label>
+
+  <select
+    id="clubId"
+    {...register("clubId", {
+      valueAsNumber: true,
+    })}
+    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+  >
+    <option value={0}>Select a club</option>
+
+    {clubsQuery.data?.map((club) => (
+      <option key={club.id} value={club.id}>
+        {club.name}
+      </option>
+    ))}
+  </select>
+
+  {errors.clubId && (
+    <p className="mt-1 text-sm text-red-600">
+      {errors.clubId.message}
+    </p>
+  )}
+</div>
+
+                    {createCoordinatorMutation.isError && (
+                      <ErrorMessage
+                        message={
+                          createCoordinatorMutation.error instanceof Error
+                            ? createCoordinatorMutation.error.message
+                            : "Unable to appoint the coordinator."
+                        }
+                      />
+                    )}
+
+                    {createCoordinatorMutation.isSuccess && (
+                      <p className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-700">
+                        Coordinator appointed successfully.
+                      </p>
+                    )}
+
+                    <button
+                      type="submit"
+                      disabled={createCoordinatorMutation.isPending}
+                      className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {createCoordinatorMutation.isPending
+                        ? "Appointing..."
+                        : "Appoint Coordinator"}
+                    </button>
+                  </form>
+                </div>
+
+                <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
+                  <div className="flex items-center justify-between border-b border-gray-200 px-5 py-4">
+                    <h3 className="font-semibold text-gray-900">
+                      Coordinator Assignments
+                    </h3>
+
                     <button
                       type="button"
-                      onClick={() => void refetchDepartments()}
-                      className="mt-1 underline"
+                      onClick={() =>
+                        coordinatorsQuery.refetch()
+                      }
+                      className="flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-600 hover:bg-gray-50"
                     >
-                      Try again
+                      <RefreshCw size={15} />
+                      Refresh
                     </button>
                   </div>
-                )}
-              </div>
 
-              <div>
-                <label
-                  htmlFor="semester"
-                  className="mb-2 block text-sm font-medium"
-                >
-                  Semester
-                </label>
+                  {coordinatorsQuery.isPending ? (
+                    <div className="p-5">
+                      <LoadingMessage message="Loading coordinator assignments..." />
+                    </div>
+                  ) : coordinatorsQuery.isError ? (
+                    <div className="p-5">
+                      <ErrorMessage message="Unable to load coordinator assignments." />
+                    </div>
+                  ) : assignments.length === 0 ? (
+                    <EmptyMessage message="No coordinator assignments found." />
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-sm">
+                        <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+                          <tr>
+                            <th className="px-5 py-3 font-semibold">
+                              Student
+                            </th>
+                            <th className="px-5 py-3 font-semibold">
+                              Club
+                            </th>
+                          </tr>
+                        </thead>
 
-                <select
-                  id="semester"
-                  value={semester}
-                  onChange={(event) => setSemester(event.target.value)}
-                  className="w-full rounded-lg border border-border bg-background px-3 py-2"
-                >
-                  <option value="">All Semesters</option>
-                  {[1, 2, 3, 4, 5, 6, 7, 8].map((number) => (
-                    <option key={number} value={number}>
-                      Semester {number}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
+                        <tbody className="divide-y divide-gray-100">
+                          {assignments.map((assignment, index) => (
+                            <tr
+                              key={`${assignment.studentId}-${assignment.clubId}-${index}`}
+                              className="hover:bg-gray-50"
+                            >
+                              <td className="whitespace-nowrap px-5 py-4 font-medium text-gray-900">
+                                {assignment.studentName}
+                              </td>
 
-            {isStudentsPending ? (
-              <div className="rounded-xl border border-border bg-surface p-6">
-                <p className="text-sm text-text-muted">
-                  Loading students...
-                </p>
-              </div>
-            ) : isStudentsError ? (
-              <div className="rounded-xl border border-border bg-surface p-6">
-                <p className="text-sm text-red-500">
-                  {studentsError instanceof Error
-                    ? studentsError.message
-                    : "Unable to load students."}
-                </p>
-
-                <button
-                  type="button"
-                  onClick={() => void refetchStudents()}
-                  className="mt-3 rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground"
-                >
-                  Try again
-                </button>
-              </div>
-            ) : (
-              <div className="overflow-x-auto rounded-xl border border-border bg-surface">
-                <table className="w-full text-left text-sm">
-                  <thead className="border-b border-border bg-background">
-                    <tr>
-                      <th className="px-4 py-3 font-semibold">Name</th>
-                      <th className="px-4 py-3 font-semibold">Email</th>
-                      <th className="px-4 py-3 font-semibold">
-                        Admission Number
-                      </th>
-                      <th className="px-4 py-3 font-semibold">
-                        Department
-                      </th>
-                      <th className="px-4 py-3 font-semibold">Semester</th>
-                      <th className="px-4 py-3 font-semibold">Phone</th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {students.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={6}
-                          className="px-4 py-8 text-center text-text-muted"
-                        >
-                          No students match the selected filters.
-                        </td>
-                      </tr>
-                    ) : (
-                      students.map((student) => (
-                        <tr
-                          key={student.id}
-                          className="border-b border-border last:border-0"
-                        >
-                          <td className="px-4 py-3">{student.name}</td>
-                          <td className="px-4 py-3">{student.email}</td>
-                          <td className="px-4 py-3">
-                            {student.admissionNumber}
-                          </td>
-                          <td className="px-4 py-3">
-                            {student.departmentName}
-                          </td>
-                          <td className="px-4 py-3">{student.semester}</td>
-                          <td className="px-4 py-3">
-                            {student.phone || "—"}
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-
-                <p className="px-4 py-3 text-sm text-text-muted">
-                  Total students: {students.length}
-                </p>
-              </div>
+                              <td className="whitespace-nowrap px-5 py-4 text-gray-600">
+                                {assignment.clubName}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </section>
             )}
-          </section>
-        )}
 
-        {activeTab === "Coordinators" && (
-          <section className="rounded-xl border border-border bg-surface p-6">
-            <h3 className="text-lg font-semibold">
-              Department Coordinators
-            </h3>
-            <p className="mt-2 text-sm text-text-muted">
-              Coordinator details will appear here after the coordinators API
-              is connected.
-            </p>
-          </section>
-        )}
+            {/* Event approvals */}
+            {activeSection === "approvals" && (
+              <section>
+                <div className="mb-6">
+                  <h2 className="text-xl font-bold text-gray-900">
+                    Event Approvals
+                  </h2>
 
-        {activeTab === "Event Approvals" && (
-          <section className="rounded-xl border border-border bg-surface p-6">
-            <h3 className="text-lg font-semibold">Event Approvals</h3>
-            <p className="mt-2 text-sm text-text-muted">
-              Event requests and approval actions will appear here after the
-              event approval API is connected.
-            </p>
-          </section>
-        )}
+                  <p className="mt-1 text-sm text-gray-500">
+                    Review and manage event approval requests.
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-gray-200 bg-white p-8 text-center">
+                  <CalendarCheck
+                    size={42}
+                    className="mx-auto text-blue-600"
+                  />
+
+                  <h3 className="mt-4 text-lg font-semibold text-gray-900">
+                    Event Approvals
+                  </h3>
+
+                  <p className="mx-auto mt-2 max-w-md text-sm text-gray-500">
+                    This section is ready for the event approval
+                    functionality to be connected.
+                  </p>
+                </div>
+              </section>
+            )}
+          </div>
+        </main>
       </div>
-    </main>
+    </div>
   );
 }

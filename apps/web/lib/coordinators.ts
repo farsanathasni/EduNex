@@ -19,7 +19,7 @@ export type HodStudent = {
   phone: string | null;
   userId: string;
   email: string;
-};
+}
 
 export type CoordinatorAssignment = {
   id: number;
@@ -31,6 +31,8 @@ export type CoordinatorAssignment = {
   appointedBy: string;
   createdAt: string | Date;
 };
+
+
 
 export type CreateCoordinatorInput = {
   studentId: number;
@@ -85,6 +87,8 @@ export const getHodStudents = async (
 
   return data.data;
 };
+
+
 
 // Get existing coordinator assignments
 export const getCoordinatorAssignments = async () => {

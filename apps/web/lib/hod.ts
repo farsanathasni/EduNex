@@ -6,6 +6,11 @@ export interface HodDashboard {
   role: "hod";
   departmentId: number | string | null;
   designation: string | null;
+
+  totalStudents: number;
+  totalStaff: number;
+  totalCoordinators: number;
+  pendingApprovals: number;
 }
 
 export interface HodDashboardResponse {
