@@ -6,6 +6,7 @@ import { departments, clubs, events,eventApprovals } from "../../db/schema/other
 import { user } from "../../db/schema/auth-schema.js";
 import { coordinatorAssignments } from "../../db/schema/coordinator-schema.js";
 import { sendEmail } from "../../utils/email.js";
+import { auth } from "../../auth.js";
 
 
 
@@ -121,15 +122,17 @@ export const getHodClubs = async () => {
     .from(clubs);
 };
 
+
 export const createCoordinator = async (
   studentId: number,
   clubId: number,
   appointedBy: string,
 ) => {
-  // 1. Check whether the student exists and get their email.
+  // 1. Find the student and their registered email address.
   const [student] = await db
     .select({
       id: StudentProfile.id,
+      name: StudentProfile.name,
       email: user.email,
     })
     .from(StudentProfile)
@@ -141,7 +144,7 @@ export const createCoordinator = async (
     throw new Error("STUDENT_NOT_FOUND");
   }
 
-  // 2. Check whether the club exists.
+  // 2. Find the club.
   const [club] = await db
     .select({
       id: clubs.id,
@@ -155,7 +158,7 @@ export const createCoordinator = async (
     throw new Error("CLUB_NOT_FOUND");
   }
 
-  // 3. Check whether this student is already assigned to this club.
+  // 3. Prevent duplicate coordinator assignments.
   const [existingAssignment] = await db
     .select()
     .from(coordinatorAssignments)
@@ -171,7 +174,7 @@ export const createCoordinator = async (
     throw new Error("COORDINATOR_ALREADY_ASSIGNED");
   }
 
-  // 4. Save the coordinator assignment.
+  // 4. Save the assignment first.
   const [assignment] = await db
     .insert(coordinatorAssignments)
     .values({
@@ -181,31 +184,112 @@ export const createCoordinator = async (
     })
     .returning();
 
-  // 5. Send the appointment notification.
-  await sendEmail({
-    to: student.email,
-    subject: "You have been appointed as a Club Coordinator - EduNex",
-    html: `
-      <div style="font-family: Arial, sans-serif; line-height: 1.6;">
-        <h2>Congratulations!</h2>
+  // Escape dynamic values before inserting them into HTML.
+  const escapeHtml = (value: string) =>
+    value.replace(/[&<>"']/g, (character) => {
+      const entities: Record<string, string> = {
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;",
+      };
 
-        <p>You have been appointed as a club coordinator at EduNex.</p>
+      return entities[character];
+    });
 
-        <p>
-          <strong>Club:</strong> ${club.name}
-        </p>
+  // 5. Send the appointment email without undoing the assignment
+  // if the email service is unavailable.
+  let emailSent = false;
 
-        <p>
-          Please log in to your EduNex account to continue.
-        </p>
+  if (student.email?.trim()) {
+    try {
+      await sendEmail({
+        to: student.email,
+        subject: "Club Coordinator Appointment - EduNex",
+        html: `
+          <div style="font-family: Arial, sans-serif; line-height: 1.7; color: #243247; max-width: 600px; margin: auto;">
+            <div style="background-color: #234c96; padding: 24px; color: white; border-radius: 12px 12px 0 0;">
+              <h1 style="margin: 0;">EduNex</h1>
+              <p style="margin-bottom: 0;">Club Management</p>
+            </div>
 
-        <p>Best regards,<br />EduNex Team</p>
-      </div>
-    `,
-  });
+            <div style="padding: 24px; border: 1px solid #e5e7eb; border-top: none;">
+              <h2>Congratulations, ${escapeHtml(student.name)}!</h2>
 
-  return assignment;
+              <p>
+                You have been appointed as a
+                <strong>Club Coordinator</strong> at EduNex.
+              </p>
+
+              <div style="background-color: #f5f7fc; padding: 16px; border-radius: 8px;">
+                <p style="margin-top: 0;">
+                  <strong>Student:</strong>
+                  ${escapeHtml(student.name)}
+                </p>
+                <p style="margin-bottom: 0;">
+                  <strong>Club:</strong>
+                  ${escapeHtml(club.name)}
+                </p>
+              </div>
+
+              <p>
+                Please log in to your EduNex account to view your
+                club-related activities and responsibilities.
+              </p>
+
+              <p>
+                Best regards,<br />
+                <strong>EduNex Team</strong>
+              </p>
+            </div>
+          </div>
+        `,
+      });
+
+      emailSent = true;
+    } catch (error) {
+      console.error(
+        "Coordinator assignment saved, but appointment email failed:",
+        error,
+      );
+    }
+  } else {
+    console.warn(
+      `Coordinator assignment ${assignment.id} saved, but the student has no registered email.`,
+    );
+  }
+
+  // Send the secure password setup email.
+let passwordSetupEmailSent = false;
+
+if (student.email?.trim()) {
+  try {
+    await auth.api.requestPasswordReset({
+  body: {
+    email: student.email,
+    redirectTo: `${
+      process.env.WEB_URL || "http://localhost:3000"
+    }/resetPassword?redirectTo=%2Fclub-coordinator-login`,
+  },
+});
+
+    passwordSetupEmailSent = true;
+  } catch (error) {
+    console.error(
+      "Coordinator appointment was saved, but the password setup email request failed:",
+      error,
+    );
+  }
+}
+
+  // Return the saved assignment and email delivery status.
+  return {
+    assignment,
+    emailSent,
+  };
 };
+
 
 export const getCoordinatorAssignments = async () => {
   return db
