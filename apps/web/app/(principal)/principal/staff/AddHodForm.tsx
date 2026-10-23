@@ -23,10 +23,48 @@ type Department = {
 };
 
 type ApiResponse<T> = {
-  success: boolean;
-  data: T;
+  success?: boolean;
+  data?: T;
   message?: string;
 };
+
+function extractDepartments(result: unknown): Department[] {
+  if (Array.isArray(result)) {
+    return result;
+  }
+
+  if (!result || typeof result !== "object") {
+    throw new Error("Invalid departments API response.");
+  }
+
+  const response = result as ApiResponse<unknown>;
+
+  if (response.success === false) {
+    throw new Error(
+      response.message || "Failed to load departments."
+    );
+  }
+
+  // Handle { success: true, data: [...] }
+  if (Array.isArray(response.data)) {
+    return response.data as Department[];
+  }
+
+  // Handle { data: { data: [...] } }
+  if (
+    response.data &&
+    typeof response.data === "object" &&
+    Array.isArray(
+      (response.data as { data?: unknown }).data
+    )
+  ) {
+    return (response.data as { data: Department[] }).data;
+  }
+
+  throw new Error(
+    "Departments response does not contain a department array. Check the API response."
+  );
+}
 
 export default function AddHodForm() {
   const [successMessage, setSuccessMessage] = useState("");
@@ -35,20 +73,11 @@ export default function AddHodForm() {
     data: departments = [],
     isLoading: isLoadingDepartments,
     error: departmentError,
-  } = useQuery({
+  } = useQuery<Department[]>({
     queryKey: ["principal", "departments"],
-    queryFn: async (): Promise<Department[]> => {
-      const result = (await getPrincipalDepartments()) as ApiResponse<
-        Department[]
-      >;
-
-      if (!result.success) {
-        throw new Error(
-          result.message || "Failed to load departments",
-        );
-      }
-
-      return result.data;
+    queryFn: async () => {
+      const result = await getPrincipalDepartments();
+      return extractDepartments(result);
     },
   });
 
@@ -190,15 +219,20 @@ export default function AddHodForm() {
           <label className="mb-1 block text-sm font-medium">
             Department
           </label>
+
           <select
             {...register("departmentId")}
-            disabled={isLoadingDepartments || departments.length === 0}
+            disabled={
+              isLoadingDepartments || departments.length === 0
+            }
             className="w-full rounded-lg border border-border bg-background px-3 py-2"
           >
             <option value="">
               {isLoadingDepartments
                 ? "Loading departments..."
-                : "Select department"}
+                : departments.length === 0
+                  ? "No departments available"
+                  : "Select department"}
             </option>
 
             {departments.map((department) => (
@@ -210,6 +244,7 @@ export default function AddHodForm() {
               </option>
             ))}
           </select>
+
           {errors.departmentId && (
             <p className="mt-1 text-sm text-red-600">
               {errors.departmentId.message}
@@ -253,7 +288,10 @@ export default function AddHodForm() {
         <div className="flex items-end">
           <button
             type="submit"
-            disabled={createHodMutation.isPending}
+            disabled={
+              createHodMutation.isPending ||
+              departments.length === 0
+            }
             className="w-full rounded-lg bg-primary px-4 py-2 font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60"
           >
             {createHodMutation.isPending
