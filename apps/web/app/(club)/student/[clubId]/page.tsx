@@ -2,11 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import {
-  useCreateStudentMembershipRequestMutation,
-  useMyStudentMembershipRequestsQuery,
-  useStudentClubByIdQuery,
-} from "../../clubQuery";
+import {useCreateStudentMembershipRequestMutation,useMyStudentMembershipRequestsQuery,useStudentClubByIdQuery,} from "../../clubQuery";
 
 const quickLinks = [
   {
