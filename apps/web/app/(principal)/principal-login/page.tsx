@@ -63,7 +63,7 @@ const onSubmit = async (data: PrincipalLoginInput) => {
     }
 
     
-    router.replace("/principal-dashboard");
+    router.replace("/principal");
     router.refresh();
   } catch (error) {
     if (loginSucceeded) {

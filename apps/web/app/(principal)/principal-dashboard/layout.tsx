@@ -8,7 +8,7 @@ import { authClient } from "@/lib/auth-client";
 const menuItems = [
   {
     label: "Overview",
-    href: "/principal-dashboard",
+    href: "/principal",
     icon: "⌂",
   },
   {
