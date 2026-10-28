@@ -45,12 +45,11 @@ function extractDepartments(result: unknown): Department[] {
     );
   }
 
-  // Handle { success: true, data: [...] }
+ 
   if (Array.isArray(response.data)) {
     return response.data as Department[];
   }
 
-  // Handle { data: { data: [...] } }
   if (
     response.data &&
     typeof response.data === "object" &&
@@ -74,7 +73,7 @@ export default function AddHodForm() {
     isLoading: isLoadingDepartments,
     error: departmentError,
   } = useQuery<Department[]>({
-    queryKey: ["principal", "departments"],
+    queryKey: ["principal", "departments", "add-hod-form"],
     queryFn: async () => {
       const result = await getPrincipalDepartments();
       return extractDepartments(result);

@@ -52,7 +52,7 @@ export const createHod = async (input: CreateHodInput) => {
     throw new Error("Unable to create the HOD login account");
   }
 
-  // Create the HOD staff record
+  
   try {
     await db.insert(staff).values({
       id: crypto.randomUUID(),
@@ -65,12 +65,11 @@ export const createHod = async (input: CreateHodInput) => {
       isActive: true,
     });
   } catch (error) {
-    // Avoid leaving an incomplete account if staff creation fails.
-    // The Better Auth user must be cleaned up separately if needed.
+    
     throw error;
   }
 
-  // Send a password-setup email through Better Auth and Nodemailer.
+ 
 await auth.api.requestPasswordReset({
   body: {
     email: result.user.email,
@@ -90,7 +89,7 @@ await auth.api.requestPasswordReset({
   };
 };
 
-// Get all departments for the Principal
+
 export const getDepartments = async () => {
   return await db
     .select({

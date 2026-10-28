@@ -1,15 +1,16 @@
+
 import type { Request, Response } from "express";
 import asyncHandler from "../../middleware/asyncHandler.js";
 import {
   getActiveHod,
   getHodDashboardStats,
-  getHodStudents,
-  createCoordinator,
-  getCoordinatorAssignments,
   getPendingEvents,
-  reviewEvent
+  reviewEvent,
+  getHodStudents,
 } from "./hod.service.js";
-import { getHodStudentsSchema , createCoordinatorSchema } from "./hod.validation.js";
+
+
+
 
 export const GetHodDashboard = asyncHandler(
   async (_req: Request, res: Response) => {
@@ -31,7 +32,7 @@ export const GetHodDashboard = asyncHandler(
       });
     }
 
-    const stats = await getHodDashboardStats()
+    const stats = await getHodDashboardStats();
 
     return res.status(200).json({
       success: true,
@@ -42,7 +43,6 @@ export const GetHodDashboard = asyncHandler(
         role: hod.role,
         departmentId: hod.departmentId,
         designation: hod.designation,
-
         totalStudents: stats.totalStudents,
         totalStaff: stats.totalStaff,
         totalCoordinators: stats.totalCoordinators,
@@ -52,191 +52,49 @@ export const GetHodDashboard = asyncHandler(
   },
 );
 
-export const GetHodStudents = asyncHandler(
+export const GetStudentsByDepartment = asyncHandler(
   async (req: Request, res: Response) => {
-    const user = res.locals.user;
+    const departmentId = req.query.departmentId
+      ? Number(req.query.departmentId)
+      : undefined;
 
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized. Please log in.",
-      });
-    }
+    const semester = req.query.semester
+      ? Number(req.query.semester)
+      : undefined;
 
-    const hod = await getActiveHod(user.id);
+    const search = req.query.search
+      ? String(req.query.search)
+      : undefined;
 
-    if (!hod) {
-      return res.status(403).json({
-        success: false,
-        message: "Access denied. Active HOD permission required.",
-      });
-    }
+    const page = req.query.page ? Number(req.query.page) : 1;
+    const limit = req.query.limit ? Number(req.query.limit) : 10;
 
-    if (hod.departmentId === null) {
-      return res.status(400).json({
-        success: false,
-        message: "No department is assigned to this HOD.",
-      });
-    }
-
-    // Validate the semester query parameter.
-    const validation = getHodStudentsSchema.safeParse(req.query);
-
-    if (!validation.success) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid query parameters.",
-        errors: validation.error.flatten(),
-      });
-    }
-
-    // Read and validate the optional department filter.
-    const departmentIdParam = req.query.departmentId;
-    let departmentId: number | undefined;
-
-    if (departmentIdParam !== undefined) {
-      if (
-        typeof departmentIdParam !== "string" ||
-        !/^\d+$/.test(departmentIdParam) ||
-        !Number.isSafeInteger(Number(departmentIdParam)) ||
-        Number(departmentIdParam) <= 0
-      ) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid department ID.",
-        });
-      }
-
-      departmentId = Number(departmentIdParam);
-    }
-
-    const semester =
-      validation.data.semester === undefined
-        ? undefined
-        : Number(validation.data.semester);
-
-    // Apply both filters when provided.
-    const students = await getHodStudents(
+    const result = await getHodStudents(
       departmentId,
       semester,
+      search,
+      page,
+      limit,
     );
 
     return res.status(200).json({
       success: true,
       message: "Students fetched successfully.",
-      data: students,
+      data: result.students,
+      pagination: result.pagination,
     });
   },
 );
 
-// Keep this export if the router from the other branch uses this name.
-export const GetStudentsByDepartment = GetHodStudents;
 
 
 
 
 
 
-export const CreateCoordinator = asyncHandler(
-  async (req: Request, res: Response) => {
-    const currentUser = res.locals.user;
-
-    if (!currentUser) {
-      return res.status(401).json({
-        success: false,
-        message: "Please log in.",
-      });
-    }
-
-    const hod = await getActiveHod(currentUser.id);
-
-    if (!hod) {
-      return res.status(403).json({
-        success: false,
-        message: "Active HOD permission required.",
-      });
-    }
-
-    const validation = createCoordinatorSchema.safeParse(req.body);
-
-    if (!validation.success) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid coordinator details.",
-        errors: validation.error.flatten(),
-      });
-    }
-
-    try {
-      const result = await createCoordinator(
-        validation.data.studentId,
-        validation.data.clubId,
-        currentUser.id,
-      );
-
-      return res.status(201).json({
-        success: true,
-        message: result.emailSent
-          ? "Coordinator appointed successfully. Confirmation email sent."
-          : "Coordinator appointed successfully, but the confirmation email could not be sent.",
-        data: result.assignment,
-        emailSent: result.emailSent,
-      });
-    } catch (error) {
-      if (error instanceof Error) {
-        const messages: Record<string, string> = {
-          STUDENT_NOT_FOUND: "Student not found.",
-          CLUB_NOT_FOUND: "Club not found.",
-          COORDINATOR_ALREADY_ASSIGNED:
-            "This student is already assigned to this club.",
-        };
-
-        if (messages[error.message]) {
-          return res.status(400).json({
-            success: false,
-            message: messages[error.message],
-          });
-        }
-      }
-
-      throw error;
-    }
-  },
-);
 
 
 
-export const GetCoordinatorAssignments = asyncHandler(
-  async (_req: Request, res: Response) => {
-    const currentUser = res.locals.user;
-
-    if (!currentUser) {
-      return res.status(401).json({
-        success: false,
-        message: "Please log in.",
-      });
-    }
-
-    const hod = await getActiveHod(currentUser.id);
-
-    if (!hod) {
-      return res.status(403).json({
-        success: false,
-        message: "Active HOD permission required.",
-      });
-    }
-
-    const data = await getCoordinatorAssignments();
-
-    return res.status(200).json({
-      success: true,
-      message: "Coordinator assignments fetched successfully.",
-      data,
-    });
-  },
-);
-
-// Get events waiting for HOD approval
 export const GetPendingEvents = asyncHandler(
   async (_req: Request, res: Response) => {
     const currentUser = res.locals.user;
@@ -267,7 +125,6 @@ export const GetPendingEvents = asyncHandler(
   },
 );
 
-// Approve or reject an event
 export const ReviewEvent = asyncHandler(
   async (req: Request, res: Response) => {
     const currentUser = res.locals.user;

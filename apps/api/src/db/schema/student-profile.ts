@@ -26,6 +26,7 @@ export const StudentProfile = pgTable("student-profile", {
   semester: integer("semester").notNull(),
 
   phone: text("phone"),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 });
 
 export const StudentProfileRelation = relations(
