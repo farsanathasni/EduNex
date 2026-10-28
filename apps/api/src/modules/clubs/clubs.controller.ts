@@ -1,11 +1,25 @@
+
 import type { Request, Response } from "express";
+
 import asyncHandler from "../../middleware/asyncHandler.js";
-import { getActiveHod } from "../hod/hod.service.js";
-import {createClub,createMemberShipRequest,getAllClubs, getClubAnnouncements, getClubById, getClubCoordinators, getClubEvents, getMyMembershipRequests, getStudentProfileByUserId,} from "./clubs.service.js";
-import { createClubSchema } from "./clubs.validation.js";
+import {
+  createClub,
+  createMemberShipRequest,
+  getAllClubs,
+  getClubAnnouncements,
+  getClubById,
+  getClubCoordinators,
+  getClubEvents,
+  getMyMembershipRequests,
+  getStudentProfileByUserId,
+} from "./clubs.service.js";
+import {
+  clubListQuerySchema,
+  createClubSchema,
+} from "./clubs.validation.js";
 
-
-
+const getListQuery = (req: Request) =>
+  clubListQuerySchema.safeParse(req.query);
 
 export const CreateClub = asyncHandler(
   async (req: Request, res: Response) => {
@@ -31,125 +45,169 @@ export const CreateClub = asyncHandler(
   },
 );
 
-
-
-
 export const GetAllClubs = asyncHandler(
-  async (_req: Request, res: Response) => {
-    const data = await getAllClubs();
+  async (req: Request, res: Response) => {
+    const validation = getListQuery(req);
+
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid search or pagination parameters.",
+        errors: validation.error.flatten(),
+      });
+    }
+
+    const { page, limit, search } = validation.data;
+    const result = await getAllClubs(search, page, limit);
 
     return res.status(200).json({
       success: true,
       message: "Clubs fetched successfully.",
+      data: result.clubs,
+      pagination: result.pagination,
+    });
+  },
+);
+
+export const GetStudentClubs = GetAllClubs;
+
+export const GetStudentClubById = asyncHandler(
+  async (req: Request, res: Response) => {
+    const clubId = Number(req.params.clubId);
+
+    if (!Number.isSafeInteger(clubId) || clubId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid club ID.",
+      });
+    }
+
+    const data = await getClubById(clubId);
+
+    if (!data) {
+      return res.status(404).json({
+        success: false,
+        message: "Club not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Club fetched successfully.",
       data,
     });
   },
 );
 
-
-
-
-export const GetStudentClubs=asyncHandler(async(_req:Request,res:Response)=>{
-  const data=await getAllClubs()
-
-  return res.status(200).json({
-    success:true,message:"Clubs fetched successfully.",
-    data
-  })
-})
-
-
-export const GetStudentClubById =asyncHandler(async(req:Request,res:Response)=>{
-  const clubId=Number(req.params.clubId)
-
-  if(!Number.isInteger(clubId)||clubId <=0){
-    return res.status(400).json({
-      success:false,message:"Invalid club ID.",
-    })
-  }
-
-  const data=await getClubById(clubId)
-
-  if(!data){
-    return res.status(404).json({
-      success:false,message:"Club not found."
-    })
-  }
-
-  return res.status(200).json({
-    success:true,message:"Club fetched successfully.",
-    data
-  })
-})
-
-
-
 export const GetStudentClubCoordinators = asyncHandler(
   async (req: Request, res: Response) => {
     const clubId = Number(req.params.clubId);
+    const validation = getListQuery(req);
 
-    if (!Number.isInteger(clubId) || clubId <= 0) {
+    if (!Number.isSafeInteger(clubId) || clubId <= 0) {
       return res.status(400).json({
         success: false,
         message: "Invalid club ID.",
-      })
+      });
     }
 
-    const data = await getClubCoordinators(clubId);
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid search or pagination parameters.",
+        errors: validation.error.flatten(),
+      });
+    }
+
+    const { page, limit, search } = validation.data;
+    const result = await getClubCoordinators(
+      clubId,
+      search,
+      page,
+      limit,
+    );
 
     return res.status(200).json({
       success: true,
       message: "Club coordinators fetched successfully.",
-      data,
-    })
-  });
-
-
+      data: result.coordinators,
+      pagination: result.pagination,
+    });
+  },
+);
 
 export const GetStudentClubEvents = asyncHandler(
   async (req: Request, res: Response) => {
     const clubId = Number(req.params.clubId);
+    const validation = getListQuery(req);
 
-    if (!Number.isInteger(clubId) || clubId <= 0) {
+    if (!Number.isSafeInteger(clubId) || clubId <= 0) {
       return res.status(400).json({
         success: false,
         message: "Invalid club ID.",
       });
     }
 
-    const data = await getClubEvents(clubId);
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid search or pagination parameters.",
+        errors: validation.error.flatten(),
+      });
+    }
+
+    const { page, limit, search } = validation.data;
+    const result = await getClubEvents(
+      clubId,
+      search,
+      page,
+      limit,
+    );
 
     return res.status(200).json({
       success: true,
       message: "Club events fetched successfully.",
-      data,
+      data: result.events,
+      pagination: result.pagination,
     });
-  })
-
-
+  },
+);
 
 export const GetStudentClubAnnouncements = asyncHandler(
   async (req: Request, res: Response) => {
     const clubId = Number(req.params.clubId);
+    const validation = getListQuery(req);
 
-    if (!Number.isInteger(clubId) || clubId <= 0) {
+    if (!Number.isSafeInteger(clubId) || clubId <= 0) {
       return res.status(400).json({
         success: false,
         message: "Invalid club ID.",
       });
     }
 
-    const data = await getClubAnnouncements(clubId);
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid pagination parameters.",
+        errors: validation.error.flatten(),
+      });
+    }
+
+    const { page, limit } = validation.data;
+    const result = await getClubAnnouncements(
+      clubId,
+      page,
+      limit,
+    );
 
     return res.status(200).json({
       success: true,
       message: "Club announcements fetched successfully.",
-      data,
+      data: result.announcements,
+      pagination: result.pagination,
     });
-  })
-
-
-
+  },
+);
 
 export const CreateStudentMembershipRequest = asyncHandler(
   async (req: Request, res: Response) => {
@@ -164,7 +222,7 @@ export const CreateStudentMembershipRequest = asyncHandler(
 
     const clubId = Number(req.params.clubId);
 
-    if (!Number.isInteger(clubId) || clubId <= 0) {
+    if (!Number.isSafeInteger(clubId) || clubId <= 0) {
       return res.status(400).json({
         success: false,
         message: "Invalid club ID.",
@@ -211,17 +269,24 @@ export const CreateStudentMembershipRequest = asyncHandler(
   },
 );
 
-
-
-
 export const GetMyStudentMembershipRequests = asyncHandler(
-  async (_req: Request, res: Response) => {
+  async (req: Request, res: Response) => {
     const currentUser = res.locals.user;
 
     if (!currentUser) {
       return res.status(401).json({
         success: false,
         message: "Please log in.",
+      });
+    }
+
+    const validation = getListQuery(req);
+
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid search or pagination parameters.",
+        errors: validation.error.flatten(),
       });
     }
 
@@ -234,12 +299,19 @@ export const GetMyStudentMembershipRequests = asyncHandler(
       });
     }
 
-    const data = await getMyMembershipRequests(student.id);
+    const { page, limit, search } = validation.data;
+    const result = await getMyMembershipRequests(
+      student.id,
+      search,
+      page,
+      limit,
+    );
 
     return res.status(200).json({
       success: true,
       message: "Membership requests fetched successfully.",
-      data,
+      data: result.requests,
+      pagination: result.pagination,
     });
   },
 );

@@ -1,40 +1,53 @@
 
 import type { Request, Response } from "express";
+
 import asyncHandler from "../../middleware/asyncHandler.js";
 import {
-  
-    createDepartment,
+  createDepartment,
   deleteDepartment,
   getAllDepartments,
   getDepartmentById,
   updateDepartment,
 } from "./departments.service.js";
-import { createDepartmentsSchema, updateDepartmentSchema } from "./departments.validation.js";
+import {
+  createDepartmentsSchema,
+  departmentQuerySchema,
+  updateDepartmentSchema,
+} from "./departments.validation.js";
 
-// Get all departments
 export const getDepartments = asyncHandler(
-  async (_req: Request, res: Response) => {
-    const departments = await getAllDepartments();
+  async (req: Request, res: Response) => {
+    const validation = departmentQuerySchema.safeParse(req.query);
+
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid department search or pagination parameters.",
+        errors: validation.error.flatten(),
+      });
+    }
+
+    const { search, page, limit } = validation.data;
+
+    const result = await getAllDepartments(search, page, limit);
 
     return res.status(200).json({
       success: true,
-      message: "Departments fetched successfully",
-      data: departments,
+      message: "Departments fetched successfully.",
+      data: result.departments,
+      pagination: result.pagination,
     });
-  }
+  },
 );
 
-
-
-// Get department by ID
 export const getDepartment = asyncHandler(
   async (req: Request, res: Response) => {
     const id = Number(req.params.id);
 
-    if (!Number.isInteger(id) || id <= 0) {
+    if (!Number.isSafeInteger(id) || id <= 0) {
       return res.status(400).json({
         success: false,
-        message: "Invalid department ID",
+        message: "Invalid department ID.",
       });
     }
 
@@ -43,21 +56,18 @@ export const getDepartment = asyncHandler(
     if (!department) {
       return res.status(404).json({
         success: false,
-        message: "Department not found",
+        message: "Department not found.",
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: "Department fetched successfully",
+      message: "Department fetched successfully.",
       data: department,
     });
-  }
+  },
 );
 
-
-
-// Create department
 export const createDepartments = asyncHandler(
   async (req: Request, res: Response) => {
     const validation = createDepartmentsSchema.safeParse(req.body);
@@ -65,7 +75,7 @@ export const createDepartments = asyncHandler(
     if (!validation.success) {
       return res.status(400).json({
         success: false,
-        message: "Department validation failed",
+        message: "Department validation failed.",
         errors: validation.error.issues.map((issue) => ({
           field: issue.path.join("."),
           message: issue.message,
@@ -77,23 +87,20 @@ export const createDepartments = asyncHandler(
 
     return res.status(201).json({
       success: true,
-      message: "Departments created successfully",
+      message: "Departments created successfully.",
       data: createdDepartments,
     });
-  }
+  },
 );
 
-
-
-// Update department
 export const editDepartment = asyncHandler(
   async (req: Request, res: Response) => {
     const id = Number(req.params.id);
 
-    if (!Number.isInteger(id) || id <= 0) {
+    if (!Number.isSafeInteger(id) || id <= 0) {
       return res.status(400).json({
         success: false,
-        message: "Invalid department ID",
+        message: "Invalid department ID.",
       });
     }
 
@@ -102,7 +109,7 @@ export const editDepartment = asyncHandler(
     if (!validation.success) {
       return res.status(400).json({
         success: false,
-        message: "Department validation failed",
+        message: "Department validation failed.",
         errors: validation.error.issues.map((issue) => ({
           field: issue.path.join("."),
           message: issue.message,
@@ -115,29 +122,26 @@ export const editDepartment = asyncHandler(
     if (!department) {
       return res.status(404).json({
         success: false,
-        message: "Department not found",
+        message: "Department not found.",
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: "Department updated successfully",
+      message: "Department updated successfully.",
       data: department,
     });
-  }
+  },
 );
 
-
-
-// Delete department
 export const removeDepartment = asyncHandler(
   async (req: Request, res: Response) => {
     const id = Number(req.params.id);
 
-    if (!Number.isInteger(id) || id <= 0) {
+    if (!Number.isSafeInteger(id) || id <= 0) {
       return res.status(400).json({
         success: false,
-        message: "Invalid department ID",
+        message: "Invalid department ID.",
       });
     }
 
@@ -146,14 +150,14 @@ export const removeDepartment = asyncHandler(
     if (!department) {
       return res.status(404).json({
         success: false,
-        message: "Department not found",
+        message: "Department not found.",
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: "Department deleted successfully",
+      message: "Department deleted successfully.",
       data: department,
     });
-  }
+  },
 );

@@ -41,25 +41,6 @@ export const getHodStudentsSchema = z.object({
 });
 
 
-// export const createCoordinatorSchema = z.object({
-//   studentId: z.coerce
-//     .number()
-//     .int()
-//     .positive("Select a valid student."),
-//   clubId: z.coerce
-//     .number()
-//     .int()
-//     .positive("Select a valid club."),
-// });
-
-// export type CreateCoordinatorInput = z.infer<
-//   typeof createCoordinatorSchema
-// >;
-// export const updateCoordinatorSchema = createCoordinatorSchema;
-
-// export type UpdateCoordinatorInput = z.infer<
-//   typeof updateCoordinatorSchema
-// >;
 
 
 
