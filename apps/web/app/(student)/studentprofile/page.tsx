@@ -17,7 +17,9 @@ import PageHeader from "@/app/ui/pageHeader";
 import { studentProfileSchema } from "@/validation/student-validation";
 import { Department } from "@/lib/department";
 import { useDepartment } from "@/app/(department)/departmentQuery";
-
+import { isPossiblePhoneNumber } from "react-phone-number-input";
+import PhoneInput from "react-phone-number-input";
+import "react-phone-number-input/style.css";
 
 
 const semesters = ["1", "2", "3", "4", "5", "6", "7", "8"];
@@ -44,11 +46,11 @@ const departments: Department[] = Array.isArray(departmentQuery.data)
   : [];
 
   const [formData, setFormData] = useState({
-    admissionNumber: "",
-    departmentId: "",
-    semester: "",
-    phone: "",
-  });
+  admissionNumber: "",
+  departmentId: "",
+  semester: "",
+  phone: undefined as string | undefined,
+});
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [serverError, setServerError] = useState("");
@@ -72,6 +74,22 @@ const departments: Department[] = Array.isArray(departmentQuery.data)
     setServerError("");
     createProfile.reset();
   };
+
+
+  const handlePhoneChange = (value?: string) => {
+  setFormData((prev) => ({
+    ...prev,
+    phone: value,
+  }));
+
+  setErrors((prev) => ({
+    ...prev,
+    phone: undefined,
+  }));
+
+  setServerError("");
+  createProfile.reset();
+};
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -97,6 +115,17 @@ const departments: Department[] = Array.isArray(departmentQuery.data)
       setServerError("");
       return;
     }
+
+    if (
+  !formData.phone ||
+  !isPossiblePhoneNumber(formData.phone)
+) {
+  setErrors((prev) => ({
+    ...prev,
+    phone: "Enter a valid international phone number.",
+  }));
+  return;
+}
 
     setErrors({});
     setServerError("");
@@ -188,7 +217,7 @@ const departments: Department[] = Array.isArray(departmentQuery.data)
           <Button
             type="button"
             className="mt-6 w-full"
-            onClick={() => router.push("/dashboard")}
+            onClick={() => router.push("/studentDashboard")}
           >
             Go to Dashboard
           </Button>
@@ -370,34 +399,31 @@ const departments: Department[] = Array.isArray(departmentQuery.data)
             </div>
 
             <div>
-              <label
-                htmlFor="phone"
-                className="text-label font-semibold text-text"
-              >
-                Phone number
-                <span className="ml-1 text-red-500">*</span>
-              </label>
+  <label
+    htmlFor="phone"
+    className="text-label font-semibold text-text"
+  >
+    Phone number
+    <span className="ml-1 text-red-500">*</span>
+  </label>
 
-              <Input
-                id="phone"
-                name="phone"
-                type="tel"
-                value={formData.phone}
-                onChange={handleChange}
-                placeholder="Enter your phone number"
-                autoComplete="tel"
-                required
-                aria-invalid={!!errors.phone}
-                aria-describedby={errors.phone ? "phone-error" : undefined}
-                className="mt-1.5"
-              />
+  <PhoneInput
+    id="phone"
+    international
+    defaultCountry="IN"
+    value={formData.phone}
+    onChange={handlePhoneChange}
+    placeholder="Enter phone number"
+    autoComplete="tel"
+    className="mt-1.5"
+  />
 
-              {errors.phone && (
-                <p id="phone-error" className="mt-1 text-sm text-red-600">
-                  {errors.phone}
-                </p>
-              )}
-            </div>
+  {errors.phone && (
+    <p className="mt-1 text-sm text-red-600">
+      {errors.phone}
+    </p>
+  )}
+</div>
 
             {(serverError || createProfile.isError) && (
               <div

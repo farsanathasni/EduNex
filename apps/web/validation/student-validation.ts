@@ -1,3 +1,4 @@
+import { isPossiblePhoneNumber } from "react-phone-number-input";
 import z from "zod";
 
 
@@ -21,9 +22,11 @@ export const studentProfileSchema =z.object({
           "Semester must be between 1 and 8"
         ),
 
-    phone:z
-    .string().trim()
-    .regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit Indian mobile number."),
+    phone: z
+    .string()
+    .refine(
+      (value) => isPossiblePhoneNumber(value),
+      "Enter a valid international phone number."),
 
 })
 

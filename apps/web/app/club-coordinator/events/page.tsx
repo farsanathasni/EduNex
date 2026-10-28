@@ -13,7 +13,7 @@ const events = [
   { id: 6, name: "Code Sprint", category: "Technology", date: "Nov 20, 2026", venue: "Computer Lab", description: "Solve practical programming problems and build small projects in teams.", status: "Pending", color: "from-cyan-500 to-blue-600" },
 ];
 
-const categories = ["All", "Technology", "Cultural", "Sports", "Workshop"];
+const categories = ["All", "My Events"];
 
 export default function BrowseEventsPage() {
   const [search, setSearch] = useState("");
