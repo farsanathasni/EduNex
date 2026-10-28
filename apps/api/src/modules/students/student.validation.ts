@@ -1,3 +1,4 @@
+import { isPossiblePhoneNumber } from "libphonenumber-js";
 import { z } from "zod";
 
 export const createStudentProfileSchema = z.object({
@@ -20,11 +21,13 @@ export const createStudentProfileSchema = z.object({
     .regex(/^[1-9]\d*$/, "Semester must be a positive integer"),
 
   phone: z
-    .string()
-    .trim()
-    .regex(/^\+?[0-9\s()-]{7,20}$/, "Enter a valid phone number")
-    .optional()
-    .or(z.literal("")),
+  .string()
+  .trim()
+  .min(1, "Phone number is required")
+  .refine(
+    (phone) => isPossiblePhoneNumber(phone),
+    "Enter a valid international phone number."
+  ),
 });
 
 export type CreateStudentProfileInput = z.infer<

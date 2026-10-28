@@ -7,6 +7,7 @@ import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { usePathname, useRouter } from "next/navigation";
 import Button from "@/app/ui/button";
+import { useCoordinatorStatusQuery } from "@/app/club-coordinator/coordinatorquery";
 
 const stats = [
   {
@@ -125,6 +126,12 @@ export default function Dashboard() {
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const { data: session, isPending } = authClient.useSession();
+
+  const {
+    data:coordinatorStatus,
+    isPending:isCoordinatorStatusPending,
+  }=useCoordinatorStatusQuery()
+  const isCoordinator =coordinatorStatus?.isCoordinator===true
 
   const studentName = session?.user?.name || "Student";
   const studentInitial = studentName.charAt(0).toUpperCase();
@@ -252,6 +259,16 @@ export default function Dashboard() {
                 🔔
                 <span className="absolute right-2 top-2 h-2 w-2 rounded-full bg-accent" />
               </button>
+
+              {!isCoordinatorStatusPending && isCoordinator && (
+  <Button
+    type="button"
+    onClick={() => router.push("/club-coordinator/dashboard")}
+    className="rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition hover:opacity-90"
+  >
+    Switch to Coordinator
+  </Button>
+)}
 
               <Button
                 type="button"

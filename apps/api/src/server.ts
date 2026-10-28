@@ -8,6 +8,7 @@ import hodRouter from "./modules/hod/hod.router.js";
 import principalRouter from "./modules/principal/principal.router.js";
 import departmentRoter from "./modules/departments/departments.routes.js"
 import clubsRouter from "./modules/clubs/clubs.routes.js";
+import coordinatorRouter from "./modules/coordinator/coordinator.router.js";
 
 import errorHandler from "./middleware/error.middleware.js";
 
@@ -34,6 +35,8 @@ app.use("/api/hod", hodRouter);
 app.use("/api/principal", principalRouter);
 app.use("/api/department", departmentRoter);
 app.use("/api/clubs", clubsRouter);
+app.use("/api/coordinator", coordinatorRouter);
+
 
 
 

@@ -1,3 +1,4 @@
+import { number, string } from "zod";
 import { api } from "./axios";
 
 export type HodDashboard = {
@@ -44,6 +45,22 @@ type ApiResponse<T> = {
   message: string;
   data: T;
 };
+
+export type StudentCoordinatorAssignment ={
+  id: number;
+  studentId: number;
+  clubId: number;
+  appointedBy: string;
+  createdAt: string;
+}
+
+export type CoordinatorStatus ={
+  isCoordinator:boolean;
+  assignments:StudentCoordinatorAssignment[]
+}
+
+
+
 
 // Get HOD dashboard details
 export const getHodDashboard = async () => {
@@ -120,3 +137,20 @@ export const createCoordinator = async (
 
   return data.data;
 };
+
+
+
+export const getCoordinatorStatus =
+  async (): Promise<CoordinatorStatus> => {
+    const { data } = await api.get<ApiResponse<CoordinatorStatus>>(
+      "/coordinator/",
+    );
+
+    if (!data.success) {
+      throw new Error(
+        data.message || "Failed to fetch coordinator status.",
+      );
+    }
+
+    return data.data;
+  };
