@@ -1,20 +1,18 @@
 
 import { Router } from "express";
 
-import {
-  getDepartments,
-  getDepartment,
-  createDepartments,
-  removeDepartment,
-  editDepartment,
-} from "./departments.controller.js";
-
 import { requireAuth } from "../../middleware/auth.middleware.js";
 import { rbac } from "../../middleware/rbac.middleware.js";
+import {
+  createDepartments,
+  editDepartment,
+  getDepartment,
+  getDepartments,
+  removeDepartment,
+} from "./departments.controller.js";
 
 const router = Router();
 
-// View departments
 router.get(
   "/",
   requireAuth,
@@ -22,7 +20,6 @@ router.get(
   getDepartments,
 );
 
-// View one department
 router.get(
   "/:id",
   requireAuth,
@@ -30,7 +27,6 @@ router.get(
   getDepartment,
 );
 
-// Create department
 router.post(
   "/add",
   requireAuth,
@@ -38,7 +34,6 @@ router.post(
   createDepartments,
 );
 
-// Update department
 router.patch(
   "/:id",
   requireAuth,
@@ -46,7 +41,6 @@ router.patch(
   editDepartment,
 );
 
-// Delete department
 router.delete(
   "/:id",
   requireAuth,

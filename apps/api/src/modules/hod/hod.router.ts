@@ -6,6 +6,7 @@ import {
   GetStudentsByDepartment,
   GetPendingEvents,
   ReviewEvent,
+  GetHodClubs
 } from "./hod.controller.js";
 
 import {
@@ -35,13 +36,22 @@ hodRouter.get(
   GetStudentsByDepartment,
 );
 
-// Coordinator management
+hodRouter.get(
+  "/clubs",
+  requireAuth,
+  rbac("club", "view"),
+  GetHodClubs,
+);
+
+
 hodRouter.post(
   "/coordinators",
   requireAuth,
   rbac("coordinator", "create"),
   CreateCoordinator,
 );
+
+
 
 hodRouter.get(
   "/coordinators",

@@ -18,6 +18,7 @@ import {
 
 const clubsRouter = Router();
 
+// List all clubs. Access is controlled by the club:view permission.
 clubsRouter.get(
   "/",
   requireAuth,
@@ -25,9 +26,18 @@ clubsRouter.get(
   GetAllClubs,
 );
 
-clubsRouter.get("/student", requireAuth, GetStudentClubs);
+// Student-facing club listing and details.
+clubsRouter.get(
+  "/student",
+  requireAuth,
+  GetStudentClubs,
+);
 
-clubsRouter.get("/student/:clubId", requireAuth, GetStudentClubById);
+clubsRouter.get(
+  "/student/:clubId",
+  requireAuth,
+  GetStudentClubById,
+);
 
 clubsRouter.get(
   "/student/:clubId/coordinators",
@@ -47,13 +57,15 @@ clubsRouter.get(
   GetStudentClubAnnouncements,
 );
 
+// Current student's membership requests.
 clubsRouter.get(
   "/student/my/memberships",
   requireAuth,
   GetMyStudentMembershipRequests,
 );
 
-// Only users with club:create permission can create clubs.
+// Club creation requires club:create permission.
+// Assign this permission exclusively to the Super Admin role.
 clubsRouter.post(
   "/",
   requireAuth,
@@ -61,6 +73,7 @@ clubsRouter.post(
   CreateClub,
 );
 
+// Submit a membership request.
 clubsRouter.post(
   "/student/:clubId/membership",
   requireAuth,

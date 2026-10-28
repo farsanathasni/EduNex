@@ -1,37 +1,64 @@
 
 import type { Request, Response } from "express";
+
 import asyncHandler from "../../middleware/asyncHandler.js";
 import { getAllEvents, getMyEvents } from "./events.service.js";
+import { eventsQuerySchema } from "./events.validation.js";
 
 export const getAllEventsController = asyncHandler(
-  async (_req: Request, res: Response) => {
-    const events = await getAllEvents();
+  async (req: Request, res: Response) => {
+    const validation = eventsQuerySchema.safeParse(req.query);
 
-    res.status(200).json({
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid event search or pagination parameters.",
+        errors: validation.error.flatten(),
+      });
+    }
+
+    const { search, page, limit } = validation.data;
+
+    const result = await getAllEvents(search, page, limit);
+
+    return res.status(200).json({
       success: true,
-      data: events,
+      data: result.events,
+      pagination: result.pagination,
       message: "Events fetched successfully.",
     });
   },
 );
 
 export const getMyEventsController = asyncHandler(
-  async (_req: Request, res: Response) => {
+  async (req: Request, res: Response) => {
     const userId = res.locals.user?.id;
 
     if (!userId) {
-      res.status(401).json({
+      return res.status(401).json({
         success: false,
         message: "Authentication required.",
       });
-      return;
     }
 
-    const events = await getMyEvents(userId);
+    const validation = eventsQuerySchema.safeParse(req.query);
 
-    res.status(200).json({
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid event search or pagination parameters.",
+        errors: validation.error.flatten(),
+      });
+    }
+
+    const { search, page, limit } = validation.data;
+
+    const result = await getMyEvents(userId, search, page, limit);
+
+    return res.status(200).json({
       success: true,
-      data: events,
+      data: result.events,
+      pagination: result.pagination,
       message: "My events fetched successfully.",
     });
   },

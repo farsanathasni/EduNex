@@ -11,7 +11,9 @@ import {
 } from "./student.validation.js";
 import { db } from "../../config/database.js";
 import { departments } from "../../db/schema/others-schema.js";
+import { getActiveHod } from "../hod/hod.service.js";
 
+// Create a student profile.
 export const CreateStudentProfile = asyncHandler(
   async (req: Request, res: Response) => {
     const user = res.locals.user;
@@ -35,7 +37,7 @@ export const CreateStudentProfile = asyncHandler(
     if (!validation.success) {
       return res.status(400).json({
         success: false,
-        message: "Validation failed",
+        message: "Validation failed.",
         errors: validation.error.issues.map((issue) => ({
           field: issue.path.join("."),
           message: issue.message,
@@ -84,6 +86,7 @@ export const CreateStudentProfile = asyncHandler(
   },
 );
 
+// Get the logged-in student's profile.
 export const GetStudentProfile = asyncHandler(
   async (_req: Request, res: Response) => {
     const user = res.locals.user;
@@ -112,6 +115,7 @@ export const GetStudentProfile = asyncHandler(
   },
 );
 
+// Get students with search, filters, and pagination.
 export const GetStudents = asyncHandler(
   async (req: Request, res: Response) => {
     const validation = getStudentsSchema.safeParse(req.query);
@@ -119,7 +123,7 @@ export const GetStudents = asyncHandler(
     if (!validation.success) {
       return res.status(400).json({
         success: false,
-        message: "Validation failed",
+        message: "Validation failed.",
         errors: validation.error.issues.map((issue) => ({
           field: issue.path.join("."),
           message: issue.message,
@@ -189,7 +193,10 @@ export const UpdateStudentProfile = asyncHandler(
       }
     }
 
-    const student = await studentService.updateProfile(studentId, data);
+    const student = await studentService.updateProfile(
+      studentId,
+      data,
+    );
 
     if (!student) {
       return res.status(404).json({
@@ -234,8 +241,7 @@ export const DeleteStudentProfile = asyncHandler(
   },
 );
 
-
-// Create a coordinator assignment and send the appointment email.
+// Create a coordinator assignment for the HOD's department.
 export const CreateCoordinator = asyncHandler(
   async (req: Request, res: Response) => {
     const user = res.locals.user;
@@ -244,6 +250,15 @@ export const CreateCoordinator = asyncHandler(
       return res.status(401).json({
         success: false,
         message: "Unauthorized. Please log in.",
+      });
+    }
+
+    const hod = await getActiveHod(user.id);
+
+    if (!hod) {
+      return res.status(403).json({
+        success: false,
+        message: "Active HOD account not found.",
       });
     }
 
@@ -267,6 +282,7 @@ export const CreateCoordinator = asyncHandler(
         studentId,
         clubId,
         user.id,
+        hod.departmentId,
       );
 
       return res.status(201).json({
@@ -279,16 +295,18 @@ export const CreateCoordinator = asyncHandler(
     } catch (error) {
       if (error instanceof Error) {
         switch (error.message) {
-          case "STUDENT_NOT_FOUND":
+          case "STUDENT_NOT_FOUND_OR_FORBIDDEN":
             return res.status(404).json({
               success: false,
-              message: "Student not found.",
+              message:
+                "Student not found or student does not belong to your department.",
             });
 
-          case "CLUB_NOT_FOUND":
+          case "CLUB_NOT_FOUND_OR_FORBIDDEN":
             return res.status(404).json({
               success: false,
-              message: "Club not found.",
+              message:
+                "Club not found or club does not belong to your department.",
             });
 
           case "COORDINATOR_ALREADY_ASSIGNED":
@@ -310,23 +328,84 @@ export const CreateCoordinator = asyncHandler(
   },
 );
 
-// Get all coordinator assignments.
+// Get coordinator assignments with search and pagination.
 export const GetCoordinatorAssignments = asyncHandler(
-  async (_req: Request, res: Response) => {
-    const assignments =
-      await studentService.getCoordinatorAssignments();
+  async (req: Request, res: Response) => {
+    const user = res.locals.user;
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized. Please log in.",
+      });
+    }
+
+    const hod = await getActiveHod(user.id);
+
+    if (!hod) {
+      return res.status(403).json({
+        success: false,
+        message: "Active HOD account not found.",
+      });
+    }
+
+    const page = Number(req.query.page ?? 1);
+    const limit = Number(req.query.limit ?? 10);
+    const search =
+      typeof req.query.search === "string"
+        ? req.query.search.trim()
+        : "";
+
+    if (
+      !Number.isSafeInteger(page) ||
+      page < 1 ||
+      !Number.isSafeInteger(limit) ||
+      limit < 1 ||
+      limit > 100
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Page must be positive and limit must be between 1 and 100.",
+      });
+    }
+
+    const result = await studentService.getCoordinatorAssignments(
+      hod.departmentId,
+      search,
+      page,
+      limit,
+    );
 
     return res.status(200).json({
       success: true,
       message: "Coordinator assignments fetched successfully.",
-      data: assignments,
+      data: result.assignments,
+      pagination: result.pagination,
     });
   },
 );
 
-// Update a coordinator assignment.
+// Update a coordinator assignment within the HOD's department.
 export const UpdateCoordinator = asyncHandler(
   async (req: Request, res: Response) => {
+    const user = res.locals.user;
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized. Please log in.",
+      });
+    }
+
+    const hod = await getActiveHod(user.id);
+
+    if (!hod) {
+      return res.status(403).json({
+        success: false,
+        message: "Active HOD account not found.",
+      });
+    }
+
     const assignmentId = Number(req.params.assignmentId);
     const studentId = Number(req.body.studentId);
     const clubId = Number(req.body.clubId);
@@ -350,6 +429,7 @@ export const UpdateCoordinator = asyncHandler(
         assignmentId,
         studentId,
         clubId,
+        hod.departmentId,
       );
 
       return res.status(200).json({
@@ -363,19 +443,21 @@ export const UpdateCoordinator = asyncHandler(
           case "COORDINATOR_ASSIGNMENT_NOT_FOUND":
             return res.status(404).json({
               success: false,
-              message: "Coordinator assignment not found.",
+              message: "Coordinator assignment not found in your department.",
             });
 
-          case "STUDENT_NOT_FOUND":
+          case "STUDENT_NOT_FOUND_OR_FORBIDDEN":
             return res.status(404).json({
               success: false,
-              message: "Student not found.",
+              message:
+                "Student not found or student does not belong to your department.",
             });
 
-          case "CLUB_NOT_FOUND":
+          case "CLUB_NOT_FOUND_OR_FORBIDDEN":
             return res.status(404).json({
               success: false,
-              message: "Club not found.",
+              message:
+                "Club not found or club does not belong to your department.",
             });
 
           case "COORDINATOR_ALREADY_ASSIGNED":

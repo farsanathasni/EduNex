@@ -1,9 +1,15 @@
+
 import { Router } from "express";
-import { getCoordinatorStatusController } from "./coordinator.controller.js";
+
 import { requireAuth } from "../../middleware/auth.middleware.js";
+import { getCoordinatorStatusController } from "./coordinator.controller.js";
 
-const CoordinatorRouter=Router()
+const CoordinatorRouter = Router();
 
-CoordinatorRouter.get("/",requireAuth,getCoordinatorStatusController)
+CoordinatorRouter.get(
+  "/",
+  requireAuth,
+  getCoordinatorStatusController,
+);
 
-export default CoordinatorRouter
+export default CoordinatorRouter;

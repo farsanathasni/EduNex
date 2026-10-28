@@ -33,7 +33,7 @@ type GetStudentsParams = {
   limit?: number;
 };
 
-// Find the club-coordinator role
+// Find the club-coordinator role.
 const getClubCoordinatorRole = async () => {
   const [role] = await db
     .select({
@@ -52,7 +52,7 @@ const getClubCoordinatorRole = async () => {
   return role;
 };
 
-// Assign the coordinator role if the student does not already have it
+// Assign the coordinator role if the student does not already have it.
 const assignCoordinatorRole = async (
   tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
   userId: string,
@@ -81,7 +81,7 @@ const assignCoordinatorRole = async (
   }
 };
 
-// Escape HTML values before inserting them into the email template
+// Escape HTML values before inserting them into an email template.
 const escapeHtml = (value: string) =>
   value.replace(/[&<>"']/g, (character) => {
     const entities: Record<string, string> = {
@@ -96,7 +96,7 @@ const escapeHtml = (value: string) =>
   });
 
 export const studentService = {
-  // Create a student profile
+  // Create a student profile.
   createProfile: async (data: CreateStudentProfileData) => {
     const existingStudent = await db
       .select()
@@ -129,7 +129,7 @@ export const studentService = {
     };
   },
 
-  // Get the logged-in student's profile
+  // Get the logged-in student's profile.
   getProfile: async (userId: string) => {
     const [student] = await db
       .select()
@@ -145,7 +145,7 @@ export const studentService = {
     return student ?? null;
   },
 
-  // Get students with search, filters, and pagination
+  // Get students with search, filters, and pagination.
   getStudents: async ({
     departmentId,
     semester,
@@ -213,9 +213,7 @@ export const studentService = {
         .offset(offset),
 
       db
-        .select({
-          total: count(),
-        })
+        .select({ total: count() })
         .from(StudentProfile)
         .innerJoin(
           user,
@@ -237,7 +235,7 @@ export const studentService = {
     };
   },
 
-  // Update a student's profile
+  // Update a student's profile.
   updateProfile: async (
     studentId: number,
     data: {
@@ -264,7 +262,7 @@ export const studentService = {
       : null;
   },
 
-  // Soft-delete a student's profile
+  // Soft-delete a student's profile.
   softDelete: async (studentId: number) => {
     const result = await db
       .update(StudentProfile)
@@ -284,11 +282,12 @@ export const studentService = {
       : null;
   },
 
-  // Create a coordinator assignment and send the appointment email
+  // Create a coordinator assignment within the HOD's department.
   createCoordinator: async (
     studentId: number,
     clubId: number,
     appointedBy: string,
+    departmentId: number,
   ) => {
     const [student] = await db
       .select({
@@ -306,12 +305,13 @@ export const studentService = {
         and(
           eq(StudentProfile.id, studentId),
           eq(StudentProfile.isDeleted, false),
+          eq(StudentProfile.departmentId, departmentId),
         ),
       )
       .limit(1);
 
     if (!student) {
-      throw new Error("STUDENT_NOT_FOUND");
+      throw new Error("STUDENT_NOT_FOUND_OR_FORBIDDEN");
     }
 
     const [club] = await db
@@ -320,11 +320,16 @@ export const studentService = {
         name: clubs.name,
       })
       .from(clubs)
-      .where(eq(clubs.id, clubId))
+      .where(
+        and(
+          eq(clubs.id, clubId),
+          eq(clubs.departmentId, departmentId),
+        ),
+      )
       .limit(1);
 
     if (!club) {
-      throw new Error("CLUB_NOT_FOUND");
+      throw new Error("CLUB_NOT_FOUND_OR_FORBIDDEN");
     }
 
     const [existingAssignment] = await db
@@ -346,7 +351,7 @@ export const studentService = {
 
     const coordinatorRole = await getClubCoordinatorRole();
 
-    // Save the assignment and role in one transaction
+    // Save the assignment and role in one transaction.
     const assignment = await db.transaction(async (tx) => {
       const [newAssignment] = await tx
         .insert(coordinatorAssignments)
@@ -367,7 +372,7 @@ export const studentService = {
       return newAssignment;
     });
 
-    // Send the appointment email after the assignment is saved
+    // Send the appointment email after saving the assignment.
     let emailSent = false;
 
     if (student.email?.trim()) {
@@ -434,45 +439,119 @@ export const studentService = {
     };
   },
 
-  // Get all coordinator assignments
-  getCoordinatorAssignments: async () => {
-    return db
-      .select({
-        id: coordinatorAssignments.id,
-        studentId: coordinatorAssignments.studentId,
-        studentName: StudentProfile.name,
-        admissionNumber: StudentProfile.admissionNumber,
-        clubId: coordinatorAssignments.clubId,
-        clubName: clubs.name,
-        appointedBy: coordinatorAssignments.appointedBy,
-        createdAt: coordinatorAssignments.createdAt,
-      })
-      .from(coordinatorAssignments)
-      .innerJoin(
-        StudentProfile,
-        eq(
-          coordinatorAssignments.studentId,
-          StudentProfile.id,
-        ),
-      )
-      .innerJoin(
-        clubs,
-        eq(coordinatorAssignments.clubId, clubs.id),
-      )
-      .where(eq(StudentProfile.isDeleted, false));
+  // Get coordinator assignments with department filtering, search, and pagination.
+  getCoordinatorAssignments: async (
+    departmentId: number,
+    search = "",
+    page = 1,
+    limit = 10,
+  ) => {
+    const conditions: SQL[] = [
+      eq(StudentProfile.isDeleted, false),
+      eq(clubs.departmentId, departmentId),
+    ];
+
+    if (search.trim()) {
+      const searchTerm = `%${search.trim()}%`;
+
+      const searchCondition = or(
+        ilike(StudentProfile.name, searchTerm),
+        ilike(StudentProfile.admissionNumber, searchTerm),
+        ilike(clubs.name, searchTerm),
+      );
+
+      if (searchCondition) {
+        conditions.push(searchCondition);
+      }
+    }
+
+    const whereCondition = and(...conditions);
+    const offset = (page - 1) * limit;
+
+    const [assignments, totalResult] = await Promise.all([
+      db
+        .select({
+          id: coordinatorAssignments.id,
+          studentId: coordinatorAssignments.studentId,
+          studentName: StudentProfile.name,
+          admissionNumber: StudentProfile.admissionNumber,
+          clubId: coordinatorAssignments.clubId,
+          clubName: clubs.name,
+          appointedBy: coordinatorAssignments.appointedBy,
+          createdAt: coordinatorAssignments.createdAt,
+        })
+        .from(coordinatorAssignments)
+        .innerJoin(
+          StudentProfile,
+          eq(
+            coordinatorAssignments.studentId,
+            StudentProfile.id,
+          ),
+        )
+        .innerJoin(
+          clubs,
+          eq(coordinatorAssignments.clubId, clubs.id),
+        )
+        .where(whereCondition)
+        .limit(limit)
+        .offset(offset),
+
+      db
+        .select({ total: count() })
+        .from(coordinatorAssignments)
+        .innerJoin(
+          StudentProfile,
+          eq(
+            coordinatorAssignments.studentId,
+            StudentProfile.id,
+          ),
+        )
+        .innerJoin(
+          clubs,
+          eq(coordinatorAssignments.clubId, clubs.id),
+        )
+        .where(whereCondition),
+    ]);
+
+    const total = totalResult[0].total;
+
+    return {
+      assignments,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   },
 
-  // Update an existing coordinator assignment
+  // Update a coordinator assignment within the HOD's department.
+
+  // Update a coordinator assignment within the HOD's department.
   updateCoordinator: async (
     assignmentId: number,
     studentId: number,
     clubId: number,
+    departmentId: number,
   ) => {
     const [existingAssignment] = await db
-      .select()
+      .select({
+        id: coordinatorAssignments.id,
+        studentId: coordinatorAssignments.studentId,
+        clubId: coordinatorAssignments.clubId,
+        appointedBy: coordinatorAssignments.appointedBy,
+      })
       .from(coordinatorAssignments)
+      .innerJoin(
+        clubs,
+        eq(coordinatorAssignments.clubId, clubs.id),
+      )
       .where(
-        eq(coordinatorAssignments.id, assignmentId),
+        and(
+          eq(coordinatorAssignments.id, assignmentId),
+          eq(clubs.departmentId, departmentId),
+        ),
       )
       .limit(1);
 
@@ -486,20 +565,17 @@ export const studentService = {
         userId: StudentProfile.userId,
       })
       .from(StudentProfile)
-      .innerJoin(
-        user,
-        eq(StudentProfile.userId, user.id),
-      )
       .where(
         and(
           eq(StudentProfile.id, studentId),
           eq(StudentProfile.isDeleted, false),
+          eq(StudentProfile.departmentId, departmentId),
         ),
       )
       .limit(1);
 
     if (!student) {
-      throw new Error("STUDENT_NOT_FOUND");
+      throw new Error("STUDENT_NOT_FOUND_OR_FORBIDDEN");
     }
 
     const [club] = await db
@@ -507,15 +583,22 @@ export const studentService = {
         id: clubs.id,
       })
       .from(clubs)
-      .where(eq(clubs.id, clubId))
+      .where(
+        and(
+          eq(clubs.id, clubId),
+          eq(clubs.departmentId, departmentId),
+        ),
+      )
       .limit(1);
 
     if (!club) {
-      throw new Error("CLUB_NOT_FOUND");
+      throw new Error("CLUB_NOT_FOUND_OR_FORBIDDEN");
     }
 
     const [duplicateAssignment] = await db
-      .select()
+      .select({
+        id: coordinatorAssignments.id,
+      })
       .from(coordinatorAssignments)
       .where(
         and(
@@ -542,7 +625,9 @@ export const studentService = {
           clubId,
         })
         .where(
-          eq(coordinatorAssignments.id, assignmentId),
+          and(
+            eq(coordinatorAssignments.id, assignmentId),
+          ),
         )
         .returning();
 
@@ -561,8 +646,8 @@ export const studentService = {
         existingAssignment.appointedBy,
       );
 
-      // Remove the previous student's coordinator role only if
-      // they no longer coordinate any other club.
+      // Remove the old student's role only if they have no
+      // remaining coordinator assignments.
       if (existingAssignment.studentId !== studentId) {
         const [oldStudent] = await tx
           .select({
@@ -607,4 +692,5 @@ export const studentService = {
       return assignment;
     });
   },
+
 };

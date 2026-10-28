@@ -71,18 +71,20 @@ const rolePermissionMap: Record<string, string[]> = {
   // This legacy role receives no permissions.
   principal: [],
 
-  hod: [
-    "student:view",
-    "staff:view",
-    "department:view",
-    "club:view",
-    "coordinator:view",
-    "coordinator:create",
-    "coordinator:update",
-    "event:view",
-    "event:update",
-    "certificate:view",
-  ],
+hod: [
+  "student:view",
+  "staff:view",
+  "department:view",
+  "club:view",
+  "club:create",
+  "club:update",
+  "coordinator:view",
+  "coordinator:create",
+  "coordinator:update",
+  "event:view",
+  "event:update",
+  "certificate:view",
+],
 
   faculty: [
     "student:view",
