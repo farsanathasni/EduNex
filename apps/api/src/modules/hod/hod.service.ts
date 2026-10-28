@@ -47,7 +47,7 @@ export const getHodDashboardStats = async (
       .where(
         and(
           eq(StudentProfile.departmentId, departmentId),
-          eq(StudentProfile.isDeleted, false),
+          
         ),
       ),
 
@@ -101,9 +101,7 @@ export const getHodStudents = async (
   page = 1,
   limit = 10,
 ) => {
-  const conditions: SQL[] = [
-    eq(StudentProfile.isDeleted, false),
-  ];
+  const conditions: SQL[] = [];
 
   if (departmentId !== undefined) {
     conditions.push(
