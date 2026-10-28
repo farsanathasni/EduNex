@@ -50,3 +50,4 @@ export const staff = pgTable(
     index("staff_department_idx").on(table.departmentId),
   ],
 );
+

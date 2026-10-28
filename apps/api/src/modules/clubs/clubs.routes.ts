@@ -1,6 +1,9 @@
 
 import { Router } from "express";
+
 import { requireAuth } from "../../middleware/auth.middleware.js";
+import { rbac } from "../../middleware/rbac.middleware.js";
+
 import {
   CreateClub,
   CreateStudentMembershipRequest,
@@ -15,16 +18,53 @@ import {
 
 const clubsRouter = Router();
 
-clubsRouter.get("/", requireAuth, GetAllClubs);
-clubsRouter.get("/student",requireAuth,GetStudentClubs)
-clubsRouter.get("/student/:clubId",requireAuth,GetStudentClubById)
-clubsRouter.get("/student/:clubId/coordinators",requireAuth,GetStudentClubCoordinators)
-clubsRouter.get("/student/:clubId/events",requireAuth,GetStudentClubEvents)
-clubsRouter.get("/student/:clubId/announcements",requireAuth,GetStudentClubAnnouncements)
-clubsRouter.get("/student/my/memberships",requireAuth,GetMyStudentMembershipRequests)
-clubsRouter.post("/", requireAuth, CreateClub);
-clubsRouter.post("/student/:clubId/membership", requireAuth, CreateStudentMembershipRequest)
+clubsRouter.get(
+  "/",
+  requireAuth,
+  rbac("club", "view"),
+  GetAllClubs,
+);
 
+clubsRouter.get("/student", requireAuth, GetStudentClubs);
 
+clubsRouter.get("/student/:clubId", requireAuth, GetStudentClubById);
+
+clubsRouter.get(
+  "/student/:clubId/coordinators",
+  requireAuth,
+  GetStudentClubCoordinators,
+);
+
+clubsRouter.get(
+  "/student/:clubId/events",
+  requireAuth,
+  GetStudentClubEvents,
+);
+
+clubsRouter.get(
+  "/student/:clubId/announcements",
+  requireAuth,
+  GetStudentClubAnnouncements,
+);
+
+clubsRouter.get(
+  "/student/my/memberships",
+  requireAuth,
+  GetMyStudentMembershipRequests,
+);
+
+// Only users with club:create permission can create clubs.
+clubsRouter.post(
+  "/",
+  requireAuth,
+  rbac("club", "create"),
+  CreateClub,
+);
+
+clubsRouter.post(
+  "/student/:clubId/membership",
+  requireAuth,
+  CreateStudentMembershipRequest,
+);
 
 export default clubsRouter;

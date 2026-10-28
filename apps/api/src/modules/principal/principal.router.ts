@@ -1,10 +1,15 @@
+
 import { Router } from "express";
 import {
   GetPrincipalDashboard,
   CreateHod,
-  GetDepartments
+  GetDepartments,
 } from "./principal.controller.js";
-import { requireAuth } from "../../middleware/auth.middleware.js";
+import {
+  requireAuth,
+  requireStaffRole,
+} from "../../middleware/auth.middleware.js";
+import { rbac } from "../../middleware/rbac.middleware.js";
 
 const principalRouter = Router();
 
@@ -12,6 +17,8 @@ const principalRouter = Router();
 principalRouter.get(
   "/dashboard",
   requireAuth,
+  requireStaffRole("principal"),
+  rbac("admin", "view"),
   GetPrincipalDashboard,
 );
 
@@ -19,6 +26,8 @@ principalRouter.get(
 principalRouter.post(
   "/hods",
   requireAuth,
+  requireStaffRole("principal"),
+  rbac("staff", "create"),
   CreateHod,
 );
 
@@ -26,6 +35,8 @@ principalRouter.post(
 principalRouter.get(
   "/departments",
   requireAuth,
+  requireStaffRole("principal"),
+  rbac("department", "view"),
   GetDepartments,
 );
 

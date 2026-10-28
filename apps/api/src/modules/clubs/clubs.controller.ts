@@ -6,26 +6,9 @@ import { createClubSchema } from "./clubs.validation.js";
 
 
 
+
 export const CreateClub = asyncHandler(
   async (req: Request, res: Response) => {
-    const currentUser = res.locals.user;
-
-    if (!currentUser) {
-      return res.status(401).json({
-        success: false,
-        message: "Please log in.",
-      });
-    }
-
-    const hod = await getActiveHod(currentUser.id);
-
-    if (!hod) {
-      return res.status(403).json({
-        success: false,
-        message: "Active HOD permission required.",
-      });
-    }
-
     const validation = createClubSchema.safeParse(req.body);
 
     if (!validation.success) {
@@ -50,26 +33,9 @@ export const CreateClub = asyncHandler(
 
 
 
+
 export const GetAllClubs = asyncHandler(
   async (_req: Request, res: Response) => {
-    const currentUser = res.locals.user;
-
-    if (!currentUser) {
-      return res.status(401).json({
-        success: false,
-        message: "Please log in.",
-      });
-    }
-
-    const hod = await getActiveHod(currentUser.id);
-
-    if (!hod) {
-      return res.status(403).json({
-        success: false,
-        message: "Active HOD permission required.",
-      });
-    }
-
     const data = await getAllClubs();
 
     return res.status(200).json({
@@ -79,6 +45,7 @@ export const GetAllClubs = asyncHandler(
     });
   },
 );
+
 
 
 

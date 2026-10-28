@@ -1,12 +1,20 @@
-import { eq, and, count } from "drizzle-orm";
+
+import { eq, and, count,ilike,or } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 import { db } from "../../config/database.js";
 import { staff } from "../../db/schema/staff-schema.js";
 import { StudentProfile } from "../../db/schema/student-profile.js";
-import { departments, clubs, events,eventApprovals } from "../../db/schema/others-schema.js";
+import {
+  departments,
+  clubs,
+  events,
+  eventApprovals,
+} from "../../db/schema/others-schema.js";
 import { user } from "../../db/schema/auth-schema.js";
 import { coordinatorAssignments } from "../../db/schema/coordinator-schema.js";
+import { roles, userRoles } from "../../db/schema/rbac-schema.js";
 import { sendEmail } from "../../utils/email.js";
-import { auth } from "../../auth.js";
+
 
 
 
@@ -26,6 +34,8 @@ export const getActiveHod = async (userId: string) => {
   return hod ?? null;
 };
 
+
+
 export const getHodDashboardStats = async () => {
   const [
     studentResult,
@@ -33,22 +43,18 @@ export const getHodDashboardStats = async () => {
     coordinatorResult,
     approvalResult,
   ] = await Promise.all([
-    // Count all students
     db
       .select({ total: count() })
       .from(StudentProfile),
 
-    // Count all staff members
     db
       .select({ total: count() })
       .from(staff),
 
-    // Count coordinator assignments
     db
       .select({ total: count() })
       .from(coordinatorAssignments),
 
-    // Count events awaiting approval
     db
       .select({ total: count() })
       .from(events)
@@ -63,52 +69,90 @@ export const getHodDashboardStats = async () => {
   };
 };
 
+
+
 export const getHodStudents = async (
   departmentId?: number,
   semester?: number,
+  search?: string,
+  page = 1,
+  limit = 10,
 ) => {
-  const conditions = [];
+  const conditions: SQL[] = [];
 
-  // Apply the department filter when one is selected.
   if (departmentId !== undefined) {
-    conditions.push(eq(StudentProfile.departmentId, departmentId));
+    conditions.push(
+      eq(StudentProfile.departmentId, departmentId),
+    );
   }
 
-  // Apply the semester filter when one is selected.
   if (semester !== undefined) {
-    conditions.push(eq(StudentProfile.semester, semester));
+    conditions.push(
+      eq(StudentProfile.semester, semester),
+    );
   }
 
-  const query = db
-    .select({
-      id: StudentProfile.id,
-      name: StudentProfile.name,
-      admissionNumber: StudentProfile.admissionNumber,
-      departmentId: StudentProfile.departmentId,
-      departmentName: departments.name,
-      departmentCode: departments.code,
-      semester: StudentProfile.semester,
-      phone: StudentProfile.phone,
-      userId: StudentProfile.userId,
-      email: user.email,
-    })
-    .from(StudentProfile)
-    .innerJoin(
-      departments,
-      eq(StudentProfile.departmentId, departments.id),
-    )
-    .innerJoin(
-      user,
-      eq(StudentProfile.userId, user.id),
+  if (search?.trim()) {
+    const searchTerm = `%${search.trim()}%`;
+
+    const searchCondition = or(
+      ilike(StudentProfile.name, searchTerm),
+      ilike(StudentProfile.admissionNumber, searchTerm),
+      ilike(user.email, searchTerm),
     );
 
-  // AND means students must match every selected filter.
-  if (conditions.length > 0) {
-    return query.where(and(...conditions));
+    if (searchCondition) {
+      conditions.push(searchCondition);
+    }
   }
 
-  // If neither filter is selected, return all students.
-  return query;
+  const whereCondition =
+    conditions.length > 0 ? and(...conditions) : undefined;
+
+  const offset = (page - 1) * limit;
+
+  const [students, totalResult] = await Promise.all([
+    db
+      .select({
+        id: StudentProfile.id,
+        name: StudentProfile.name,
+        admissionNumber: StudentProfile.admissionNumber,
+        departmentId: StudentProfile.departmentId,
+        departmentName: departments.name,
+        departmentCode: departments.code,
+        semester: StudentProfile.semester,
+        phone: StudentProfile.phone,
+        userId: StudentProfile.userId,
+        email: user.email,
+      })
+      .from(StudentProfile)
+      .innerJoin(
+        departments,
+        eq(StudentProfile.departmentId, departments.id),
+      )
+      .innerJoin(user, eq(StudentProfile.userId, user.id))
+      .where(whereCondition)
+      .limit(limit)
+      .offset(offset),
+
+    db
+      .select({ total: count() })
+      .from(StudentProfile)
+      .innerJoin(user, eq(StudentProfile.userId, user.id))
+      .where(whereCondition),
+  ]);
+
+  const total = totalResult[0].total;
+
+  return {
+    students,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
 };
 
 
@@ -123,15 +167,107 @@ export const getHodClubs = async () => {
 };
 
 
+
+const getClubCoordinatorRole = async () => {
+  const [role] = await db
+    .select({
+      id: roles.id,
+    })
+    .from(roles)
+    .where(eq(roles.slug, "club-coordinator"))
+    .limit(1);
+
+  if (!role) {
+    throw new Error(
+      "CLUB_COORDINATOR_ROLE_NOT_FOUND: Run the RBAC seed script first.",
+    );
+  }
+
+  return role;
+};
+
+
+
+const assignCoordinatorRole = async (
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  userId: string,
+  roleId: number,
+  assignedBy: string,
+) => {
+  const [existingRole] = await tx
+    .select({
+      id: userRoles.id,
+    })
+    .from(userRoles)
+    .where(
+      and(
+        eq(userRoles.userId, userId),
+        eq(userRoles.roleId, roleId),
+      ),
+    )
+    .limit(1);
+
+  if (!existingRole) {
+    await tx.insert(userRoles).values({
+      userId,
+      roleId,
+      assignedBy,
+    });
+  }
+};
+
+
+
+const removeCoordinatorRoleIfUnused = async (
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  studentId: number,
+  roleId: number,
+) => {
+  const [remainingAssignment] = await tx
+    .select({
+      id: coordinatorAssignments.id,
+    })
+    .from(coordinatorAssignments)
+    .where(eq(coordinatorAssignments.studentId, studentId))
+    .limit(1);
+
+  if (remainingAssignment) {
+    return;
+  }
+
+  const [student] = await tx
+    .select({
+      userId: StudentProfile.userId,
+    })
+    .from(StudentProfile)
+    .where(eq(StudentProfile.id, studentId))
+    .limit(1);
+
+  if (!student) {
+    return;
+  }
+
+  await tx
+    .delete(userRoles)
+    .where(
+      and(
+        eq(userRoles.userId, student.userId),
+        eq(userRoles.roleId, roleId),
+      ),
+    );
+};
+
+
+
 export const createCoordinator = async (
   studentId: number,
   clubId: number,
   appointedBy: string,
 ) => {
-  // 1. Find the student and their registered email address.
   const [student] = await db
     .select({
       id: StudentProfile.id,
+      userId: StudentProfile.userId,
       name: StudentProfile.name,
       email: user.email,
     })
@@ -144,7 +280,6 @@ export const createCoordinator = async (
     throw new Error("STUDENT_NOT_FOUND");
   }
 
-  // 2. Find the club.
   const [club] = await db
     .select({
       id: clubs.id,
@@ -158,9 +293,10 @@ export const createCoordinator = async (
     throw new Error("CLUB_NOT_FOUND");
   }
 
-  // 3. Prevent duplicate coordinator assignments.
   const [existingAssignment] = await db
-    .select()
+    .select({
+      id: coordinatorAssignments.id,
+    })
     .from(coordinatorAssignments)
     .where(
       and(
@@ -174,17 +310,29 @@ export const createCoordinator = async (
     throw new Error("COORDINATOR_ALREADY_ASSIGNED");
   }
 
-  // 4. Save the assignment first.
-  const [assignment] = await db
-    .insert(coordinatorAssignments)
-    .values({
-      studentId,
-      clubId,
-      appointedBy,
-    })
-    .returning();
+  const coordinatorRole = await getClubCoordinatorRole();
 
-  // Escape dynamic values before inserting them into HTML.
+
+  const assignment = await db.transaction(async (tx) => {
+    const [newAssignment] = await tx
+      .insert(coordinatorAssignments)
+      .values({
+        studentId,
+        clubId,
+        appointedBy,
+      })
+      .returning();
+
+    await assignCoordinatorRole(
+      tx,
+      student.userId,
+      coordinatorRole.id,
+      appointedBy,
+    );
+
+    return newAssignment;
+  });
+
   const escapeHtml = (value: string) =>
     value.replace(/[&<>"']/g, (character) => {
       const entities: Record<string, string> = {
@@ -198,8 +346,6 @@ export const createCoordinator = async (
       return entities[character];
     });
 
-  // 5. Send the appointment email without undoing the assignment
-  // if the email service is unavailable.
   let emailSent = false;
 
   if (student.email?.trim()) {
@@ -234,7 +380,7 @@ export const createCoordinator = async (
               </div>
 
               <p>
-                Please log in to your EduNex account to view your
+                Please log in to your existing EduNex account to view your
                 club-related activities and responsibilities.
               </p>
 
@@ -260,30 +406,6 @@ export const createCoordinator = async (
     );
   }
 
-  // Send the secure password setup email.
-let passwordSetupEmailSent = false;
-
-if (student.email?.trim()) {
-  try {
-    await auth.api.requestPasswordReset({
-  body: {
-    email: student.email,
-    redirectTo: `${
-      process.env.WEB_URL || "http://localhost:3000"
-    }/resetPassword?redirectTo=%2Fclub-coordinator-login`,
-  },
-});
-
-    passwordSetupEmailSent = true;
-  } catch (error) {
-    console.error(
-      "Coordinator appointment was saved, but the password setup email request failed:",
-      error,
-    );
-  }
-}
-
-  // Return the saved assignment and email delivery status.
   return {
     assignment,
     emailSent,
@@ -291,30 +413,8 @@ if (student.email?.trim()) {
 };
 
 
-export const getCoordinatorAssignments = async () => {
-  return db
-    .select({
-      id: coordinatorAssignments.id,
-      studentId: StudentProfile.id,
-      studentName: StudentProfile.name,
-      admissionNumber: StudentProfile.admissionNumber,
-      clubId: clubs.id,
-      clubName: clubs.name,
-      appointedBy: coordinatorAssignments.appointedBy,
-      createdAt: coordinatorAssignments.createdAt,
-    })
-    .from(coordinatorAssignments)
-    .innerJoin(
-      StudentProfile,
-      eq(coordinatorAssignments.studentId, StudentProfile.id),
-    )
-    .innerJoin(
-      clubs,
-      eq(coordinatorAssignments.clubId, clubs.id),
-    );
-};
 
-// Get events waiting for HOD approval
+
 export const getPendingEvents = async () => {
   return db
     .select({
@@ -333,7 +433,8 @@ export const getPendingEvents = async () => {
     .where(eq(events.status, "pending"));
 };
 
-// Approve or reject an event
+
+
 export const reviewEvent = async (
   eventId: number,
   reviewerId: string,
