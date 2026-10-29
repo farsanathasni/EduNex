@@ -783,11 +783,6 @@ import { usePathname, useRouter } from "next/navigation";
 // import { useRouter } from "next/router";
 import { useState } from "react";
 
-// import Link from "next/link";
-// import { useState } from "react";
-// import { usePathname, useRouter } from "next/navigation";
-// import { authClient } from "@/lib/auth-client";
-// import { useCoordinatorStatusQuery } from "@/app/club-coordinator/coordinatorquery";
 
 type DashboardMode = "student" | "coordinator";
 
@@ -1022,7 +1017,7 @@ export default function StudentDashboard() {
                     <h1 className="text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl lg:text-5xl">Hey, {firstName}! 👋<br /><span className="text-blue-100">Ready to make today count?</span></h1>
                     <p className="mt-4 max-w-xl text-sm leading-7 text-blue-50/90 sm:text-base">Discover new opportunities, connect with your campus community, and make every college day meaningful.</p>
                     <div className="mt-7 flex flex-wrap gap-3">
-                      <Link href="/student/events" className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-primary shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-50">Explore Events <span>→</span></Link>
+                      <Link href="/studentEvents" className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-primary shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-50">Explore Events <span>→</span></Link>
                       <Link href="/student/clubs" className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/20">Discover Clubs</Link>
                     </div>
                   </div>
