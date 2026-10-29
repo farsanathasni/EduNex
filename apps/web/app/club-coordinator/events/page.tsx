@@ -5,7 +5,7 @@ import CoordinatorLayout from "@/components/club-coordinator/CoordinatorLayout";
 // import PageHeader from "@/app/ui/pageHeader";
 import Card from "@/app/ui/card";
 import Button from "@/app/ui/button";
-import { useAllEventsQuery, useMyEventsQuery } from "./event";
+import { useAllEventsQuery, useMyEventsQuery } from "../eventquery";
 
 type EventTab = "All" | "My Events";
 
@@ -129,7 +129,7 @@ export default function BrowseEventsPage() {
 
               <div className="flex rounded-xl bg-background p-1">
                 {(["All", "My Events"] as const).map((tab) => (
-                  <button
+                  <Button
                     key={tab}
                     type="button"
                     onClick={() => setCategory(tab)}
@@ -141,7 +141,7 @@ export default function BrowseEventsPage() {
                     }`}
                   >
                     {tab === "All" ? "All Events" : "My Events"}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
