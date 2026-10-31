@@ -4,11 +4,7 @@ import { eq } from "drizzle-orm";
 
 import asyncHandler from "../../middleware/asyncHandler.js";
 import { studentService } from "./student.service.js";
-import {
-  createStudentProfileSchema,
-  getStudentsSchema,
-  updateStudentProfileSchema,
-} from "./student.validation.js";
+import {createStudentProfileSchema,getStudentsSchema,updateStudentProfileSchema,} from "./student.validation.js";
 import { db } from "../../config/database.js";
 import { departments } from "../../db/schema/others-schema.js";
 import { getActiveHod } from "../hod/hod.service.js";
@@ -256,11 +252,18 @@ export const CreateCoordinator = asyncHandler(
     const hod = await getActiveHod(user.id);
 
     if (!hod) {
-      return res.status(403).json({
-        success: false,
-        message: "Active HOD account not found.",
-      });
-    }
+  return res.status(403).json({
+    success: false,
+    message: "Active HOD account not found.",
+  });
+}
+
+if (hod.departmentId === null) {
+  return res.status(400).json({
+    success: false,
+    message: "Department is not assigned to this HOD.",
+  });
+}
 
     const studentId = Number(req.body.studentId);
     const clubId = Number(req.body.clubId);
@@ -343,11 +346,18 @@ export const GetCoordinatorAssignments = asyncHandler(
     const hod = await getActiveHod(user.id);
 
     if (!hod) {
-      return res.status(403).json({
-        success: false,
-        message: "Active HOD account not found.",
-      });
-    }
+  return res.status(403).json({
+    success: false,
+    message: "Active HOD account not found.",
+  });
+}
+
+if (hod.departmentId === null) {
+  return res.status(400).json({
+    success: false,
+    message: "Department is not assigned to this HOD.",
+  });
+}
 
     const page = Number(req.query.page ?? 1);
     const limit = Number(req.query.limit ?? 10);
@@ -400,11 +410,18 @@ export const UpdateCoordinator = asyncHandler(
     const hod = await getActiveHod(user.id);
 
     if (!hod) {
-      return res.status(403).json({
-        success: false,
-        message: "Active HOD account not found.",
-      });
-    }
+  return res.status(403).json({
+    success: false,
+    message: "Active HOD account not found.",
+  });
+}
+
+if (hod.departmentId === null) {
+  return res.status(400).json({
+    success: false,
+    message: "Department is not assigned to this HOD.",
+  });
+}
 
     const assignmentId = Number(req.params.assignmentId);
     const studentId = Number(req.body.studentId);

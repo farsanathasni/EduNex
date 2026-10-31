@@ -777,6 +777,7 @@
 "use client";
 
 import { useCoordinatorStatusQuery } from "@/app/club-coordinator/coordinatorquery";
+import Button from "@/app/ui/button";
 import { authClient } from "@/lib/auth-client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -967,7 +968,7 @@ export default function StudentDashboard() {
               <p className="truncate text-sm font-bold">{dashboardMode === "student" ? displayName || "Student" : coordinatorName}</p>
               <p className="truncate text-xs text-muted">{dashboardMode === "student" ? "Student account" : "Club Coordinator"}</p>
             </div>
-            <button type="button" onClick={handleLogout} disabled={isSigningOut} title="Log out" aria-label="Log out" className="rounded-lg p-2 text-muted transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50">{isSigningOut ? "…" : "↗"}</button>
+            <Button type="button" onClick={handleLogout} disabled={isSigningOut} title="Log out" aria-label="Log out" className="rounded-lg p-2 ">{isSigningOut ? "…" : "↗"}</Button>
           </div>
         </div>
       </aside>
@@ -998,9 +999,9 @@ export default function StudentDashboard() {
                 </button>
               )}
 
-              <button type="button" onClick={handleLogout} disabled={isSigningOut} className="rounded-xl border border-border px-3 py-2.5 text-sm font-semibold text-muted transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-50">
+              <Button type="button" onClick={handleLogout} disabled={isSigningOut} className="rounded-xl border border-border px-3 py-2.5 ">
                 {isSigningOut ? "Signing out..." : <><span className="sm:hidden">↗</span><span className="hidden sm:inline">Log out</span></>}
-              </button>
+              </Button>
             </div>
           </div>
         </header>
@@ -1018,7 +1019,7 @@ export default function StudentDashboard() {
                     <p className="mt-4 max-w-xl text-sm leading-7 text-blue-50/90 sm:text-base">Discover new opportunities, connect with your campus community, and make every college day meaningful.</p>
                     <div className="mt-7 flex flex-wrap gap-3">
                       <Link href="/studentEvents" className="inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-primary shadow-sm transition hover:-translate-y-0.5 hover:bg-blue-50">Explore Events <span>→</span></Link>
-                      <Link href="/student/clubs" className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/20">Discover Clubs</Link>
+                      <Link href="/student" className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/20">Discover Clubs</Link>
                     </div>
                   </div>
                   <div className="hidden lg:flex"><div className="flex h-44 w-44 items-center justify-center rounded-[36px] border border-white/20 bg-white/10 text-8xl shadow-2xl backdrop-blur-sm">🎓</div></div>
