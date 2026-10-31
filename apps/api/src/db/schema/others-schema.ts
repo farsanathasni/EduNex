@@ -133,6 +133,11 @@ export const attendance = pgTable("attendance", {
             foreignColumns: [events.id],
             name: "attendance_event_id_fkey"
         }).onDelete("cascade"),
+        foreignKey({
+  columns: [table.studentId],
+  foreignColumns: [StudentProfile.id],
+  name: "attendance_student_id_fkey",
+}).onDelete("cascade"),
     unique("attendance_event_id_student_id_key").on(table.eventId, table.studentId),
     check("attendance_status_check", sql`(status)::text = ANY ((ARRAY['present'::character varying, 'absent'::character varying])::text[])`),
 ]);

@@ -4,6 +4,10 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAllEventsQuery } from "@/app/club-coordinator/eventquery";
 import Card from "@/app/ui/card";
+import Button from "@/app/ui/button";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+// import { Link } from "lucide-react";
 
 type CampusEvent = {
   id: string | number;
@@ -130,7 +134,7 @@ export default function StudentEventsPage() {
         {/* Top navigation */}
         <div className="mb-7 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-600 text-xl font-black text-white shadow-lg shadow-blue-600/20">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-xl font-bold text-white shadow-md">
               E
             </div>
             <div>
@@ -139,18 +143,17 @@ export default function StudentEventsPage() {
             </div>
           </div>
 
-          <button
-            onClick={() => router.push("/studentDashboard")}
-            className="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-semibold transition hover:border-blue-500 hover:bg-blue-50 hover:text-blue-700 dark:hover:bg-blue-950/30"
-          >
-            <span aria-hidden="true">←</span>
-            <span className="hidden sm:inline">Back to dashboard</span>
-            <span className="sm:hidden">Dashboard</span>
-          </button>
+          <Link
+  href="/studentDashboard"
+  className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-2 text-sm font-semibold text-text-muted shadow-sm transition-all duration-200 hover:-translate-x-1 hover:border-primary hover:bg-primary/5 hover:text-primary"
+>
+  <ArrowLeft size={18} aria-hidden="true" />
+  <span>Back to Dashboard</span>
+</Link>
         </div>
 
         {/* Hero */}
-        <section className="relative isolate overflow-hidden rounded-[2rem] bg-gradient-to-br from-slate-950 via-indigo-950 to-blue-900 px-6 py-9 text-white shadow-xl shadow-indigo-950/10 sm:px-10 sm:py-12 lg:px-14 lg:py-14">
+        <section className="relative isolate mx-auto w-full max-w-6xl overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-indigo-950 to-blue-900 px-5 py-6 text-white shadow-xl shadow-indigo-950/10 sm:px-8 sm:py-8 lg:px-10 lg:py-9">
           <div className="pointer-events-none absolute -right-20 -top-24 -z-10 h-80 w-80 rounded-full bg-blue-400/20 blur-3xl" />
           <div className="pointer-events-none absolute -bottom-32 left-1/3 -z-10 h-72 w-72 rounded-full bg-violet-500/20 blur-3xl" />
           <div className="pointer-events-none absolute right-12 top-12 hidden text-7xl opacity-10 sm:block">
