@@ -1,3 +1,4 @@
+
 import type { Request, Response } from "express";
 import { eq } from "drizzle-orm";
 
@@ -15,11 +16,10 @@ import {
   type Access,
 } from "../rbac/rbac.access.js";
 
-// Permission middleware (rbac) already decided WHAT the caller may do.
-// This decides WHICH department's data they may touch:
+// Permission middleware (RBAC) already decided WHAT the caller may do.
+// This decides WHICH department's data they may access:
 //   Super Admin -> every department (departmentId undefined)
 //   HOD / staff -> their own department only
-// Sends the 403 itself and returns null when no scope applies.
 const getScope = async (res: Response) => {
   const scope = await resolveDepartmentScope(
     res.locals.access as Access,

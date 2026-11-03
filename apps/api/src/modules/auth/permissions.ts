@@ -21,3 +21,6 @@ export const teacher = ac.newRole({});
 
 // Club coordinators cannot manage other users.
 export const clubCoordinator = ac.newRole({});
+
+
+export const student=ac.newRole({})

@@ -2,11 +2,12 @@
 
 import { useMemo, useState } from "react";
 import CoordinatorLayout from "@/features/coordinator/components/coordinator-layout";
-// import PageHeader from "@/app/ui/pageHeader";
 import Card from "@/components/ui/card";
 import Button from "@/components/ui/button";
-import { useAllEventsQuery, useMyEventsQuery } from "../../../features/events/api/event-query";
-
+import {
+  useAllEventsQuery,
+  useMyEventsQuery,
+} from "../../../features/events/api/event-query";
 type EventTab = "All" | "My Events";
 
 const gradients = [
@@ -129,7 +130,7 @@ export default function BrowseEventsPage() {
 
               <div className="flex rounded-xl bg-background p-1">
                 {(["All", "My Events"] as const).map((tab) => (
-                  <button
+                  <Button
                     key={tab}
                     type="button"
                     onClick={() => setCategory(tab)}
@@ -141,7 +142,7 @@ export default function BrowseEventsPage() {
                     }`}
                   >
                     {tab === "All" ? "All Events" : "My Events"}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>

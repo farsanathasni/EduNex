@@ -13,6 +13,7 @@ import {
   hod,
   teacher,
   clubCoordinator,
+  student,
 } from "./modules/auth/permissions.js";
 
 if (!process.env.BETTER_AUTH_SECRET) {
@@ -86,9 +87,10 @@ export const auth = betterAuth({
       roles: {
         hod,
         teacher,
+        student,
         club_coordinator: clubCoordinator,
       },
-      defaultRole: "teacher",
+      defaultRole: "student",
       adminRoles: ["hod"],
     }),
   ],
