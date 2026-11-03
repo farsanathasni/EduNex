@@ -5,8 +5,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import Button from "@/app/ui/button";
-import { useCoordinatorStatusQuery } from "@/app/club-coordinator/coordinatorquery";
+import Button from "@/components/ui/button";
+import { useCoordinatorStatusQuery } from "@/features/coordinator/api/coordinator-query";
 // import { useCoordinatorStatusQuery } from "@/app/(dashboard)/club-coordinator/coordinatorQuery";
 
 const stats = [

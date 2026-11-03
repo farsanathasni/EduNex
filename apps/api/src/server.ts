@@ -1,4 +1,3 @@
-
 import express from "express";
 import cors from "cors";
 import { toNodeHandler } from "better-auth/node";
@@ -10,8 +9,8 @@ import departmentRoter from "./modules/departments/departments.routes.js"
 import clubsRouter from "./modules/clubs/clubs.routes.js";
 import coordinatorRouter from "./modules/coordinator/coordinator.router.js";
 import eventsRouter  from "./modules/events/events.routes.js";
-
 import errorHandler from "./middleware/error.middleware.js";
+import rolesRouter,{ meRouter }  from "./modules/rbac/rbac.routes.js";
 
 const app = express();
 const PORT = 5000;
@@ -23,7 +22,6 @@ app.use(
   })
 );
 
-// Better Auth handler must come before express.json()
 app.all("/api/auth/{*any}", toNodeHandler(auth));
 app.use(express.json());
 
@@ -38,15 +36,11 @@ app.use("/api/department", departmentRoter);
 app.use("/api/clubs", clubsRouter);
 app.use("/api/coordinator", coordinatorRouter);
 app.use("/api/events", eventsRouter);
+app.use("/api/me", meRouter);
+app.use("/api/roles", rolesRouter);
 
-
-
-
-
-
-
-app.use(errorHandler);
+app.use(errorHandler)
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-});
+})

@@ -1,5 +1,5 @@
 
-import RoleLoginForm from "@/app/ui/role-login-form";
+import RoleLoginForm from "@/features/auth/components/role-login-form";
 
 export default function ClubCoordinatorLoginPage() {
   return (

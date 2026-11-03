@@ -12,11 +12,11 @@ import {
 } from "lucide-react";
 
 import { authClient } from "@/lib/auth-client";
-import { useHodDashboard } from "../../hodQuery";
 
-import Button from "@/app/ui/button";
-import Card from "@/app/ui/card";
-import PageHeader from "@/app/ui/pageHeader";
+import Button from "@/components/ui/button";
+import Card from "@/components/ui/card";
+import PageHeader from "@/components/ui/page-header";
+import { useHodDashboard } from "@/features/hod/api/hod-query";
 
 export default function HodDashboardPage() {
   const router = useRouter();
@@ -36,7 +36,7 @@ export default function HodDashboardPage() {
 
   useEffect(() => {
     if (!checkingSession && !session?.user) {
-      router.replace("/hod-login");
+      router.replace("/login");
     }
   }, [checkingSession, session, router]);
 

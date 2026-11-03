@@ -2,6 +2,8 @@
 import "dotenv/config";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
+import { eq } from "drizzle-orm";
+import { roles, userRoles } from "./db/schema/rbac-schema.js";
 import { admin } from "better-auth/plugins";
 import { db } from "./config/database.js";
 import { sendEmail } from "./utils/email.js";
@@ -49,6 +51,34 @@ export const auth = betterAuth({
   });
 },
   },
+
+  databaseHooks: {
+  user: {
+    create: {
+      after: async (createdUser) => {
+        const [studentRole] = await db
+          .select({ id: roles.id })
+          .from(roles)
+          .where(eq(roles.slug, "student"))
+          .limit(1);
+
+        if (!studentRole) {
+          console.error("Student role missing. Run the RBAC seed script.");
+          return;
+        }
+
+        await db
+          .insert(userRoles)
+          .values({
+            userId: createdUser.id,
+            roleId: studentRole.id,
+            assignedBy: createdUser.id, // drop this line if assignedBy is nullable
+          })
+          .onConflictDoNothing();
+      },
+    },
+  },
+},
 
   plugins: [
     admin({

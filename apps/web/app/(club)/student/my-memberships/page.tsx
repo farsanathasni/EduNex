@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useMyStudentMembershipRequestsQuery } from "../../clubQuery";
-import PageHeader from "@/app/ui/pageHeader";
-import Card from "@/app/ui/card";
-import Button from "@/app/ui/button";
+import { useMyStudentMembershipRequestsQuery } from "@/features/clubs/api/club-query";
+import PageHeader from "@/components/ui/page-header";
+import Card from "@/components/ui/card";
+import Button from "@/components/ui/button";
 // import Card from "@/components/ui/Card";
 // import Button from "@/components/ui/Button";
 // import PageHeader from "@/components/ui/PageHeader";

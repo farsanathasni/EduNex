@@ -1,4 +1,3 @@
-
 import { eq, and, count, ilike, or } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 
@@ -13,6 +12,11 @@ import {
 } from "../../db/schema/others-schema.js";
 import { user } from "../../db/schema/auth-schema.js";
 import { coordinatorAssignments } from "../../db/schema/coordinator-schema.js";
+
+// departmentId is optional everywhere below:
+//   a number   -> only that department (HOD)
+//   undefined  -> every department (Super Admin)
+// The controller decides which one applies, using resolveDepartmentScope().
 
 // Get the active HOD account.
 export const getActiveHod = async (userId: string) => {
@@ -31,9 +35,21 @@ export const getActiveHod = async (userId: string) => {
   return hod ?? null;
 };
 
-// Get dashboard statistics for the HOD's department.
+// Staff record of the logged-in user, if they have one.
+// A Super Admin may not be a HOD but usually still has a staff row.
+export const getStaffByUserId = async (userId: string) => {
+  const [row] = await db
+    .select()
+    .from(staff)
+    .where(eq(staff.userId, userId))
+    .limit(1);
+
+  return row ?? null;
+};
+
+// Get dashboard statistics (one department, or all of them).
 export const getHodDashboardStats = async (
-  departmentId: number,
+  departmentId?: number,
 ) => {
   const [
     studentResult,
@@ -46,8 +62,10 @@ export const getHodDashboardStats = async (
       .from(StudentProfile)
       .where(
         and(
-          eq(StudentProfile.departmentId, departmentId),
-          
+          eq(StudentProfile.isDeleted, false),
+          departmentId !== undefined
+            ? eq(StudentProfile.departmentId, departmentId)
+            : undefined,
         ),
       ),
 
@@ -56,8 +74,10 @@ export const getHodDashboardStats = async (
       .from(staff)
       .where(
         and(
-          eq(staff.departmentId, departmentId),
           eq(staff.isActive, true),
+          departmentId !== undefined
+            ? eq(staff.departmentId, departmentId)
+            : undefined,
         ),
       ),
 
@@ -68,7 +88,11 @@ export const getHodDashboardStats = async (
         clubs,
         eq(coordinatorAssignments.clubId, clubs.id),
       )
-      .where(eq(clubs.departmentId, departmentId)),
+      .where(
+        departmentId !== undefined
+          ? eq(clubs.departmentId, departmentId)
+          : undefined,
+      ),
 
     db
       .select({ total: count() })
@@ -80,7 +104,9 @@ export const getHodDashboardStats = async (
       .where(
         and(
           eq(events.status, "pending"),
-          eq(clubs.departmentId, departmentId),
+          departmentId !== undefined
+            ? eq(clubs.departmentId, departmentId)
+            : undefined,
         ),
       ),
   ]);
@@ -101,7 +127,8 @@ export const getHodStudents = async (
   page = 1,
   limit = 10,
 ) => {
-  const conditions: SQL[] = [];
+  // Soft-deleted students must never show up.
+  const conditions: SQL[] = [eq(StudentProfile.isDeleted, false)];
 
   if (departmentId !== undefined) {
     conditions.push(
@@ -182,16 +209,18 @@ export const getHodStudents = async (
   };
 };
 
-// Get clubs belonging to the HOD's department.
+// Get clubs (one department, or all of them).
 export const getHodClubs = async (
-  departmentId: number,
+  departmentId?: number,
   search = "",
   page = 1,
   limit = 10,
 ) => {
-  const conditions: SQL[] = [
-    eq(clubs.departmentId, departmentId),
-  ];
+  const conditions: SQL[] = [];
+
+  if (departmentId !== undefined) {
+    conditions.push(eq(clubs.departmentId, departmentId));
+  }
 
   if (search.trim()) {
     conditions.push(
@@ -199,7 +228,9 @@ export const getHodClubs = async (
     );
   }
 
-  const whereCondition = and(...conditions);
+  const whereCondition = conditions.length
+    ? and(...conditions)
+    : undefined;
   const offset = (page - 1) * limit;
 
   const [clubList, totalResult] = await Promise.all([
@@ -233,17 +264,18 @@ export const getHodClubs = async (
   };
 };
 
-// Get pending events belonging to the HOD's department.
+// Get pending events (one department, or all of them).
 export const getPendingEvents = async (
-  departmentId: number,
+  departmentId?: number,
   search = "",
   page = 1,
   limit = 10,
 ) => {
-  const conditions: SQL[] = [
-    eq(events.status, "pending"),
-    eq(clubs.departmentId, departmentId),
-  ];
+  const conditions: SQL[] = [eq(events.status, "pending")];
+
+  if (departmentId !== undefined) {
+    conditions.push(eq(clubs.departmentId, departmentId));
+  }
 
   if (search.trim()) {
     const searchTerm = `%${search.trim()}%`;
@@ -308,13 +340,15 @@ export const getPendingEvents = async (
   };
 };
 
-// Approve or reject a pending event within the HOD's department.
+// Approve or reject a pending event.
+// departmentId undefined = Super Admin (any department).
 export const reviewEvent = async (
   eventId: number,
   reviewerId: string,
-  departmentId: number,
+  departmentId: number | undefined,
   decision: "approved" | "rejected",
   comments?: string,
+  reviewerRole: "hod" | "admin" = "hod",
 ) => {
   return db.transaction(async (tx) => {
     const [event] = await tx
@@ -330,7 +364,9 @@ export const reviewEvent = async (
         and(
           eq(events.id, eventId),
           eq(events.status, "pending"),
-          eq(clubs.departmentId, departmentId),
+          departmentId !== undefined
+            ? eq(clubs.departmentId, departmentId)
+            : undefined,
         ),
       )
       .limit(1);
@@ -339,8 +375,7 @@ export const reviewEvent = async (
       throw new Error("EVENT_NOT_PENDING_OR_FORBIDDEN");
     }
 
-    // Update only if the event is still pending and belongs
-    // to the HOD's department.
+    // Update only if the event is still pending.
     const updatedEvents = await tx
       .update(events)
       .set({
@@ -367,7 +402,7 @@ export const reviewEvent = async (
     await tx.insert(eventApprovals).values({
       eventId,
       reviewerId,
-      reviewerRole: "hod",
+      reviewerRole,
       decision,
       comments: comments || null,
       reviewedAt: new Date().toISOString(),

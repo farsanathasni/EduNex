@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import AddHodForm from "./AddHodForm";
+import AddHodForm from "@/features/principal/components/add-hod-form";
 
 type StaffTab = "all" | "faculty" | "hod" | "add";
 

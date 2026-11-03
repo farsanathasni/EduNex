@@ -1,11 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import CoordinatorLayout from "@/components/club-coordinator/CoordinatorLayout";
+import CoordinatorLayout from "@/features/coordinator/components/coordinator-layout";
 // import PageHeader from "@/app/ui/pageHeader";
-import Card from "@/app/ui/card";
-import Button from "@/app/ui/button";
-import { useAllEventsQuery, useMyEventsQuery } from "./event";
+import Card from "@/components/ui/card";
+import Button from "@/components/ui/button";
+import { useAllEventsQuery, useMyEventsQuery } from "../../../features/events/api/event-query";
 
 type EventTab = "All" | "My Events";
 

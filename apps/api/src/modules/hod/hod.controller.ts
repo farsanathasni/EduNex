@@ -1,15 +1,18 @@
-
 import type { Request, Response } from "express";
 
 import asyncHandler from "../../middleware/asyncHandler.js";
 import {
-  getActiveHod,
   getHodDashboardStats,
   getPendingEvents,
   reviewEvent,
   getHodStudents,
   getHodClubs,
+  getStaffByUserId,
 } from "./hod.service.js";
+import {
+  resolveDepartmentScope,
+  type Access,
+} from "../rbac/rbac.access.js";
 
 // Validate pagination parameters.
 const getPaginationParams = (req: Request) => {
@@ -32,39 +35,50 @@ const getPaginationParams = (req: Request) => {
   return { page, limit };
 };
 
-// HOD dashboard.
+// Permission middleware (rbac) already decided WHAT the caller may do.
+// This decides WHICH department's data they may touch:
+//   Super Admin -> every department (departmentId undefined)
+//   HOD / staff -> their own department only
+// Sends the 403 itself and returns null when no scope applies.
+const getScope = async (res: Response) => {
+  const scope = await resolveDepartmentScope(
+    res.locals.access as Access,
+  );
+
+  if (!scope) {
+    res.status(403).json({
+      success: false,
+      message: "No department is assigned to your account.",
+    });
+    return null;
+  }
+
+  return {
+    scope,
+    departmentId:
+      scope.kind === "department" ? scope.departmentId : undefined,
+  };
+};
+
+// HOD dashboard (also used by the Super Admin, across all departments).
 export const GetHodDashboard = asyncHandler(
   async (_req: Request, res: Response) => {
-    const currentUser = res.locals.user;
+    const resolved = await getScope(res);
+    if (!resolved) return;
 
-    if (!currentUser) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized. Please log in.",
-      });
-    }
+    const staffRow = await getStaffByUserId(res.locals.user.id);
 
-    const hod = await getActiveHod(currentUser.id);
-
-    if (!hod) {
-      return res.status(403).json({
-        success: false,
-        message: "Access denied. Active HOD permission required.",
-      });
-    }
-
-    // Fetch statistics for this HOD's department only.
-    const stats = await getHodDashboardStats(hod.departmentId);
+    const stats = await getHodDashboardStats(resolved.departmentId);
 
     return res.status(200).json({
       success: true,
       message: "HOD dashboard fetched successfully.",
       data: {
-        staffId: hod.id,
-        employeeId: hod.employeeId,
-        role: hod.role,
-        departmentId: hod.departmentId,
-        designation: hod.designation,
+        staffId: staffRow?.id ?? null,
+        employeeId: staffRow?.employeeId ?? null,
+        role: staffRow?.role ?? null,
+        departmentId: staffRow?.departmentId ?? null,
+        designation: staffRow?.designation ?? null,
         totalStudents: stats.totalStudents,
         totalStaff: stats.totalStaff,
         totalCoordinators: stats.totalCoordinators,
@@ -77,23 +91,8 @@ export const GetHodDashboard = asyncHandler(
 // Get students with department filtering, search, and pagination.
 export const GetStudentsByDepartment = asyncHandler(
   async (req: Request, res: Response) => {
-    const currentUser = res.locals.user;
-
-    if (!currentUser) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized. Please log in.",
-      });
-    }
-
-    const hod = await getActiveHod(currentUser.id);
-
-    if (!hod) {
-      return res.status(403).json({
-        success: false,
-        message: "Only an active HOD can view students.",
-      });
-    }
+    const resolved = await getScope(res);
+    if (!resolved) return;
 
     const pagination = getPaginationParams(req);
 
@@ -120,10 +119,12 @@ export const GetStudentsByDepartment = asyncHandler(
       });
     }
 
-    // HODs can only view students in their own department.
+    // A HOD can only view students in their own department.
+    // A Super Admin may pick any department, or none for all of them.
     if (
+      resolved.departmentId !== undefined &&
       requestedDepartmentId !== undefined &&
-      requestedDepartmentId !== hod.departmentId
+      requestedDepartmentId !== resolved.departmentId
     ) {
       return res.status(403).json({
         success: false,
@@ -154,7 +155,7 @@ export const GetStudentsByDepartment = asyncHandler(
         : "";
 
     const result = await getHodStudents(
-      hod.departmentId,
+      resolved.departmentId ?? requestedDepartmentId,
       semester,
       search,
       pagination.page,
@@ -173,23 +174,8 @@ export const GetStudentsByDepartment = asyncHandler(
 // Get clubs with search and pagination.
 export const GetHodClubs = asyncHandler(
   async (req: Request, res: Response) => {
-    const currentUser = res.locals.user;
-
-    if (!currentUser) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized. Please log in.",
-      });
-    }
-
-    const hod = await getActiveHod(currentUser.id);
-
-    if (!hod) {
-      return res.status(403).json({
-        success: false,
-        message: "Only an active HOD can view clubs.",
-      });
-    }
+    const resolved = await getScope(res);
+    if (!resolved) return;
 
     const pagination = getPaginationParams(req);
 
@@ -206,7 +192,7 @@ export const GetHodClubs = asyncHandler(
         : "";
 
     const result = await getHodClubs(
-      hod.departmentId,
+      resolved.departmentId,
       search,
       pagination.page,
       pagination.limit,
@@ -224,23 +210,8 @@ export const GetHodClubs = asyncHandler(
 // Get pending events with search and pagination.
 export const GetPendingEvents = asyncHandler(
   async (req: Request, res: Response) => {
-    const currentUser = res.locals.user;
-
-    if (!currentUser) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized. Please log in.",
-      });
-    }
-
-    const hod = await getActiveHod(currentUser.id);
-
-    if (!hod) {
-      return res.status(403).json({
-        success: false,
-        message: "Only an active HOD can view pending events.",
-      });
-    }
+    const resolved = await getScope(res);
+    if (!resolved) return;
 
     const pagination = getPaginationParams(req);
 
@@ -257,7 +228,7 @@ export const GetPendingEvents = asyncHandler(
         : "";
 
     const result = await getPendingEvents(
-      hod.departmentId,
+      resolved.departmentId,
       search,
       pagination.page,
       pagination.limit,
@@ -275,23 +246,8 @@ export const GetPendingEvents = asyncHandler(
 // Approve or reject a pending event.
 export const ReviewEvent = asyncHandler(
   async (req: Request, res: Response) => {
-    const currentUser = res.locals.user;
-
-    if (!currentUser) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized. Please log in.",
-      });
-    }
-
-    const hod = await getActiveHod(currentUser.id);
-
-    if (!hod) {
-      return res.status(403).json({
-        success: false,
-        message: "Only an active HOD can review events.",
-      });
-    }
+    const resolved = await getScope(res);
+    if (!resolved) return;
 
     const eventId = Number(req.params.eventId);
 
@@ -321,15 +277,20 @@ export const ReviewEvent = asyncHandler(
       });
     }
 
+    const access = res.locals.access as Access;
+    const staffRow = await getStaffByUserId(res.locals.user.id);
+
     let result;
 
     try {
       result = await reviewEvent(
         eventId,
-        hod.id,
-        hod.departmentId,
+        // Keep recording the staff id when there is one (as before).
+        staffRow?.id ?? res.locals.user.id,
+        resolved.departmentId,
         decision,
         comments,
+        access.isSuperAdmin ? "admin" : "hod",
       );
     } catch (error) {
       if (

@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import CoordinatorLayout from "@/components/club-coordinator/CoordinatorLayout";
+import CoordinatorLayout from "@/features/coordinator/components/coordinator-layout";
 export default function RequestEventPage() {
   const [submitted, setSubmitted] = useState(false);
 

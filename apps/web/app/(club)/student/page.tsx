@@ -2,11 +2,11 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useStudentClubsQuery } from "../clubQuery";
-import ClubCard from "./clubCard";
-import PageHeader from "@/app/ui/pageHeader";
-import Input from "@/app/ui/input";
-import Card from "@/app/ui/card";
+import { useStudentClubsQuery } from "@/features/clubs/api/club-query";
+import ClubCard from "@/features/clubs/components/club-card";
+import PageHeader from "@/components/ui/page-header";
+import Input from "@/components/ui/input";
+import Card from "@/components/ui/card";
 
 
 export default function StudentClubsPage() {

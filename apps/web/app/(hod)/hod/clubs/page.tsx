@@ -1,6 +1,5 @@
-import ClubsPage from "@/app/(club)/clubs/page";
-
+import ClubManagementView from "@/features/clubs/components/club-management-view";
 
 export default function HODClubsPage() {
-  return <ClubsPage />;
+  return <ClubManagementView />;
 }

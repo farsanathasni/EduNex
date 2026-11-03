@@ -53,7 +53,7 @@ export default function PrincipalLayout({
 
     try {
       await authClient.signOut();
-      router.replace("/principal-login");
+      router.replace("/login");
       router.refresh();
     } finally {
       setSigningOut(false);
