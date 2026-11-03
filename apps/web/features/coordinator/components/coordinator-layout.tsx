@@ -8,6 +8,16 @@ import type { ReactNode } from "react";
 const navigation = [
   { name: "Dashboard", href: "/club-coordinator/dashboard", icon: "▦" },
   { name: "Browse Events", href: "/club-coordinator/events", icon: "◷" },
+  {
+    name: "Membership Requests",
+    href: "/club-coordinator/membership-requests",
+    icon: "👥",
+  },
+  {
+  name: "Club Members",
+  href: "/club-coordinator/members",
+  icon: "👥",
+},
   { name: "Request for Event", href: "/club-coordinator/request-event", icon: "+" },
   { name: "Profile", href: "/club-coordinator/profile", icon: "♙" },
 ];

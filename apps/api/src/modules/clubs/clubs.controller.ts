@@ -10,8 +10,12 @@ import {
   getClubById,
   getClubCoordinators,
   getClubEvents,
+  getCoordinatorClubMembers,
+  getCoordinatorMembershipRequests,
+  getCoordinatorProfileByUserId,
   getMyMembershipRequests,
   getStudentProfileByUserId,
+  reviewClubMembershipRequest,
 } from "./clubs.service.js";
 import {
   clubListQuerySchema,
@@ -312,6 +316,152 @@ export const GetMyStudentMembershipRequests = asyncHandler(
       message: "Membership requests fetched successfully.",
       data: result.requests,
       pagination: result.pagination,
+    });
+  },
+);
+
+
+
+export const GetCoordinatorMembershipRequests = asyncHandler(
+  async (req: Request, res: Response) => {
+    const currentUser = res.locals.user;
+
+    if (!currentUser) {
+      return res.status(401).json({
+        success: false,
+        message: "Please log in.",
+      });
+    }
+
+    const coordinator = await getCoordinatorProfileByUserId(
+      currentUser.id,
+    );
+
+    if (!coordinator) {
+      return res.status(403).json({
+        success: false,
+        message: "Coordinator profile not found.",
+      });
+    }
+
+    const requests = await getCoordinatorMembershipRequests(
+      coordinator.id,
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Membership requests fetched successfully.",
+      data: requests,
+    });
+  },
+);
+
+
+export const ReviewClubMembershipRequest = asyncHandler(
+  async (req: Request, res: Response) => {
+    const currentUser = res.locals.user;
+
+    if (!currentUser) {
+      return res.status(401).json({
+        success: false,
+        message: "Please log in.",
+      });
+    }
+
+    const requestId = Number(req.params.requestId);
+    const { decision } = req.body;
+
+    if (!Number.isSafeInteger(requestId) || requestId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid membership request ID.",
+      });
+    }
+
+    if (decision !== "approved" && decision !== "rejected") {
+      return res.status(400).json({
+        success: false,
+        message: "Decision must be approved or rejected.",
+      });
+    }
+
+    const coordinator = await getCoordinatorProfileByUserId(
+      currentUser.id,
+    );
+
+    if (!coordinator) {
+      return res.status(403).json({
+        success: false,
+        message: "Coordinator profile not found.",
+      });
+    }
+
+    try {
+      const updatedRequest = await reviewClubMembershipRequest(
+        coordinator.id,
+        requestId,
+        decision,
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: `Membership request ${decision} successfully.`,
+        data: updatedRequest,
+      });
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === "MEMBERSHIP_REQUEST_NOT_FOUND"
+      ) {
+        return res.status(404).json({
+          success: false,
+          message: "Membership request not found.",
+        });
+      }
+
+      if (
+        error instanceof Error &&
+        error.message === "MEMBERSHIP_REQUEST_ALREADY_REVIEWED"
+      ) {
+        return res.status(409).json({
+          success: false,
+          message: "This membership request has already been reviewed.",
+        });
+      }
+
+      throw error;
+    }
+  },
+);
+
+
+
+export const GetCoordinatorClubMembers = asyncHandler(
+  async (req: Request, res: Response) => {
+    if (!res.locals.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const coordinator = await getCoordinatorProfileByUserId(
+      res.locals.user.id,
+    );
+
+    if (!coordinator) {
+      return res.status(403).json({
+        success: false,
+        message: "Coordinator profile not found",
+      });
+    }
+
+    const members = await getCoordinatorClubMembers(coordinator.id);
+
+    return res.status(200).json({
+      success: true,
+      message: "Club members fetched successfully",
+      data: members,
     });
   },
 );

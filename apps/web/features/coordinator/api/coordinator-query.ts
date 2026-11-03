@@ -1,17 +1,28 @@
-import { isAxiosError } from "axios";
-import {
-  createCoordinator,
-  getCoordinatorAssignments,
-  getCoordinatorStatus,
-  type CreateCoordinatorInput,
-} from "@/features/coordinator/api/coordinators";
-import { getHodStudents } from "@/features/hod/api/hod";
 
+import { isAxiosError } from "axios";
 import {
   useMutation,
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
+
+import {
+  createCoordinator,
+  getCoordinatorAssignments,
+  getCoordinatorStatus,
+  updateCoordinator,
+  deactivateCoordinator,
+  type CreateCoordinatorInput,
+  type UpdateCoordinatorInput,
+} from "@/features/coordinator/api/coordinators";
+
+import {
+  getCoordinatorClubMembers,
+  getCoordinatorMembershipRequests,
+  reviewClubMembershipRequest,
+} from "@/features/clubs/api/clubs";
+
+import { getHodStudents } from "@/features/hod/api/hod";
 
 export const retryUnlessAuthError = (
   failureCount: number,
@@ -28,14 +39,13 @@ export const retryUnlessAuthError = (
   return failureCount < 2;
 };
 
-// Query keys
 export const HodStudentsKey = ["hod-students"] as const;
 
 export const CoordinatorAssignmentsKey = [
   "coordinator-assignments",
 ] as const;
 
-// Fetch all students
+// HOD students
 export const useHodStudents = () => {
   return useQuery({
     queryKey: HodStudentsKey,
@@ -44,7 +54,7 @@ export const useHodStudents = () => {
   });
 };
 
-// Fetch coordinator assignments
+// Coordinator assignments
 export const useCoordinatorAssignments = () => {
   return useQuery({
     queryKey: CoordinatorAssignmentsKey,
@@ -53,7 +63,7 @@ export const useCoordinatorAssignments = () => {
   });
 };
 
-// Appoint a student as a coordinator
+// Create coordinator
 export const useCreateCoordinator = () => {
   const queryClient = useQueryClient();
 
@@ -69,9 +79,90 @@ export const useCreateCoordinator = () => {
   });
 };
 
-export const useCoordinatorStatusQuery =()=>{
-    return useQuery({
-        queryKey:["coordinator","status"],
-        queryFn:getCoordinatorStatus
-    })
-}
+// Update coordinator
+export const useUpdateCoordinator = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      assignmentId,
+      input,
+    }: {
+      assignmentId: number;
+      input: UpdateCoordinatorInput;
+    }) => updateCoordinator(assignmentId, input),
+
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: CoordinatorAssignmentsKey,
+      });
+    },
+  });
+};
+
+// Deactivate coordinator
+export const useDeactivateCoordinator = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: deactivateCoordinator,
+
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: CoordinatorAssignmentsKey,
+      });
+    },
+  });
+};
+
+// Coordinator status
+export const useCoordinatorStatusQuery = () => {
+  return useQuery({
+    queryKey: ["coordinator", "status"],
+    queryFn: getCoordinatorStatus,
+    retry: retryUnlessAuthError,
+  });
+};
+
+// Membership requests
+export const useCoordinatorMembershipRequests = () => {
+  return useQuery({
+    queryKey: ["coordinator", "membership-requests"],
+    queryFn: getCoordinatorMembershipRequests,
+    retry: retryUnlessAuthError,
+  });
+};
+
+// Review membership request
+export const useReviewClubMembershipRequest = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      requestId,
+      decision,
+    }: {
+      requestId: number;
+      decision: "approved" | "rejected";
+    }) => reviewClubMembershipRequest(requestId, decision),
+
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["coordinator", "membership-requests"],
+      });
+
+      await queryClient.invalidateQueries({
+        queryKey: ["coordinator", "club-members"],
+      });
+    },
+  });
+};
+
+// Club members
+export const useCoordinatorClubMembers = () => {
+  return useQuery({
+    queryKey: ["coordinator", "club-members"],
+    queryFn: getCoordinatorClubMembers,
+    retry: retryUnlessAuthError,
+  });
+};

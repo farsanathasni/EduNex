@@ -8,12 +8,15 @@ import {
   CreateClub,
   CreateStudentMembershipRequest,
   GetAllClubs,
+  GetCoordinatorClubMembers,
+  GetCoordinatorMembershipRequests,
   GetMyStudentMembershipRequests,
   GetStudentClubAnnouncements,
   GetStudentClubById,
   GetStudentClubCoordinators,
   GetStudentClubEvents,
   GetStudentClubs,
+  ReviewClubMembershipRequest,
 } from "./clubs.controller.js";
 
 const clubsRouter = Router();
@@ -78,6 +81,28 @@ clubsRouter.post(
   "/student/:clubId/membership",
   requireAuth,
   CreateStudentMembershipRequest,
+);
+
+
+// Coordinator: view pending membership requests.
+clubsRouter.get(
+  "/coordinator/membership-requests",
+  requireAuth,
+  GetCoordinatorMembershipRequests,
+);
+
+// Coordinator: approve or reject a membership request.
+clubsRouter.patch(
+  "/coordinator/membership-requests/:requestId",
+  requireAuth,
+  ReviewClubMembershipRequest,
+);
+
+
+clubsRouter.get(
+  "/coordinator/members",
+  requireAuth,
+  GetCoordinatorClubMembers,
 );
 
 export default clubsRouter;

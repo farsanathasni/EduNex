@@ -1,7 +1,6 @@
 
-import axios from "axios";
-import { api } from "../../../lib/axios";
-import type { CreateClubInput } from "@/features/clubs/validation/club-schema";
+import { api } from "@/lib/axios";
+import { CreateClubInput } from "../validation/club-schema";
 
 export interface Club {
   id: number;
@@ -41,8 +40,38 @@ export interface ClubCoordinator {
 
 
 
+export interface CoordinatorMembershipRequest {
+  requestId: number;
+  clubId: number;
+  clubName: string;
+  status: string;
+  requestedAt: string;
+  studentId: number;
+  studentName: string;
+  admissionNumber: string;
+  email: string;
+  phone: string | null;
+  semester: number;
+  departmentId: number;
+  departmentName: string;
+  departmentCode: string;
+}
 
 
+export interface CoordinatorClubMember {
+  clubId: number;
+  clubName: string;
+  studentId: number;
+  studentName: string;
+  admissionNumber: string;
+  email: string;
+  phone: string | null;
+  semester: number;
+  departmentName: string;
+  departmentCode: string;
+  status: "approved" | "rejected";
+  joinedAt: string | null;
+}
 
 
 export const getClubs = async (): Promise<Club[]> => {
@@ -128,4 +157,25 @@ export const getMyStudentMembershipRequests = async (): Promise<
     const response = await api.get("/clubs/student/my/memberships");
     return response.data.data;
   
+};
+
+
+
+export const getCoordinatorMembershipRequests =async():Promise<CoordinatorMembershipRequest[]>=>{
+  const  response=await api.get("/clubs/coordinator/membership-requests",)
+  return response.data.data
+ }
+
+
+ export const reviewClubMembershipRequest =async(requestId:number,decision:"approved"|"rejected"):Promise<CoordinatorMembershipRequest>=>{
+  const response=await api.patch(`/clubs/coordinator/membership-requests/${requestId}`,{ decision },)
+  return response.data.data
+ }
+
+
+ export const getCoordinatorClubMembers = async (): Promise<
+  CoordinatorClubMember[]
+> => {
+  const response = await api.get("/clubs/coordinator/members");
+  return response.data.data;
 };

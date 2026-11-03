@@ -41,7 +41,7 @@ export type CoordinatorStatus = {
   assignments: StudentCoordinatorAssignment[];
 };
 
-// Get existing coordinator assignments
+// Get coordinator assignments
 export const getCoordinatorAssignments = async () => {
   const { data } = await api.get<ApiResponse<CoordinatorAssignment[]>>(
     "/hod/coordinators",
@@ -56,7 +56,7 @@ export const getCoordinatorAssignments = async () => {
   return data.data;
 };
 
-// Appoint a student as a club coordinator
+// Create coordinator
 export const createCoordinator = async (
   input: CreateCoordinatorInput,
 ) => {
@@ -72,7 +72,7 @@ export const createCoordinator = async (
   return data.data;
 };
 
-// Update a coordinator assignment
+// Update coordinator
 export const updateCoordinator = async (
   assignmentId: number,
   input: UpdateCoordinatorInput,
@@ -89,7 +89,7 @@ export const updateCoordinator = async (
   return data.data;
 };
 
-// Deactivate a coordinator assignment
+// Deactivate coordinator
 export const deactivateCoordinator = async (
   assignmentId: number,
 ) => {
@@ -106,18 +106,17 @@ export const deactivateCoordinator = async (
   return data.data;
 };
 
-// Get coordinator status for the logged-in student
-export const getCoordinatorStatus =
-  async (): Promise<CoordinatorStatus> => {
-    const { data } = await api.get<ApiResponse<CoordinatorStatus>>(
-      "/coordinator/",
+// Get logged-in student's coordinator status
+export const getCoordinatorStatus = async (): Promise<CoordinatorStatus> => {
+  const { data } = await api.get<ApiResponse<CoordinatorStatus>>(
+    "/coordinator/",
+  );
+
+  if (!data.success) {
+    throw new Error(
+      data.message || "Failed to fetch coordinator status.",
     );
+  }
 
-    if (!data.success) {
-      throw new Error(
-        data.message || "Failed to fetch coordinator status.",
-      );
-    }
-
-    return data.data;
-  };
+  return data.data;
+};
