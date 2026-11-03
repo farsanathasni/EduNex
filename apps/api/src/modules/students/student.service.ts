@@ -1,4 +1,3 @@
-
 import {
   eq,
   and,
@@ -7,6 +6,7 @@ import {
   or,
   type SQL,
 } from "drizzle-orm";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 
 import { db } from "../../config/database.js";
 import { StudentProfile } from "../../db/schema/student-profile.js";
@@ -33,6 +33,10 @@ type GetStudentsParams = {
   limit?: number;
 };
 
+// undefined = Super Admin (no department filter). and() ignores undefined.
+const inDepartment = (column: AnyPgColumn, departmentId?: number) =>
+  departmentId === undefined ? undefined : eq(column, departmentId);
+
 // Find the club-coordinator role.
 const getClubCoordinatorRole = async () => {
   const [role] = await db
@@ -44,9 +48,8 @@ const getClubCoordinatorRole = async () => {
     .limit(1);
 
   if (!role) {
-    throw new Error(
-      "CLUB_COORDINATOR_ROLE_NOT_FOUND: Run the RBAC seed script first.",
-    );
+    console.error("Club coordinator role missing. Run the RBAC seed script.");
+    throw new Error("CLUB_COORDINATOR_ROLE_NOT_FOUND");
   }
 
   return role;
@@ -245,6 +248,7 @@ export const studentService = {
       semester?: number;
       phone?: string | null;
     },
+    departmentId?: number, // set = HOD (own department only), undefined = Super Admin
   ) => {
     const result = await db
       .update(StudentProfile)
@@ -253,6 +257,7 @@ export const studentService = {
         and(
           eq(StudentProfile.id, studentId),
           eq(StudentProfile.isDeleted, false),
+          inDepartment(StudentProfile.departmentId, departmentId),
         ),
       )
       .returning();
@@ -263,7 +268,10 @@ export const studentService = {
   },
 
   // Soft-delete a student's profile.
-  softDelete: async (studentId: number) => {
+  softDelete: async (
+    studentId: number,
+    departmentId?: number, // set = HOD (own department only), undefined = Super Admin
+  ) => {
     const result = await db
       .update(StudentProfile)
       .set({
@@ -273,6 +281,7 @@ export const studentService = {
         and(
           eq(StudentProfile.id, studentId),
           eq(StudentProfile.isDeleted, false),
+          inDepartment(StudentProfile.departmentId, departmentId),
         ),
       )
       .returning();
@@ -282,18 +291,20 @@ export const studentService = {
       : null;
   },
 
-  // Create a coordinator assignment within the HOD's department.
+  // Create a coordinator assignment.
+  // departmentId set = HOD (own department only), undefined = Super Admin.
   createCoordinator: async (
     studentId: number,
     clubId: number,
     appointedBy: string,
-    departmentId: number,
+    departmentId?: number,
   ) => {
     const [student] = await db
       .select({
         id: StudentProfile.id,
         userId: StudentProfile.userId,
         name: StudentProfile.name,
+        departmentId: StudentProfile.departmentId,
         email: user.email,
       })
       .from(StudentProfile)
@@ -305,7 +316,7 @@ export const studentService = {
         and(
           eq(StudentProfile.id, studentId),
           eq(StudentProfile.isDeleted, false),
-          eq(StudentProfile.departmentId, departmentId),
+          inDepartment(StudentProfile.departmentId, departmentId),
         ),
       )
       .limit(1);
@@ -318,17 +329,23 @@ export const studentService = {
       .select({
         id: clubs.id,
         name: clubs.name,
+        departmentId: clubs.departmentId,
       })
       .from(clubs)
       .where(
         and(
           eq(clubs.id, clubId),
-          eq(clubs.departmentId, departmentId),
+          inDepartment(clubs.departmentId, departmentId),
         ),
       )
       .limit(1);
 
     if (!club) {
+      throw new Error("CLUB_NOT_FOUND_OR_FORBIDDEN");
+    }
+
+    // Super Admin has no department filter, so keep student and club together.
+    if (student.departmentId !== club.departmentId) {
       throw new Error("CLUB_NOT_FOUND_OR_FORBIDDEN");
     }
 
@@ -439,17 +456,21 @@ export const studentService = {
     };
   },
 
-  // Get coordinator assignments with department filtering, search, and pagination.
+  // Get coordinator assignments with optional department filter, search, and pagination.
+  // departmentId undefined = Super Admin (all departments).
   getCoordinatorAssignments: async (
-    departmentId: number,
+    departmentId: number | undefined,
     search = "",
     page = 1,
     limit = 10,
   ) => {
     const conditions: SQL[] = [
       eq(StudentProfile.isDeleted, false),
-      eq(clubs.departmentId, departmentId),
     ];
+
+    if (departmentId !== undefined) {
+      conditions.push(eq(clubs.departmentId, departmentId));
+    }
 
     if (search.trim()) {
       const searchTerm = `%${search.trim()}%`;
@@ -526,14 +547,13 @@ export const studentService = {
     };
   },
 
-  // Update a coordinator assignment within the HOD's department.
-
-  // Update a coordinator assignment within the HOD's department.
+  // Update a coordinator assignment.
+  // departmentId set = HOD (own department only), undefined = Super Admin.
   updateCoordinator: async (
     assignmentId: number,
     studentId: number,
     clubId: number,
-    departmentId: number,
+    departmentId?: number,
   ) => {
     const [existingAssignment] = await db
       .select({
@@ -550,7 +570,7 @@ export const studentService = {
       .where(
         and(
           eq(coordinatorAssignments.id, assignmentId),
-          eq(clubs.departmentId, departmentId),
+          inDepartment(clubs.departmentId, departmentId),
         ),
       )
       .limit(1);
@@ -563,13 +583,14 @@ export const studentService = {
       .select({
         id: StudentProfile.id,
         userId: StudentProfile.userId,
+        departmentId: StudentProfile.departmentId,
       })
       .from(StudentProfile)
       .where(
         and(
           eq(StudentProfile.id, studentId),
           eq(StudentProfile.isDeleted, false),
-          eq(StudentProfile.departmentId, departmentId),
+          inDepartment(StudentProfile.departmentId, departmentId),
         ),
       )
       .limit(1);
@@ -581,17 +602,23 @@ export const studentService = {
     const [club] = await db
       .select({
         id: clubs.id,
+        departmentId: clubs.departmentId,
       })
       .from(clubs)
       .where(
         and(
           eq(clubs.id, clubId),
-          eq(clubs.departmentId, departmentId),
+          inDepartment(clubs.departmentId, departmentId),
         ),
       )
       .limit(1);
 
     if (!club) {
+      throw new Error("CLUB_NOT_FOUND_OR_FORBIDDEN");
+    }
+
+    // Super Admin has no department filter, so keep student and club together.
+    if (student.departmentId !== club.departmentId) {
       throw new Error("CLUB_NOT_FOUND_OR_FORBIDDEN");
     }
 
@@ -624,11 +651,7 @@ export const studentService = {
           studentId,
           clubId,
         })
-        .where(
-          and(
-            eq(coordinatorAssignments.id, assignmentId),
-          ),
-        )
+        .where(eq(coordinatorAssignments.id, assignmentId))
         .returning();
 
       const assignment = Array.isArray(result)
@@ -692,5 +715,4 @@ export const studentService = {
       return assignment;
     });
   },
-
 };

@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { authClient } from "@/lib/auth-client";
-import { getPrincipalDashboard } from "@/lib/principal";
+import { getPrincipalDashboard } from "@/features/principal/api/principal";
 
 type DashboardResponse = {
   success: boolean;
@@ -24,7 +24,7 @@ export default function PrincipalDashboardPage() {
 
   useEffect(() => {
     if (!checkingSession && !session) {
-      router.replace("/principal-login");
+      router.replace("/login");
     }
   }, [checkingSession, session, router]);
 

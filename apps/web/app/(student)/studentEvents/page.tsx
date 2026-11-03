@@ -2,9 +2,9 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAllEventsQuery } from "@/app/club-coordinator/eventquery";
-import Card from "@/app/ui/card";
-import Button from "@/app/ui/button";
+import { useAllEventsQuery } from "@/features/events/api/event-query";
+import Card from "@/components/ui/card";
+import Button from "@/components/ui/button";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 // import { Link } from "lucide-react";

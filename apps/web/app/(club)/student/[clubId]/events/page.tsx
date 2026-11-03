@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useStudentClubEventsQuery } from "../../../clubQuery";
-import PageHeader from "@/app/ui/pageHeader";
-import Card from "@/app/ui/card";
+import { useStudentClubEventsQuery } from "@/features/clubs/api/club-query";
+import PageHeader from "@/components/ui/page-header";
+import Card from "@/components/ui/card";
 
 export default function ClubEventsPage() {
   const params = useParams<{ clubId: string }>();

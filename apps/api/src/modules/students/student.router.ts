@@ -25,7 +25,7 @@ router.get("/profile", requireAuth, GetStudentProfile);
 router.get(
   "/",
   requireAuth,
-  rbac("student", "read"),
+  rbac("student", "view"),
   GetStudents,
 );
 
@@ -54,7 +54,7 @@ router.post(
 router.get(
   "/coordinators",
   requireAuth,
-  rbac("coordinator", "read"),
+  rbac("coordinator", "view"),
   GetCoordinatorAssignments,
 );
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { getPrincipalDepartments } from "@/lib/principal";
+import { getPrincipalDepartments } from "@/features/principal/api/principal";
 
 type Department = {
   id: number;

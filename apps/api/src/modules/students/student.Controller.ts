@@ -4,10 +4,40 @@ import { eq } from "drizzle-orm";
 
 import asyncHandler from "../../middleware/asyncHandler.js";
 import { studentService } from "./student.service.js";
-import {createStudentProfileSchema,getStudentsSchema,updateStudentProfileSchema,} from "./student.validation.js";
+import {
+  createStudentProfileSchema,
+  getStudentsSchema,
+  updateStudentProfileSchema,
+} from "./student.validation.js";
 import { db } from "../../config/database.js";
 import { departments } from "../../db/schema/others-schema.js";
-import { getActiveHod } from "../hod/hod.service.js";
+import {
+  resolveDepartmentScope,
+  type Access,
+} from "../rbac/rbac.access.js";
+
+// Permission middleware (RBAC) already decided WHAT the caller may do.
+// This decides WHICH department's data they may access:
+//   Super Admin -> every department (departmentId undefined)
+//   HOD / staff -> their own department only
+const getScope = async (res: Response) => {
+  const scope = await resolveDepartmentScope(
+    res.locals.access as Access,
+  );
+
+  if (!scope) {
+    res.status(403).json({
+      success: false,
+      message: "No department is assigned to your account.",
+    });
+    return null;
+  }
+
+  return {
+    departmentId:
+      scope.kind === "department" ? scope.departmentId : undefined,
+  };
+};
 
 // Create a student profile.
 export const CreateStudentProfile = asyncHandler(
@@ -114,6 +144,9 @@ export const GetStudentProfile = asyncHandler(
 // Get students with search, filters, and pagination.
 export const GetStudents = asyncHandler(
   async (req: Request, res: Response) => {
+    const resolved = await getScope(res);
+    if (!resolved) return;
+
     const validation = getStudentsSchema.safeParse(req.query);
 
     if (!validation.success) {
@@ -130,8 +163,20 @@ export const GetStudents = asyncHandler(
     const { departmentId, semester, search, page, limit } =
       validation.data;
 
+    // A HOD can only list students of their own department.
+    if (
+      resolved.departmentId !== undefined &&
+      departmentId !== undefined &&
+      departmentId !== resolved.departmentId
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only view students in your own department.",
+      });
+    }
+
     const result = await studentService.getStudents({
-      departmentId,
+      departmentId: resolved.departmentId ?? departmentId,
       semester,
       search,
       page,
@@ -147,9 +192,12 @@ export const GetStudents = asyncHandler(
   },
 );
 
-// Update a student's profile.
+// Update a student's profile (HOD: own department, Super Admin: any).
 export const UpdateStudentProfile = asyncHandler(
   async (req: Request, res: Response) => {
+    const resolved = await getScope(res);
+    if (!resolved) return;
+
     const studentId = Number(req.params.studentId);
 
     if (!Number.isSafeInteger(studentId) || studentId <= 0) {
@@ -175,6 +223,17 @@ export const UpdateStudentProfile = asyncHandler(
     const data = validation.data;
 
     if (data.departmentId !== undefined) {
+      // A HOD cannot move a student into another department.
+      if (
+        resolved.departmentId !== undefined &&
+        data.departmentId !== resolved.departmentId
+      ) {
+        return res.status(403).json({
+          success: false,
+          message: "You cannot move a student to another department.",
+        });
+      }
+
       const [department] = await db
         .select({ id: departments.id })
         .from(departments)
@@ -192,12 +251,13 @@ export const UpdateStudentProfile = asyncHandler(
     const student = await studentService.updateProfile(
       studentId,
       data,
+      resolved.departmentId,
     );
 
     if (!student) {
       return res.status(404).json({
         success: false,
-        message: "Student not found.",
+        message: "Student not found in your department.",
       });
     }
 
@@ -209,9 +269,12 @@ export const UpdateStudentProfile = asyncHandler(
   },
 );
 
-// Soft-delete a student's profile.
+// Soft-delete a student's profile (HOD: own department, Super Admin: any).
 export const DeleteStudentProfile = asyncHandler(
   async (req: Request, res: Response) => {
+    const resolved = await getScope(res);
+    if (!resolved) return;
+
     const studentId = Number(req.params.studentId);
 
     if (!Number.isSafeInteger(studentId) || studentId <= 0) {
@@ -221,12 +284,16 @@ export const DeleteStudentProfile = asyncHandler(
       });
     }
 
-    const student = await studentService.softDelete(studentId);
+    const student = await studentService.softDelete(
+      studentId,
+      resolved.departmentId,
+    );
 
     if (!student) {
       return res.status(404).json({
         success: false,
-        message: "Student not found or already deleted.",
+        message:
+          "Student not found in your department or already deleted.",
       });
     }
 
@@ -237,7 +304,7 @@ export const DeleteStudentProfile = asyncHandler(
   },
 );
 
-// Create a coordinator assignment for the HOD's department.
+// Create a coordinator assignment (HOD: own department, Super Admin: any).
 export const CreateCoordinator = asyncHandler(
   async (req: Request, res: Response) => {
     const user = res.locals.user;
@@ -249,21 +316,8 @@ export const CreateCoordinator = asyncHandler(
       });
     }
 
-    const hod = await getActiveHod(user.id);
-
-    if (!hod) {
-  return res.status(403).json({
-    success: false,
-    message: "Active HOD account not found.",
-  });
-}
-
-if (hod.departmentId === null) {
-  return res.status(400).json({
-    success: false,
-    message: "Department is not assigned to this HOD.",
-  });
-}
+    const resolved = await getScope(res);
+    if (!resolved) return;
 
     const studentId = Number(req.body.studentId);
     const clubId = Number(req.body.clubId);
@@ -285,7 +339,7 @@ if (hod.departmentId === null) {
         studentId,
         clubId,
         user.id,
-        hod.departmentId,
+        resolved.departmentId,
       );
 
       return res.status(201).json({
@@ -334,30 +388,8 @@ if (hod.departmentId === null) {
 // Get coordinator assignments with search and pagination.
 export const GetCoordinatorAssignments = asyncHandler(
   async (req: Request, res: Response) => {
-    const user = res.locals.user;
-
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized. Please log in.",
-      });
-    }
-
-    const hod = await getActiveHod(user.id);
-
-    if (!hod) {
-  return res.status(403).json({
-    success: false,
-    message: "Active HOD account not found.",
-  });
-}
-
-if (hod.departmentId === null) {
-  return res.status(400).json({
-    success: false,
-    message: "Department is not assigned to this HOD.",
-  });
-}
+    const resolved = await getScope(res);
+    if (!resolved) return;
 
     const page = Number(req.query.page ?? 1);
     const limit = Number(req.query.limit ?? 10);
@@ -380,7 +412,7 @@ if (hod.departmentId === null) {
     }
 
     const result = await studentService.getCoordinatorAssignments(
-      hod.departmentId,
+      resolved.departmentId,
       search,
       page,
       limit,
@@ -395,33 +427,11 @@ if (hod.departmentId === null) {
   },
 );
 
-// Update a coordinator assignment within the HOD's department.
+// Update a coordinator assignment (HOD: own department, Super Admin: any).
 export const UpdateCoordinator = asyncHandler(
   async (req: Request, res: Response) => {
-    const user = res.locals.user;
-
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized. Please log in.",
-      });
-    }
-
-    const hod = await getActiveHod(user.id);
-
-    if (!hod) {
-  return res.status(403).json({
-    success: false,
-    message: "Active HOD account not found.",
-  });
-}
-
-if (hod.departmentId === null) {
-  return res.status(400).json({
-    success: false,
-    message: "Department is not assigned to this HOD.",
-  });
-}
+    const resolved = await getScope(res);
+    if (!resolved) return;
 
     const assignmentId = Number(req.params.assignmentId);
     const studentId = Number(req.body.studentId);
@@ -446,7 +456,7 @@ if (hod.departmentId === null) {
         assignmentId,
         studentId,
         clubId,
-        hod.departmentId,
+        resolved.departmentId,
       );
 
       return res.status(200).json({

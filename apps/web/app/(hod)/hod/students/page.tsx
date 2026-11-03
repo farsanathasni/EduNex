@@ -3,11 +3,10 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import {
-  useHodDepartments,
-  useHodStudents,
-} from "../../hodQuery";
-import type { HodStudent } from "@/lib/hod";
+
+import { useDepartment } from "@/features/departments/api/department-query";
+import type { HodStudent } from "@/features/hod/api/hod";
+import { useHodStudents } from "@/features/hod/api/hod-query";
 
 export default function HODStudentsPage() {
   const router = useRouter();
@@ -38,7 +37,7 @@ export default function HODStudentsPage() {
     isPending: isDepartmentsPending,
     isError: isDepartmentsError,
     refetch: refetchDepartments,
-  } = useHodDepartments(!!session && !isSessionPending);
+  } = useDepartment(!!session && !isSessionPending);
 
   const {
     data: students = [],
@@ -91,7 +90,7 @@ export default function HODStudentsPage() {
 
           <button
             type="button"
-            onClick={() => router.replace("/hod-login")}
+            onClick={() => router.replace("/login")}
             className="mt-4 rounded-lg bg-primary px-4 py-2 text-primary-foreground"
           >
             Go to login

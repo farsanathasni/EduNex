@@ -50,7 +50,7 @@ export default function HodLayout({
 
     try {
       await authClient.signOut();
-      router.replace("/hod-login");
+      router.replace("/login");
       router.refresh();
     } finally {
       setSigningOut(false);

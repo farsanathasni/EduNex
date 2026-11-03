@@ -10,11 +10,11 @@ import { authClient } from "@/lib/auth-client";
 import {
   RegisterFormValues,
   registerSchema,
-} from "@/validation/register-schema";
+} from "@/features/auth/validation/register-schema";
 
-import Button from "@/app/ui/button";
-import Card from "@/app/ui/card";
-import Input from "@/app/ui/input";
+import Button from "@/components/ui/button";
+import Card from "@/components/ui/card";
+import Input from "@/components/ui/input";
 
 export default function RegisterPage() {
   const router = useRouter();

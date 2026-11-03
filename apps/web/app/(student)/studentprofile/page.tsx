@@ -6,17 +6,17 @@ import { useRouter } from "next/navigation";
 import {
   useCreateStudentProfile,
   useStudentProfile,
-} from "../studentQuery";
+} from "@/features/students/api/student-query";
 
 // import { studentProfileSchema } from "@/lib/validations/studentProfileSchema";
 
-import Card from "@/app/ui/card";
-import Button from "@/app/ui/button";
-import Input from "@/app/ui/input";
-import PageHeader from "@/app/ui/pageHeader";
-import { studentProfileSchema } from "@/validation/student-validation";
-import { Department } from "@/lib/department";
-import { useDepartment } from "@/app/(department)/departmentQuery";
+import Card from "@/components/ui/card";
+import Button from "@/components/ui/button";
+import Input from "@/components/ui/input";
+import PageHeader from "@/components/ui/page-header";
+import { studentProfileSchema } from "@/features/students/validation/student-profile-schema";
+import { Department } from "@/features/departments/api/department";
+import { useDepartment } from "@/features/departments/api/department-query";
 import { isPossiblePhoneNumber } from "react-phone-number-input";
 import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";

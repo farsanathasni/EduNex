@@ -4,11 +4,12 @@
 import { useState } from "react";
 import { useForm, type SubmitHandler } from "react-hook-form";
 import {
+  retryUnlessAuthError,
   useCoordinatorAssignments,
   useCreateCoordinator,
   useHodStudents,
-  useClubs
-} from "../../coordinatorsQuery";
+} from "@/features/coordinator/api/coordinator-query";
+import { useClubsQuery } from "@/features/clubs/api/club-query";
 
 import { authClient } from "@/lib/auth-client";
 
@@ -43,7 +44,7 @@ const {
   data: clubs = [],
   isPending: clubsLoading,
   isError: clubsError,
-} = useClubs();
+} = useClubsQuery(retryUnlessAuthError);
 
   const {
     register,

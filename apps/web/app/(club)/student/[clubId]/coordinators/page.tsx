@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useStudentClubCoordinatorsQuery } from "../../../clubQuery";
-import PageHeader from "@/app/ui/pageHeader";
-import Card from "@/app/ui/card";
+import { useStudentClubCoordinatorsQuery } from "@/features/clubs/api/club-query";
+import PageHeader from "@/components/ui/page-header";
+import Card from "@/components/ui/card";
 
 const avatarStyles = [
   "bg-blue-100 text-blue-700",
