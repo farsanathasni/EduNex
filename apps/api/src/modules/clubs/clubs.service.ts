@@ -14,6 +14,7 @@ import {
   announcements,
   clubMemberships,
   clubs,
+  departments,
   events,
 } from "../../db/schema/others-schema.js";
 import { StudentProfile } from "../../db/schema/student-profile.js";
@@ -356,4 +357,182 @@ export const getStudentProfileByUserId = async (userId: string) => {
     .limit(1);
 
   return student ?? null;
+};
+
+
+
+export const getCoordinatorProfileByUserId = async (userId: string) => {
+  const [coordinator] = await db
+    .select({
+      id: StudentProfile.id,
+    })
+    .from(StudentProfile)
+    .where(
+      and(
+        eq(StudentProfile.userId, userId),
+        eq(StudentProfile.isDeleted, false),
+      ),
+    )
+    .limit(1);
+
+  return coordinator ?? null;
+};
+
+
+export const getCoordinatorMembershipRequests = async (
+  coordinatorStudentId: number,
+) => {
+  const requests = await db
+    .select({
+      requestId: clubMemberships.id,
+      clubId: clubs.id,
+      clubName: clubs.name,
+      status: clubMemberships.status,
+      requestedAt: clubMemberships.requestedAt,
+
+      studentId: StudentProfile.id,
+      studentName: StudentProfile.name,
+      admissionNumber: StudentProfile.admissionNumber,
+      email: user.email,
+      phone: StudentProfile.phone,
+      semester: StudentProfile.semester,
+
+      departmentId: departments.id,
+      departmentName: departments.name,
+      departmentCode: departments.code,
+    })
+    .from(clubMemberships)
+    .innerJoin(
+      clubs,
+      eq(clubMemberships.clubId, clubs.id),
+    )
+    .innerJoin(
+      coordinatorAssignments,
+      and(
+        eq(coordinatorAssignments.clubId, clubMemberships.clubId),
+        eq(coordinatorAssignments.studentId, coordinatorStudentId),
+      ),
+    )
+    .innerJoin(
+      StudentProfile,
+      eq(clubMemberships.studentId, StudentProfile.id),
+    )
+    .innerJoin(
+      user,
+      eq(StudentProfile.userId, user.id),
+    )
+    .innerJoin(
+      departments,
+      eq(StudentProfile.departmentId, departments.id),
+    )
+    .where(eq(clubMemberships.status, "pending"))
+    .orderBy(desc(clubMemberships.requestedAt));
+
+  return requests;
+};
+
+
+
+export const reviewClubMembershipRequest = async (
+  coordinatorStudentId: number,
+  requestId: number,
+  decision: "approved" | "rejected",
+) => {
+  // Check whether this request belongs to a club
+  // assigned to the logged-in coordinator.
+  const [request] = await db
+    .select({
+      id: clubMemberships.id,
+      status: clubMemberships.status,
+    })
+    .from(clubMemberships)
+    .innerJoin(
+      coordinatorAssignments,
+      and(
+        eq(coordinatorAssignments.clubId, clubMemberships.clubId),
+        eq(coordinatorAssignments.studentId, coordinatorStudentId),
+      ),
+    )
+    .where(eq(clubMemberships.id, requestId))
+    .limit(1);
+
+  if (!request) {
+    throw new Error("MEMBERSHIP_REQUEST_NOT_FOUND");
+  }
+
+  if (request.status !== "pending") {
+    throw new Error("MEMBERSHIP_REQUEST_ALREADY_REVIEWED");
+  }
+
+  const [updatedRequest] = await db
+    .update(clubMemberships)
+    .set({
+      status: decision,
+      reviewedAt: new Date().toISOString(),
+    })
+    .where(
+      and(
+        eq(clubMemberships.id, requestId),
+        eq(clubMemberships.status, "pending"),
+      ),
+    )
+    .returning();
+
+  if (!updatedRequest) {
+    throw new Error("MEMBERSHIP_REQUEST_ALREADY_REVIEWED");
+  }
+
+  return updatedRequest;
+};
+
+
+
+export const getCoordinatorClubMembers = async (
+  coordinatorStudentId: number,
+) => {
+  const members = await db
+    .select({
+      clubId: clubs.id,
+      clubName: clubs.name,
+      studentId: StudentProfile.id,
+      studentName: StudentProfile.name,
+      admissionNumber: StudentProfile.admissionNumber,
+      email: user.email,
+      phone: StudentProfile.phone,
+      semester: StudentProfile.semester,
+      departmentName: departments.name,
+      departmentCode: departments.code,
+      status: clubMemberships.status,
+      joinedAt: clubMemberships.reviewedAt,
+    })
+    .from(clubMemberships)
+    .innerJoin(
+      clubs,
+      eq(clubMemberships.clubId, clubs.id),
+    )
+    .innerJoin(
+      coordinatorAssignments,
+      and(
+        eq(coordinatorAssignments.clubId, clubMemberships.clubId),
+        eq(coordinatorAssignments.studentId, coordinatorStudentId),
+      ),
+    )
+    .innerJoin(
+      StudentProfile,
+      eq(clubMemberships.studentId, StudentProfile.id),
+    )
+    .innerJoin(user, eq(StudentProfile.userId, user.id))
+    .innerJoin(
+      departments,
+      eq(StudentProfile.departmentId, departments.id),
+    )
+    .where(
+      and(
+        inArray(clubMemberships.status, ["approved", "rejected"]),
+        eq(StudentProfile.isDeleted, false),
+      ),
+    )
+    .orderBy(desc(clubMemberships.reviewedAt));
+
+  return members;
 };

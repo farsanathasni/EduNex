@@ -25,3 +25,7 @@ export const clubListQuerySchema = z.object({
 
 export type CreateClubInput = z.infer<typeof createClubSchema>;
 export type ClubListQuery = z.infer<typeof clubListQuerySchema>;
+
+export const reviewMembershipRequestSchema = z.object({
+  decision: z.enum(["approved", "rejected"]),
+});
