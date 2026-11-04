@@ -137,3 +137,42 @@ export const rbacAny = (
     });
   };
 };
+
+
+// Checks membership permission based on the requested decision.
+export const rbacMembershipDecision: RequestHandler = (
+  req,
+  res,
+  next,
+) => {
+  const decision = req.body?.decision;
+
+  let action: string;
+
+  if (decision === "approved") {
+    action = "approve";
+  } else if (decision === "rejected") {
+    action = "reject";
+  } else {
+    res.status(400).json({
+      message: "Invalid membership decision",
+    });
+    return;
+  }
+
+  attachAccess(req, res, (error?: unknown) => {
+    if (error) return next(error);
+    if (res.headersSent) return;
+
+    const access = res.locals.access as Access;
+
+    if (!can(access, "membership", action)) {
+      res.status(403).json({
+        message: "You do not have permission to perform this action",
+      });
+      return;
+    }
+
+    next();
+  });
+};

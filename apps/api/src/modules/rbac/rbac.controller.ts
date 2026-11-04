@@ -27,7 +27,7 @@ export const GetMe = asyncHandler(async (_req: Request, res: Response) => {
 
   const [[account], [studentProfile], [staffProfile]] = await Promise.all([
     db
-      .select({ id: user.id, name: user.name, email: user.email, image: user.image })
+      .select({ id: user.id, name: user.name, email: user.email, image: user.image,role: user.role, })
       .from(user)
       .where(eq(user.id, userId))
       .limit(1),
