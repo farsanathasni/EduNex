@@ -2,7 +2,7 @@
 import { Router } from "express";
 
 import { requireAuth } from "../../middleware/auth.middleware.js";
-import { rbac } from "../../middleware/rbac.middleware.js";
+import { rbac, rbacMembershipDecision } from "../../middleware/rbac.middleware.js";
 
 import {
   CreateClub,
@@ -88,6 +88,7 @@ clubsRouter.post(
 clubsRouter.get(
   "/coordinator/membership-requests",
   requireAuth,
+  rbac("membership","view"),
   GetCoordinatorMembershipRequests,
 );
 
@@ -95,6 +96,7 @@ clubsRouter.get(
 clubsRouter.patch(
   "/coordinator/membership-requests/:requestId",
   requireAuth,
+  rbacMembershipDecision,
   ReviewClubMembershipRequest,
 );
 
@@ -102,6 +104,7 @@ clubsRouter.patch(
 clubsRouter.get(
   "/coordinator/members",
   requireAuth,
+  rbac("member", "view"),
   GetCoordinatorClubMembers,
 );
 

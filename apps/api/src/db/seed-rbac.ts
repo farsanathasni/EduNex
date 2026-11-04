@@ -274,6 +274,8 @@ const permissionCatalog: Record<string, string[]> = {
   club: CRUD,
   coordinator: CRUD,
   event: [...CRUD, "approve"],
+  membership: ["view", "approve", "reject"],
+  member: ["view"],
   certificate: CRUD,
 };
 
@@ -329,6 +331,10 @@ const rolePermissionMap: Record<string, string[]> = {
     "event:view",
     "event:create",
     "event:update",
+    "membership:view",
+    "membership:approve",
+    "membership:reject",
+    "member:view",
   ],
 };
 
