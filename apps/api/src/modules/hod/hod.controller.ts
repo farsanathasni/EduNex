@@ -108,6 +108,9 @@ export const GetStudentsByDepartment = asyncHandler(
         ? undefined
         : Number(req.query.departmentId);
 
+    const access = res.locals.access as Access;
+    const isHod = access.roles.some((role) => role.slug === "hod");
+
     if (
       requestedDepartmentId !== undefined &&
       (!Number.isSafeInteger(requestedDepartmentId) ||
@@ -119,9 +122,11 @@ export const GetStudentsByDepartment = asyncHandler(
       });
     }
 
-    // A HOD can only view students in their own department.
-    // A Super Admin may pick any department, or none for all of them.
+    // HODs and Super Admins may view all departments, with an optional
+    // department filter. Other staff remain scoped to their department.
     if (
+      !access.isSuperAdmin &&
+      !isHod &&
       resolved.departmentId !== undefined &&
       requestedDepartmentId !== undefined &&
       requestedDepartmentId !== resolved.departmentId
@@ -155,7 +160,9 @@ export const GetStudentsByDepartment = asyncHandler(
         : "";
 
     const result = await getHodStudents(
-      resolved.departmentId ?? requestedDepartmentId,
+      isHod || access.isSuperAdmin
+        ? requestedDepartmentId
+        : resolved.departmentId,
       semester,
       search,
       pagination.page,

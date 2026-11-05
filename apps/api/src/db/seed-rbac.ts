@@ -16,12 +16,6 @@
 //     isSystem: true,
 //   },
 //   {
-//     name: "Principal",
-//     slug: "principal",
-//     description: "Legacy role. Principal accounts use the Super Admin role.",
-//     isSystem: true,
-//   },
-//   {
 //     name: "HOD",
 //     slug: "hod",
 //     description: "Manage department students, clubs, coordinators, and events.",
@@ -66,10 +60,6 @@
 //   "super-admin": resources.flatMap((resource) =>
 //     actions.map((action) => `${resource}:${action}`),
 //   ),
-
-//   // The Principal account will use the Super Admin RBAC role.
-//   // This legacy role receives no permissions.
-//   principal: [],
 
 // hod: [
 //   "student:view",
@@ -230,12 +220,6 @@ const roleData = [
     isSystem: true,
   },
   {
-    name: "Principal",
-    slug: "principal",
-    description: "Legacy role. Principal accounts use the Super Admin role.",
-    isSystem: true,
-  },
-  {
     name: "HOD",
     slug: "hod",
     description: "Manage department students, clubs, coordinators, and events.",
@@ -273,6 +257,7 @@ const permissionCatalog: Record<string, string[]> = {
   department: CRUD,
   club: CRUD,
   coordinator: CRUD,
+  attendance: ["view", "mark"],
   event: [...CRUD, "approve"],
   membership: ["view", "approve", "reject"],
   member: ["view"],
@@ -285,12 +270,9 @@ const rolePermissionMap: Record<string, string[]> = {
     ([resource, actions]) => actions.map((action) => `${resource}:${action}`),
   ),
 
-  // The Principal account will use the Super Admin RBAC role.
-  // This legacy role receives no permissions.
-  principal: [],
-
   hod: [
     "student:view",
+    "student:update",
     "staff:view",
     "department:view",
     "club:view",
@@ -326,8 +308,11 @@ const rolePermissionMap: Record<string, string[]> = {
   ],
 
   "club-coordinator": [
+    "coordinator:view",
     "club:view",
     "club:update",
+    "attendance:view",
+    "attendance:mark",
     "event:view",
     "event:create",
     "event:update",

@@ -5,34 +5,9 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
+import { RouteGuard } from "@/features/auth/components/route-guard";
+import { useAccess } from "@/lib/navigation/access";
 
-const menuItems = [
-  {
-    label: "Overview",
-    href: "/hod/dashboard",
-    icon: "⌂",
-  },
-  {
-    label: "Student Management",
-    href: "/hod/students",
-    icon: "♧",
-  },
-  {
-    label: "Coordinator Management",
-    href: "/hod/coordinators",
-    icon: "♙",
-  },
-  {
-    label: "Club Management",
-    href: "/hod/clubs",
-    icon: "▦",
-  },
-  {
-    label: "Event Approvals",
-    href: "/hod/approvals",
-    icon: "✓",
-  },
-];
 
 export default function HodLayout({
   children,
@@ -41,9 +16,29 @@ export default function HodLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { navItems } = useAccess();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const menuItems = navItems
+    .filter((item) => item.href.startsWith("/hod/"))
+    .map((item) => ({
+      ...item,
+      label:
+        item.href === "/hod/students"
+          ? "Student Management"
+          : item.href === "/hod/coordinators"
+            ? "Coordinator Management"
+            : item.href === "/hod/clubs"
+              ? "Club Management"
+              : item.label,
+      icon:
+        item.href === "/hod/coordinators"
+          ? "\u2659"
+          : item.href === "/hod/clubs"
+            ? "\u25a6"
+            : item.icon,
+    }));
 
   const handleSignOut = async () => {
     setSigningOut(true);
@@ -58,6 +53,7 @@ export default function HodLayout({
   };
 
   return (
+    <RouteGuard roles={["hod"]}>
     <div className="min-h-screen bg-background text-text md:flex">
       {mobileMenuOpen && (
         <button
@@ -151,5 +147,6 @@ export default function HodLayout({
         </main>
       </div>
     </div>
+    </RouteGuard>
   );
 }

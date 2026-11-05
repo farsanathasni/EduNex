@@ -163,8 +163,14 @@ export const GetStudents = asyncHandler(
     const { departmentId, semester, search, page, limit } =
       validation.data;
 
-    // A HOD can only list students of their own department.
+    const access = res.locals.access as Access;
+    const isHod = access.roles.some((role) => role.slug === "hod");
+
+    // HODs can view across departments and retain an optional department
+    // filter. Other staff remain scoped to their own department.
     if (
+      !access.isSuperAdmin &&
+      !isHod &&
       resolved.departmentId !== undefined &&
       departmentId !== undefined &&
       departmentId !== resolved.departmentId
@@ -176,7 +182,8 @@ export const GetStudents = asyncHandler(
     }
 
     const result = await studentService.getStudents({
-      departmentId: resolved.departmentId ?? departmentId,
+      departmentId:
+        isHod || access.isSuperAdmin ? departmentId : resolved.departmentId,
       semester,
       search,
       page,

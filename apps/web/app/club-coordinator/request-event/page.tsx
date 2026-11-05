@@ -3,8 +3,11 @@
 
 import { useState } from "react";
 import CoordinatorLayout from "@/features/coordinator/components/coordinator-layout";
+import { useAccess } from "@/lib/navigation/access";
 export default function RequestEventPage() {
   const [submitted, setSubmitted] = useState(false);
+  const { me } = useAccess();
+  const coordinatedClubs = me?.coordinatedClubs ?? [];
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -23,6 +26,12 @@ export default function RequestEventPage() {
         </p>
       </div>
 
+      {coordinatedClubs.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
+          <h2 className="font-semibold text-slate-900">No clubs assigned</h2>
+          <p className="mt-2 text-sm text-slate-500">An assigned club is required before you can prepare an event request.</p>
+        </div>
+      ) : <>
       {submitted && (
         <div role="status" className="mb-6 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800">
           <span className="text-xl">✓</span>
@@ -46,6 +55,13 @@ export default function RequestEventPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <label htmlFor="clubId" className="mb-2 block text-sm font-medium text-slate-700">Assigned club *</label>
+              <select id="clubId" name="clubId" required defaultValue={coordinatedClubs.length === 1 ? String(coordinatedClubs[0].id) : ""} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-indigo-500">
+                {coordinatedClubs.length > 1 && <option value="" disabled>Select an assigned club</option>}
+                {coordinatedClubs.map((club) => <option key={club.id} value={club.id}>{club.name}</option>)}
+              </select>
+            </div>
             <div className="sm:col-span-2">
               <label htmlFor="eventName" className="mb-2 block text-sm font-medium text-slate-700">
                 Event title *
@@ -141,6 +157,7 @@ export default function RequestEventPage() {
           </div>
         </aside>
       </div>
+      </>}
     </CoordinatorLayout>
   );
 }

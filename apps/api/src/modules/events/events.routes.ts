@@ -2,6 +2,7 @@
 import { Router } from "express";
 
 import { requireAuth } from "../../middleware/auth.middleware.js";
+import { rbac } from "../../middleware/rbac.middleware.js";
 import {
   getAllEventsController,
   getMyEventsController,
@@ -9,7 +10,7 @@ import {
 
 const eventsRouter = Router();
 
-eventsRouter.get("/", requireAuth, getAllEventsController);
-eventsRouter.get("/my", requireAuth, getMyEventsController);
+eventsRouter.get("/", requireAuth, rbac("event", "view"), getAllEventsController);
+eventsRouter.get("/my", requireAuth, rbac("event", "view"), getMyEventsController);
 
 export default eventsRouter;

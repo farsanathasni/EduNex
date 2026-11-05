@@ -2,7 +2,6 @@
 import { createAccessControl } from "better-auth/plugins/access";
 import {
   defaultStatements,
-  adminAc,
 } from "better-auth/plugins/admin/access";
 
 const statement = {
@@ -11,10 +10,8 @@ const statement = {
 
 export const ac = createAccessControl(statement);
 
-// HOD can manage user accounts.
-export const hod = ac.newRole({
-  ...adminAc.statements,
-});
+// HOD account-management access is handled by EduNex RBAC, not Better Auth.
+export const hod = ac.newRole({});
 
 // Teachers cannot manage other users.
 export const teacher = ac.newRole({});

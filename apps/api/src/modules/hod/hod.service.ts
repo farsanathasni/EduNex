@@ -1,4 +1,4 @@
-import { eq, and, count, ilike, or } from "drizzle-orm";
+import { eq, and, count, ilike, or, inArray } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 
 import { db } from "../../config/database.js";
@@ -342,6 +342,7 @@ export const getPendingEvents = async (
 
 // Approve or reject a pending event.
 // departmentId undefined = Super Admin (any department).
+
 export const reviewEvent = async (
   eventId: number,
   reviewerId: string,
@@ -351,31 +352,6 @@ export const reviewEvent = async (
   reviewerRole: "hod" | "admin" = "hod",
 ) => {
   return db.transaction(async (tx) => {
-    const [event] = await tx
-      .select({
-        id: events.id,
-      })
-      .from(events)
-      .innerJoin(
-        clubs,
-        eq(events.clubId, clubs.id),
-      )
-      .where(
-        and(
-          eq(events.id, eventId),
-          eq(events.status, "pending"),
-          departmentId !== undefined
-            ? eq(clubs.departmentId, departmentId)
-            : undefined,
-        ),
-      )
-      .limit(1);
-
-    if (!event) {
-      throw new Error("EVENT_NOT_PENDING_OR_FORBIDDEN");
-    }
-
-    // Update only if the event is still pending.
     const updatedEvents = await tx
       .update(events)
       .set({
@@ -386,16 +362,22 @@ export const reviewEvent = async (
         and(
           eq(events.id, eventId),
           eq(events.status, "pending"),
+          departmentId !== undefined
+            ? inArray(
+                events.clubId,
+                tx
+                  .select({ id: clubs.id })
+                  .from(clubs)
+                  .where(eq(clubs.departmentId, departmentId)),
+              )
+            : undefined,
         ),
       )
       .returning({
         id: events.id,
       });
 
-    if (
-      !Array.isArray(updatedEvents) ||
-      updatedEvents.length === 0
-    ) {
+    if (updatedEvents.length === 0) {
       throw new Error("EVENT_NOT_PENDING_OR_FORBIDDEN");
     }
 
@@ -414,3 +396,4 @@ export const reviewEvent = async (
     };
   });
 };
+

@@ -7,55 +7,29 @@ import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import Button from "@/components/ui/button";
-import { useCoordinatorStatusQuery } from "@/features/coordinator/api/coordinator-query";
+import { useAccess } from "@/lib/navigation/access";
+import {
+  useAllEventsQuery,
+  useMyEventsQuery,
+} from "@/features/events/api/event-query";
+import {
+  useMyStudentMembershipRequestsQuery,
+  useStudentClubsQuery,
+} from "@/features/clubs/api/club-query";
 
-type DashboardMode = "student" | "coordinator";
-
-const studentStats = [
-  { title: "Study Materials", value: "24", description: "Resources to explore", icon: "📚", href: "/student/resources", color: "bg-blue-50 text-blue-700" },
-  { title: "Upcoming Events", value: "03", description: "Events to look forward to", icon: "🎉", href: "/student/events", color: "bg-orange-50 text-orange-600" },
-  { title: "My Clubs", value: "02", description: "Your campus communities", icon: "🤝", href: "/student/clubs", color: "bg-green-50 text-green-700" },
-  { title: "My Reports", value: "01", description: "Track your reported issues", icon: "📝", href: "/student/issues", color: "bg-purple-50 text-purple-700" },
-];
-
-const studentEvents = [
-  { id: 1, name: "Tech Fest 2026", category: "Technology", date: "Oct 30", time: "10:00 AM", venue: "Main Auditorium", description: "Explore innovation, technology exhibitions, coding challenges and exciting workshops.", icon: "💻" },
-  { id: 2, name: "Arts & Culture Day", category: "Cultural", date: "Nov 02", time: "11:00 AM", venue: "College Ground", description: "Celebrate campus creativity with performances, music and cultural activities.", icon: "🎭" },
-  { id: 3, name: "Career Connect", category: "Career", date: "Nov 05", time: "09:30 AM", venue: "Seminar Hall", description: "Meet professionals, discover career opportunities and improve your interview skills.", icon: "🚀" },
-];
-
-const announcements = [
-  { id: 1, title: "Library Resource Update", message: "New learning materials have been added to the student resource library.", date: "Today", type: "Academic", icon: "📚", color: "bg-blue-50 text-blue-700" },
-  { id: 2, title: "Club Memberships", message: "Check your membership requests to see the latest approval status.", date: "Yesterday", type: "Clubs", icon: "🤝", color: "bg-green-50 text-green-700" },
-  { id: 3, title: "Upcoming Campus Events", message: "Registration is open for upcoming student activities and events.", date: "Oct 26", type: "Events", icon: "🎉", color: "bg-orange-50 text-orange-700" },
-];
-
-const clubs = [
-  { id: 1, name: "Tech Innovators", category: "Technology & Innovation", members: "45+ members", icon: "💻", color: "from-blue-600 to-indigo-600" },
-  { id: 2, name: "Creative Minds", category: "Arts & Culture", members: "32+ members", icon: "🎨", color: "from-orange-500 to-pink-500" },
-  { id: 3, name: "Green Campus", category: "Environment & Community", members: "28+ members", icon: "🌱", color: "from-green-500 to-emerald-600" },
+const eventIcons = ["🎓", "🎉", "💡", "🏆"];
+const clubGradients = [
+  "from-blue-600 to-indigo-600",
+  "from-orange-500 to-pink-500",
+  "from-green-500 to-emerald-600",
 ];
 
 const studentQuickActions = [
-  { title: "Explore Clubs", description: "Find your community", icon: "🤝", href: "/student/clubs", color: "bg-green-50" },
-  { title: "Browse Events", description: "Discover campus activities", icon: "🎉", href: "/student/events", color: "bg-orange-50" },
-  { title: "Study Resources", description: "Learn something new", icon: "📖", href: "/student/resources", color: "bg-blue-50" },
-  { title: "Report an Issue", description: "Let us know what happened", icon: "💬", href: "/student/issues", color: "bg-purple-50" },
+  { title: "Explore Clubs", description: "Find your campus community", icon: "🤝", href: "/student", color: "bg-green-50" },
+  { title: "Browse Events", description: "Discover campus activities", icon: "🎉", href: "/studentEvents", color: "bg-orange-50" },
+  { title: "My Memberships", description: "Track your club applications", icon: "📋", href: "/student/my-memberships", color: "bg-blue-50" },
+  { title: "My Profile", description: "View your student profile", icon: "👤", href: "/studentprofile", color: "bg-purple-50" },
 ];
-
-const coordinatorStats = [
-  { title: "Total Events", value: "24", icon: "📅", color: "bg-primary-subtle text-primary", href: "/club-coordinator/events" },
-  { title: "Upcoming Events", value: "08", icon: "🎯", color: "bg-secondary text-secondary-foreground", href: "/club-coordinator/events" },
-  { title: "Pending Requests", value: "03", icon: "⏳", color: "bg-accent-subtle text-accent", href: "/club-coordinator/request-event" },
-  { title: "Events Completed", value: "16", icon: "✅", color: "bg-secondary text-text-muted", href: "/club-coordinator/events" },
-];
-
-const coordinatorEvents = [
-  { title: "TechFest 2026", date: "15", month: "NOV", category: "Technical", status: "Approved", color: "bg-primary-subtle text-primary" },
-  { title: "Cultural Fusion", date: "20", month: "NOV", category: "Cultural", status: "Pending", color: "bg-accent-subtle text-accent" },
-  { title: "Campus Football Cup", date: "25", month: "NOV", category: "Sports", status: "Approved", color: "bg-secondary text-secondary-foreground" },
-];
-
 const activities = [
   { title: "Event proposal submitted", description: "Your event proposal was submitted for approval.", date: "2 hours ago", icon: "📝" },
   { title: "Student membership updated", description: "A membership request was updated.", date: "Yesterday", icon: "👥" },
@@ -67,32 +41,23 @@ const coordinatorQuickActions = [
   { title: "Request an Event", description: "Submit a new event proposal", icon: "📝", href: "/club-coordinator/request-event" },
 ];
 
-const studentMenu = [
-  { label: "Overview", href: "/student/dashboard", icon: "⌂" },
-  { label: "My Profile", href: "/student/profile", icon: "👤" },
-  { label: "Clubs", href: "/student/clubs", icon: "🤝" },
-  { label: "Events", href: "/student/events", icon: "📅" },
-  { label: "Study Resources", href: "/student/resources", icon: "📚" },
-  { label: "Study Groups", href: "/student/study-groups", icon: "👥" },
-  { label: "Lost & Found", href: "/student/lost-found", icon: "🔎" },
-  { label: "Report an Issue", href: "/student/issues", icon: "📝" },
-];
-
-const coordinatorMenu = [
-  { label: "Dashboard", href: "/club-coordinator/dashboard", icon: "▦" },
-  { label: "My Events", href: "/club-coordinator/events", icon: "📅" },
-  { label: "Request Event", href: "/club-coordinator/request-event", icon: "📝" },
-];
-
 export default function StudentDashboard() {
   const pathname = usePathname();
   const router = useRouter();
+  const { getNavItems, mode, setMode, canSwitchMode, me } = useAccess();
+  const coordinatedClubs = me?.coordinatedClubs ?? [];
+  const assignedClubIds = new Set(coordinatedClubs.map((club) => club.id));
   const { data: session, isPending } = authClient.useSession();
-  const { data: coordinatorStatus, isPending: coordinatorStatusPending } = useCoordinatorStatusQuery();
+  const isStudentMode = mode === "student";
+  const eventsQuery = useAllEventsQuery(isStudentMode);
+  const coordinatorEventsQuery = useMyEventsQuery(
+    !isStudentMode && coordinatedClubs.length > 0,
+  );
+  const clubsQuery = useStudentClubsQuery();
+  const membershipsQuery = useMyStudentMembershipRequestsQuery(isStudentMode);
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const [dashboardMode, setDashboardMode] = useState<DashboardMode>("student");
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const user = session?.user;
@@ -100,12 +65,98 @@ export default function StudentDashboard() {
   const firstName = displayName.split(/\s+/)[0] || "Student";
   const coordinatorName = displayName || "Coordinator";
   const coordinatorInitial = coordinatorName.charAt(0).toUpperCase();
-  const isCoordinator = coordinatorStatus?.isCoordinator === true;
-  const menuItems = dashboardMode === "student" ? studentMenu : coordinatorMenu;
+  const menuItems = getNavItems(mode).filter(
+    (item) =>
+      item.mode === mode ||
+      (mode === "coordinator" && item.href === "/dashboard"),
+  ).map((item) => ({
+    ...item,
+    label:
+      mode === "coordinator" && item.href === "/dashboard"
+        ? "Dashboard"
+        : mode === "coordinator" &&
+      item.href === "/club-coordinator/events"
+        ? "My Events"
+        : mode === "coordinator" &&
+            item.href === "/club-coordinator/request-event"
+          ? "Request Event"
+          : item.label,
+    icon:
+      item.href === "/dashboard"
+        ? "\u25a6"
+        : item.href === "/studentDashboard"
+        ? "\u2302"
+        : item.href === "/studentprofile"
+          ? "\u{1f464}"
+          : item.href === "/student"
+            ? "\u{1f91d}"
+            : item.href === "/studentEvents" ||
+                item.href === "/club-coordinator/events"
+              ? "\u{1f4c5}"
+              : item.href === "/student/my-memberships" ||
+                  item.href === "/club-coordinator/membership-requests" ||
+                  item.href === "/club-coordinator/members"
+                ? "\u{1f465}"
+                : item.href === "/club-coordinator/request-event"
+                  ? "\u{1f4dd}"
+                  : item.icon,
+  }));
 
-  const filteredEvents = studentEvents.filter((event) =>
-    `${event.name} ${event.category} ${event.venue}`.toLowerCase().includes(search.toLowerCase())
+  const events = eventsQuery.data ?? [];
+  const upcomingEvents = events
+    .filter((event) => {
+      const startTime = new Date(event.startTime).getTime();
+      return Number.isFinite(startTime) && startTime >= Date.now();
+    })
+    .sort(
+      (left, right) =>
+        new Date(left.startTime).getTime() - new Date(right.startTime).getTime(),
+    );
+  const filteredEvents = upcomingEvents.filter((event) =>
+    `${event.title} ${event.clubName} ${event.location ?? ""} ${event.description ?? ""}`
+      .toLowerCase()
+      .includes(search.toLowerCase()),
   );
+  const clubs = clubsQuery.data ?? [];
+  const assignedEvents = (coordinatorEventsQuery.data ?? [])
+    .filter((event) => assignedClubIds.has(event.clubId))
+    .sort(
+      (left, right) =>
+        new Date(left.startTime).getTime() - new Date(right.startTime).getTime(),
+    );
+  const coordinatorUpcomingEvents = assignedEvents.filter(
+    (event) => new Date(event.startTime).getTime() >= Date.now(),
+  );
+  const coordinatorPastEvents = assignedEvents.filter(
+    (event) => new Date(event.startTime).getTime() < Date.now(),
+  );
+  const coordinatorCount = (value: number) =>
+    coordinatedClubs.length === 0
+      ? "0"
+      : coordinatorEventsQuery.isPending
+      ? "…"
+      : coordinatorEventsQuery.isError
+        ? "—"
+        : String(value);
+  const coordinatorStats = [
+    { title: "Published Assigned Events", value: coordinatorCount(assignedEvents.length), icon: "📅", color: "bg-primary-subtle text-primary", href: "/club-coordinator/events" },
+    { title: "Upcoming Published Events", value: coordinatorCount(coordinatorUpcomingEvents.length), icon: "🎯", color: "bg-secondary text-secondary-foreground", href: "/club-coordinator/events" },
+    { title: "Assigned Clubs", value: String(coordinatedClubs.length), icon: "🏷️", color: "bg-accent-subtle text-accent", href: "/club-coordinator/profile" },
+    { title: "Past Events", value: coordinatorCount(coordinatorPastEvents.length), icon: "✅", color: "bg-secondary text-text-muted", href: "/club-coordinator/events" },
+  ];
+  const memberships = membershipsQuery.data ?? [];
+  const approvedMemberships = memberships.filter(
+    (membership) => membership.status.toLowerCase() === "approved",
+  );
+  const pendingMemberships = memberships.filter(
+    (membership) => membership.status.toLowerCase() === "pending",
+  );
+  const studentStats = [
+    { title: "Upcoming Events", value: eventsQuery.isPending ? "…" : eventsQuery.isError ? "—" : String(upcomingEvents.length), description: "Events scheduled for campus", icon: "🎉", href: "/studentEvents", color: "bg-orange-50 text-orange-600" },
+    { title: "Available Clubs", value: clubsQuery.isPending ? "…" : clubsQuery.isError ? "—" : String(clubs.length), description: "Campus communities to explore", icon: "🤝", href: "/student", color: "bg-green-50 text-green-700" },
+    { title: "My Clubs", value: membershipsQuery.isPending ? "…" : membershipsQuery.isError ? "—" : String(approvedMemberships.length), description: "Approved memberships", icon: "🏷️", href: "/student/my-memberships", color: "bg-blue-50 text-blue-700" },
+    { title: "Pending Requests", value: membershipsQuery.isPending ? "…" : membershipsQuery.isError ? "—" : String(pendingMemberships.length), description: "Memberships awaiting review", icon: "📋", href: "/student/my-memberships", color: "bg-purple-50 text-purple-700" },
+  ];
 
   async function handleLogout() {
     setIsSigningOut(true);
@@ -120,7 +171,7 @@ export default function StudentDashboard() {
     }
   }
 
-  if (isPending || coordinatorStatusPending) {
+  if (isPending) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center">
@@ -139,7 +190,7 @@ export default function StudentDashboard() {
 
       <aside className={`fixed inset-y-0 left-0 z-50 flex w-[270px] flex-col border-r border-border bg-surface transition-transform duration-300 lg:translate-x-0 ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex h-[82px] items-center justify-between border-b border-border px-6">
-          <Link href={dashboardMode === "student" ? "/student/dashboard" : "/student/dashboard"} onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3">
+          <Link href="/studentDashboard" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-xl font-bold text-white shadow-md">E</div>
             <div>
               <p className="text-xl font-extrabold tracking-tight text-primary">EduNex</p>
@@ -151,15 +202,13 @@ export default function StudentDashboard() {
 
         <div className="px-5 pt-7">
           <p className="mb-3 px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-subtle">
-            {dashboardMode === "student" ? "Student workspace" : "Coordinator workspace"}
+            {mode === "student" ? "Student workspace" : "Coordinator workspace"}
           </p>
           <nav className="space-y-1">
             {menuItems.map((item) => {
-              const active = dashboardMode === "coordinator"
-                ? item.href === "/club-coordinator/dashboard" && pathname === "/student/dashboard"
-                : pathname === item.href;
+              const active = pathname === item.href;
               return (
-                <Link key={item.href} href={item.href === "/club-coordinator/dashboard" ? "/student/dashboard" : item.href} onClick={() => setMobileMenuOpen(false)}
+                <Link key={item.href} href={item.href} onClick={() => setMobileMenuOpen(false)}
                   className={`group flex items-center gap-3 rounded-xl px-3.5 py-3 text-sm font-medium transition ${active ? "bg-primary text-white shadow-md shadow-primary/15" : "text-muted hover:bg-secondary hover:text-primary"}`}>
                   <span className="flex h-7 w-7 items-center justify-center text-lg">{item.icon}</span>
                   <span>{item.label}</span>
@@ -171,12 +220,12 @@ export default function StudentDashboard() {
         </div>
 
         <div className="mt-auto p-5">
-          {dashboardMode === "student" ? (
+          {mode === "student" ? (
             <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-primary to-[#416fc2] p-5 text-white">
               <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 text-xl">✨</div>
               <h3 className="font-bold">Make campus life count!</h3>
               <p className="mt-2 text-xs leading-5 text-white/80">Join a club, attend an event, and discover new opportunities.</p>
-              <Link href="/student/clubs" className="mt-4 flex items-center justify-center rounded-lg bg-white px-3 py-2.5 text-sm font-bold text-primary transition hover:bg-blue-50">Find your community →</Link>
+              <Link href="/student" className="mt-4 flex items-center justify-center rounded-lg bg-white px-3 py-2.5 text-sm font-bold text-primary transition hover:bg-blue-50">Find your community →</Link>
             </div>
           ) : (
             <div className="rounded-2xl bg-inkwell p-4 text-text-inverse">
@@ -187,10 +236,10 @@ export default function StudentDashboard() {
           )}
 
           <div className="mt-5 flex items-center gap-3 px-1">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-subtle font-bold text-primary">{(dashboardMode === "student" ? firstName : coordinatorInitial).charAt(0).toUpperCase()}</div>
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-subtle font-bold text-primary">{(mode === "student" ? firstName : coordinatorInitial).charAt(0).toUpperCase()}</div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-bold">{dashboardMode === "student" ? displayName || "Student" : coordinatorName}</p>
-              <p className="truncate text-xs text-muted">{dashboardMode === "student" ? "Student account" : "Club Coordinator"}</p>
+              <p className="truncate text-sm font-bold">{mode === "student" ? displayName || "Student" : coordinatorName}</p>
+              <p className="truncate text-xs text-muted">{mode === "student" ? "Student account" : "Club Coordinator"}</p>
             </div>
             <Button type="button" onClick={handleLogout} disabled={isSigningOut} title="Log out" aria-label="Log out" className="rounded-lg p-2 ">{isSigningOut ? "…" : "↗"}</Button>
           </div>
@@ -203,23 +252,23 @@ export default function StudentDashboard() {
             <div className="flex items-center gap-3">
               <button type="button" onClick={() => setMobileMenuOpen(true)} aria-label="Open navigation" className="rounded-xl border border-border p-2.5 text-primary hover:bg-secondary lg:hidden">☰</button>
               <div>
-                <p className="text-sm font-bold text-text">{dashboardMode === "student" ? "Student Dashboard" : "Club Coordinator Dashboard"}</p>
-                <p className="hidden text-xs text-muted sm:block">{dashboardMode === "student" ? "Your personal campus space" : "Manage your club activities"}</p>
+                <p className="text-sm font-bold text-text">{mode === "student" ? "Student Dashboard" : "Club Coordinator Dashboard"}</p>
+                <p className="hidden text-xs text-muted sm:block">{mode === "student" ? "Your personal campus space" : "Manage your club activities"}</p>
               </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              {dashboardMode === "student" && (
+              {mode === "student" && (
                 <label className="hidden min-w-0 items-center gap-2 rounded-xl border border-border bg-background px-3 py-2.5 md:flex">
                   <span className="text-muted">⌕</span>
                   <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search events..." className="w-36 bg-transparent text-sm outline-none placeholder:text-subtle lg:w-48" />
                 </label>
               )}
 
-              {isCoordinator && (
-                <button type="button" onClick={() => { setDashboardMode((mode) => mode === "student" ? "coordinator" : "student"); setMobileMenuOpen(false); }} className="rounded-xl bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 sm:px-4">
-                  <span className="sm:hidden">{dashboardMode === "student" ? "Coordinator →" : "← Student"}</span>
-                  <span className="hidden sm:inline">{dashboardMode === "student" ? "Switch to Coordinator" : "Switch to Student"}</span>
+              {canSwitchMode && (
+                <button type="button" onClick={() => { setMode(mode === "student" ? "coordinator" : "student"); setMobileMenuOpen(false); }} className="rounded-xl bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 sm:px-4">
+                  <span className="sm:hidden">{mode === "student" ? "Coordinator →" : "← Student"}</span>
+                  <span className="hidden sm:inline">{mode === "student" ? "Switch to Coordinator" : "Switch to Student"}</span>
                 </button>
               )}
 
@@ -231,7 +280,7 @@ export default function StudentDashboard() {
         </header>
 
         <div className="mx-auto max-w-[1600px] space-y-8 px-4 py-6 sm:px-6 sm:py-8 lg:px-9">
-          {dashboardMode === "student" ? (
+          {mode === "student" ? (
             <>
               <section className="relative isolate overflow-hidden rounded-[28px] bg-gradient-to-br from-primary via-[#2c5bab] to-[#4777c7] px-6 py-8 text-white shadow-lg shadow-primary/10 sm:px-9 sm:py-10 lg:px-12 lg:py-12">
                 <div className="pointer-events-none absolute -right-12 -top-24 -z-10 h-72 w-72 rounded-full border-[40px] border-white/[0.06]" />
@@ -253,41 +302,162 @@ export default function StudentDashboard() {
 
               <section>
                 <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-                  <div><p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Your overview</p><h2 className="mt-1 text-2xl font-extrabold tracking-tight">Your campus at a glance</h2><p className="mt-1 text-sm text-muted">Everything you need for a productive campus life.</p></div>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">Your overview</p>
+                    <h2 className="mt-1 text-2xl font-extrabold tracking-tight">Your campus at a glance</h2>
+                    <p className="mt-1 text-sm text-muted">Current events and club activity from your account.</p>
+                  </div>
                   <span className="rounded-full border border-border bg-surface px-3 py-1.5 text-xs font-medium text-muted">Student workspace</span>
                 </div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                  {studentStats.map((stat) => <Link href={stat.href} key={stat.title} className="group rounded-2xl border border-border bg-surface p-5 transition duration-200 hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5"><div className="flex items-start justify-between"><div className={`flex h-12 w-12 items-center justify-center rounded-2xl text-xl ${stat.color}`}>{stat.icon}</div><span className="text-lg text-subtle transition group-hover:translate-x-1 group-hover:text-primary">→</span></div><p className="mt-5 text-sm font-medium text-muted">{stat.title}</p><span className="mt-1 block text-3xl font-extrabold tracking-tight">{stat.value}</span><p className="mt-2 text-xs text-subtle">{stat.description}</p></Link>)}
+                  {studentStats.map((stat) => (
+                    <Link href={stat.href} key={stat.title} className="group rounded-2xl border border-border bg-surface p-5 transition duration-200 hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5">
+                      <div className="flex items-start justify-between">
+                        <div className={`flex h-12 w-12 items-center justify-center rounded-2xl text-xl ${stat.color}`}>{stat.icon}</div>
+                        <span className="text-lg text-subtle transition group-hover:translate-x-1 group-hover:text-primary">→</span>
+                      </div>
+                      <p className="mt-5 text-sm font-medium text-muted">{stat.title}</p>
+                      <span className="mt-1 block text-3xl font-extrabold tracking-tight">{stat.value}</span>
+                      <p className="mt-2 text-xs text-subtle">{stat.description}</p>
+                    </Link>
+                  ))}
                 </div>
               </section>
 
               <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.5fr_1fr]">
                 <div className="min-w-0 rounded-2xl border border-border bg-surface p-5 sm:p-6">
-                  <div className="mb-6 flex items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.15em] text-primary">Don't miss out</p><h2 className="mt-1 text-xl font-extrabold">Upcoming Events</h2><p className="mt-1 text-sm text-muted">What's happening around your campus.</p></div><Link href="/student/events" className="shrink-0 rounded-lg px-2 py-2 text-sm font-bold text-primary hover:bg-primary-subtle">View all →</Link></div>
-                  <div className="mb-4 md:hidden"><input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search events..." className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-primary" /></div>
-                  <div className="space-y-4">
-                    {filteredEvents.length ? filteredEvents.map((event) => <article key={event.id} className="group flex gap-4 rounded-2xl border border-border-subtle p-4 transition hover:border-primary/30 hover:bg-primary/[0.02]"><div className="flex w-[68px] shrink-0 flex-col items-center justify-center self-start rounded-xl bg-primary-subtle px-2 py-3 text-center"><span className="text-[10px] font-bold uppercase tracking-wider text-primary">{event.date.split(" ")[0]}</span><span className="mt-0.5 text-2xl font-extrabold text-primary">{event.date.split(" ")[1]}</span></div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h3 className="font-bold text-text transition group-hover:text-primary">{event.name}</h3><span className="rounded-full bg-secondary px-2.5 py-1 text-[10px] font-bold text-muted">{event.category}</span></div><p className="mt-2 text-sm leading-6 text-muted">{event.description}</p><div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-subtle"><span>◷ {event.time}</span><span>⌖ {event.venue}</span></div></div><span className="hidden text-2xl sm:block">{event.icon}</span></article>) : <div className="rounded-xl border border-dashed border-border p-8 text-center"><p className="text-2xl">🔎</p><p className="mt-2 font-semibold">No events found</p><p className="mt-1 text-sm text-muted">Try searching with a different keyword.</p></div>}
+                  <div className="mb-6 flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-[0.15em] text-primary">Don't miss out</p>
+                      <h2 className="mt-1 text-xl font-extrabold">Upcoming Events</h2>
+                      <p className="mt-1 text-sm text-muted">What's happening around your campus.</p>
+                    </div>
+                    <Link href="/studentEvents" className="shrink-0 rounded-lg px-2 py-2 text-sm font-bold text-primary hover:bg-primary-subtle">View all →</Link>
                   </div>
+                  <div className="mb-4 md:hidden">
+                    <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search events..." className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none focus:border-primary" />
+                  </div>
+                  {eventsQuery.isPending ? (
+                    <p className="py-8 text-center text-sm text-muted">Loading campus events...</p>
+                  ) : eventsQuery.isError ? (
+                    <div className="py-8 text-center">
+                      <p className="text-sm text-muted">Unable to load campus events.</p>
+                      <button type="button" onClick={() => void eventsQuery.refetch()} className="mt-3 text-sm font-semibold text-primary">Try again</button>
+                    </div>
+                  ) : filteredEvents.length === 0 ? (
+                    <div className="rounded-xl border border-dashed border-border p-8 text-center">
+                      <p className="text-2xl">🔎</p>
+                      <p className="mt-2 font-semibold">{search ? "No matching events" : "No upcoming events"}</p>
+                      <p className="mt-1 text-sm text-muted">{search ? "Try searching with a different keyword." : "New campus events will appear here when available."}</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {filteredEvents.slice(0, 4).map((event, index) => {
+                        const startTime = new Date(event.startTime);
+                        return (
+                          <article key={event.id} className="group flex gap-4 rounded-2xl border border-border-subtle p-4 transition hover:border-primary/30 hover:bg-primary/[0.02]">
+                            <div className="flex w-[68px] shrink-0 flex-col items-center justify-center self-start rounded-xl bg-primary-subtle px-2 py-3 text-center">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-primary">{startTime.toLocaleDateString("en-IN", { month: "short" })}</span>
+                              <span className="mt-0.5 text-2xl font-extrabold text-primary">{startTime.getDate()}</span>
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <h3 className="font-bold text-text transition group-hover:text-primary">{event.title}</h3>
+                                <span className="rounded-full bg-secondary px-2.5 py-1 text-[10px] font-bold text-muted">{event.clubName}</span>
+                              </div>
+                              <p className="mt-2 text-sm leading-6 text-muted">{event.description || "No event description provided."}</p>
+                              <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-xs text-subtle">
+                                <span>◷ {startTime.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</span>
+                                <span>⌖ {event.location || "Venue to be announced"}</span>
+                              </div>
+                            </div>
+                            <span className="hidden text-2xl sm:block">{eventIcons[index % eventIcons.length]}</span>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 <div className="rounded-2xl border border-border bg-surface p-5 sm:p-6">
-                  <div className="mb-6 flex items-start justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.15em] text-accent">Stay informed</p><h2 className="mt-1 text-xl font-extrabold">Campus Updates</h2><p className="mt-1 text-sm text-muted">The latest news and announcements.</p></div><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-subtle text-xl">📢</div></div>
-                  <div className="space-y-5">{announcements.map((announcement) => <article key={announcement.id} className="flex gap-3"><div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-lg ${announcement.color}`}>{announcement.icon}</div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center justify-between gap-2"><h3 className="text-sm font-bold">{announcement.title}</h3><span className="text-[10px] text-subtle">{announcement.date}</span></div><p className="mt-1 text-xs leading-5 text-muted">{announcement.message}</p><span className="mt-2 inline-flex rounded-full bg-secondary px-2 py-1 text-[10px] font-semibold text-muted">{announcement.type}</span></div></article>)}</div>
-                  <Link href="/student/announcements" className="mt-6 flex w-full items-center justify-center rounded-xl border border-border py-3 text-sm font-bold text-primary transition hover:border-primary/30 hover:bg-primary-subtle">View all announcements →</Link>
+                  <div className="mb-6 flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-[0.15em] text-accent">Stay informed</p>
+                      <h2 className="mt-1 text-xl font-extrabold">My Memberships</h2>
+                      <p className="mt-1 text-sm text-muted">Your latest club application statuses.</p>
+                    </div>
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent-subtle text-xl">📢</div>
+                  </div>
+                  {membershipsQuery.isPending ? (
+                    <p className="py-6 text-center text-sm text-muted">Loading membership requests...</p>
+                  ) : membershipsQuery.isError ? (
+                    <div className="py-6 text-center">
+                      <p className="text-sm text-muted">Unable to load membership requests.</p>
+                      <button type="button" onClick={() => void membershipsQuery.refetch()} className="mt-3 text-sm font-semibold text-primary">Try again</button>
+                    </div>
+                  ) : memberships.length === 0 ? (
+                    <div className="py-6 text-center">
+                      <p className="text-sm text-muted">You have no club membership requests yet.</p>
+                      <Link href="/student" className="mt-3 inline-block text-sm font-semibold text-primary">Explore clubs →</Link>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {memberships.slice(0, 4).map((membership) => (
+                        <article key={membership.id} className="flex items-center justify-between gap-3 border-b border-border-subtle pb-3 last:border-0 last:pb-0">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-bold">{membership.club?.name ?? `Club ${membership.clubId}`}</p>
+                            <p className="mt-1 text-xs text-muted">Club membership request</p>
+                          </div>
+                          <span className="shrink-0 rounded-full bg-secondary px-2.5 py-1 text-xs font-semibold capitalize text-muted">{membership.status}</span>
+                        </article>
+                      ))}
+                    </div>
+                  )}
+                  <Link href="/student/my-memberships" className="mt-6 flex w-full items-center justify-center rounded-xl border border-border py-3 text-sm font-bold text-primary transition hover:border-primary/30 hover:bg-primary-subtle">View all memberships →</Link>
                 </div>
               </section>
-
               <section>
-                <div className="mb-5 flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.15em] text-green-700">Find your people</p><h2 className="mt-1 text-2xl font-extrabold tracking-tight">Discover Campus Clubs</h2><p className="mt-1 text-sm text-muted">Meet people who share your interests.</p></div><Link href="/student/clubs" className="rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-bold text-primary transition hover:bg-primary-subtle">Explore all clubs →</Link></div>
-                <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">{clubs.map((club) => <article key={club.id} className="group overflow-hidden rounded-2xl border border-border bg-surface transition duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/5"><div className={`flex h-32 items-center justify-center bg-gradient-to-br ${club.color}`}><span className="text-5xl transition duration-300 group-hover:scale-110">{club.icon}</span></div><div className="p-5"><span className="rounded-full bg-secondary px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted">{club.category}</span><h3 className="mt-3 text-lg font-extrabold">{club.name}</h3><p className="mt-1 text-sm text-muted">{club.members}</p><Link href="/student/clubs" className="mt-5 flex items-center justify-between rounded-xl border border-border px-4 py-3 text-sm font-bold text-primary transition hover:border-primary hover:bg-primary-subtle">View club details <span>→</span></Link></div></article>)}</div>
+                <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.15em] text-green-700">Find your people</p>
+                    <h2 className="mt-1 text-2xl font-extrabold tracking-tight">Discover Campus Clubs</h2>
+                    <p className="mt-1 text-sm text-muted">Meet people who share your interests.</p>
+                  </div>
+                  <Link href="/student" className="rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-bold text-primary transition hover:bg-primary-subtle">Explore all clubs →</Link>
+                </div>
+                {clubsQuery.isPending ? (
+                  <p className="rounded-2xl border border-border bg-surface p-8 text-center text-sm text-muted">Loading campus clubs...</p>
+                ) : clubsQuery.isError ? (
+                  <div className="rounded-2xl border border-border bg-surface p-8 text-center">
+                    <p className="text-sm text-muted">Unable to load campus clubs.</p>
+                    <button type="button" onClick={() => void clubsQuery.refetch()} className="mt-3 text-sm font-semibold text-primary">Try again</button>
+                  </div>
+                ) : clubs.length === 0 ? (
+                  <p className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted">No clubs are available yet.</p>
+                ) : (
+                  <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+                    {clubs.slice(0, 3).map((club, index) => (
+                      <article key={club.id} className="group overflow-hidden rounded-2xl border border-border bg-surface transition duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-primary/5">
+                        <div className={`flex h-32 items-center justify-center bg-gradient-to-br ${clubGradients[index % clubGradients.length]}`}>
+                          <span className="text-5xl transition duration-300 group-hover:scale-110">🤝</span>
+                        </div>
+                        <div className="p-5">
+                          <span className="rounded-full bg-secondary px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-muted">Campus club</span>
+                          <h3 className="mt-3 text-lg font-extrabold">{club.name}</h3>
+                          <p className="mt-1 line-clamp-2 text-sm text-muted">{club.description || "Explore this campus community."}</p>
+                          <Link href={`/student/${club.id}`} className="mt-5 flex items-center justify-between rounded-xl border border-border px-4 py-3 text-sm font-bold text-primary transition hover:border-primary hover:bg-primary-subtle">View club details <span>→</span></Link>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
               </section>
-
               <section>
                 <div className="mb-5"><p className="text-xs font-bold uppercase tracking-[0.15em] text-primary">Get things done</p><h2 className="mt-1 text-2xl font-extrabold tracking-tight">Quick Actions</h2><p className="mt-1 text-sm text-muted">Jump straight to what you need.</p></div>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">{studentQuickActions.map((action) => <Link key={action.title} href={action.href} className="group flex items-center gap-4 rounded-2xl border border-border bg-surface p-5 transition duration-200 hover:-translate-y-1 hover:border-primary/30 hover:shadow-md"><div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-2xl transition group-hover:scale-105 ${action.color}`}>{action.icon}</div><div className="min-w-0 flex-1"><h3 className="font-bold transition group-hover:text-primary">{action.title}</h3><p className="mt-1 text-xs leading-5 text-muted">{action.description}</p></div><span className="text-lg text-subtle transition group-hover:translate-x-1 group-hover:text-primary">→</span></Link>)}</div>
               </section>
 
-              <footer className="flex flex-col items-center justify-between gap-3 border-t border-border py-6 text-center text-xs text-subtle sm:flex-row sm:text-left"><p>© {new Date().getFullYear()} EduNex. Built for a better campus experience.</p><div className="flex items-center gap-4"><Link href="/student/profile" className="transition hover:text-primary">My Profile</Link><Link href="/student/issues" className="transition hover:text-primary">Help & Support</Link></div></footer>
+              <footer className="flex flex-col items-center justify-between gap-3 border-t border-border py-6 text-center text-xs text-subtle sm:flex-row sm:text-left"><p>© {new Date().getFullYear()} EduNex. Built for a better campus experience.</p><div className="flex items-center gap-4"><Link href="/studentprofile" className="transition hover:text-primary">My Profile</Link><Link href="/student/my-memberships" className="transition hover:text-primary">My Memberships</Link></div></footer>
             </>
           ) : (
             <>
@@ -301,12 +471,102 @@ export default function StudentDashboard() {
               </section>
 
               <div className="grid gap-8 xl:grid-cols-5">
-                <section className="xl:col-span-3"><div className="mb-5 flex items-center justify-between gap-3"><div><h2 className="text-xl font-bold">Upcoming Events</h2><p className="mt-1 text-sm text-text-muted">Stay updated with your club events.</p></div><Link href="/club-coordinator/events" className="shrink-0 text-sm font-semibold text-primary hover:underline">View all →</Link></div>
-                  <div className="space-y-3">{coordinatorEvents.map((event) => <article key={event.title} className="flex items-center gap-4 rounded-2xl border border-border bg-surface p-4 transition hover:border-primary hover:shadow-md sm:p-5"><div className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-xl bg-primary-subtle text-primary"><span className="text-xl font-bold">{event.date}</span><span className="text-xs font-semibold">{event.month}</span></div><div className="min-w-0 flex-1"><h3 className="font-semibold">{event.title}</h3><p className="mt-1 text-sm text-text-muted">Campus Event</p><span className={`mt-2 inline-block rounded-full px-3 py-1 text-xs font-medium ${event.color}`}>{event.category}</span></div><div className="flex shrink-0 flex-col items-end gap-2"><span className={`rounded-full px-2 py-1 text-xs font-medium ${event.status === "Approved" ? "bg-primary-subtle text-primary" : "bg-secondary text-text-muted"}`}>{event.status}</span><Link href="/club-coordinator/events" aria-label={`View ${event.title}`} className="text-xl text-text-subtle hover:text-primary">→</Link></div></article>)}</div>
-                </section>
-                <section className="xl:col-span-2"><div><h2 className="text-xl font-bold">Recent Activities</h2><p className="mt-1 text-sm text-text-muted">Your latest club updates.</p></div><div className="mt-5 rounded-2xl border border-border bg-surface p-5">{activities.map((activity, index) => <article key={activity.title} className={`flex gap-3 py-4 first:pt-0 last:pb-0 ${index !== activities.length - 1 ? "border-b border-border-subtle" : ""}`}><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-xl">{activity.icon}</div><div><h3 className="text-sm font-semibold leading-5">{activity.title}</h3><p className="mt-1 text-xs leading-5 text-text-muted">{activity.description}</p><p className="mt-2 text-xs text-primary">{activity.date}</p></div></article>)}</div></section>
+                <section className="xl:col-span-3">
+                  <div className="mb-5 flex items-center justify-between gap-3">
+                    <div>
+                      <h2 className="text-xl font-bold">Assigned Club Events</h2>
+                      <p className="mt-1 text-sm text-text-muted">Published events from clubs assigned to you.</p>
+                    </div>
+                    {coordinatedClubs.length > 0 && <Link href="/club-coordinator/events" className="shrink-0 text-sm font-semibold text-primary hover:underline">Manage events →</Link>}
+                  </div>
+                  {coordinatedClubs.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-border bg-surface p-8 text-center">
+                      <h3 className="font-semibold">No clubs assigned</h3>
+                      <p className="mt-2 text-sm text-text-muted">Events and management links will appear here when a club is assigned to your coordinator account.</p>
+                    </div>
+                  ) : coordinatorEventsQuery.isPending ? (
+                    <div className="rounded-2xl border border-border bg-surface p-8 text-center text-sm text-text-muted">Loading assigned-club events...</div>
+                  ) : coordinatorEventsQuery.isError ? (
+                    <div className="rounded-2xl border border-border bg-surface p-8 text-center">
+                      <p className="text-sm text-text-muted">Unable to load assigned-club events.</p>
+                      <button type="button" onClick={() => void coordinatorEventsQuery.refetch()} className="mt-3 text-sm font-semibold text-primary">Try again</button>
+                    </div>
+                  ) : coordinatorUpcomingEvents.length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-border bg-surface p-8 text-center text-sm text-text-muted">There are no upcoming published events for your assigned clubs.</div>
+                  ) : (
+                    <div className="space-y-3">
+                      {coordinatorUpcomingEvents.slice(0, 5).map((event) => {
+                        const startTime = new Date(event.startTime);
+                        return (
+                          <article key={event.id} className="flex items-center gap-4 rounded-2xl border border-border bg-surface p-4 sm:p-5">
+                            <div className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-xl bg-primary-subtle text-primary">
+                              <span className="text-xl font-bold">{startTime.getDate()}</span>
+                              <span className="text-xs font-semibold">{startTime.toLocaleDateString("en-IN", { month: "short" }).toUpperCase()}</span>
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <h3 className="font-semibold">{event.title}</h3>
+                              <p className="mt-1 text-sm text-text-muted">{event.clubName}</p>
+                              <p className="mt-1 text-xs text-text-subtle">{startTime.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })} · {event.location || "Venue to be announced"}</p>
+                            </div>
+                            <span className="rounded-full bg-primary-subtle px-2.5 py-1 text-xs font-medium capitalize text-primary">{event.status}</span>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  )}
+                </section><section className="xl:col-span-2"><div><h2 className="text-xl font-bold">Recent Activities</h2><p className="mt-1 text-sm text-text-muted">Your latest club updates.</p></div><div className="mt-5 rounded-2xl border border-border bg-surface p-5">{activities.map((activity, index) => <article key={activity.title} className={`flex gap-3 py-4 first:pt-0 last:pb-0 ${index !== activities.length - 1 ? "border-b border-border-subtle" : ""}`}><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-xl">{activity.icon}</div><div><h3 className="text-sm font-semibold leading-5">{activity.title}</h3><p className="mt-1 text-xs leading-5 text-text-muted">{activity.description}</p><p className="mt-2 text-xs text-primary">{activity.date}</p></div></article>)}</div></section>
               </div>
 
+              <section>
+                <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
+                  <div>
+                    <h2 className="text-2xl font-bold">All Available Clubs</h2>
+                    <p className="mt-1 text-sm text-text-muted">Assigned clubs are marked and show coordinator management access.</p>
+                  </div>
+                </div>
+                {coordinatedClubs.length === 0 && (
+                  <div className="mb-4 rounded-xl border border-dashed border-border bg-surface p-5 text-sm text-text-muted">
+                    No clubs are assigned to your coordinator account. You can still view all available clubs below.
+                  </div>
+                )}
+                {clubsQuery.isPending ? (
+                  <div className="rounded-2xl border border-border bg-surface p-8 text-center text-sm text-text-muted">Loading available clubs...</div>
+                ) : clubsQuery.isError ? (
+                  <div className="rounded-2xl border border-border bg-surface p-8 text-center">
+                    <p className="text-sm text-text-muted">Unable to load available clubs.</p>
+                    <button type="button" onClick={() => void clubsQuery.refetch()} className="mt-3 text-sm font-semibold text-primary">Try again</button>
+                  </div>
+                ) : clubs.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-border bg-surface p-8 text-center text-sm text-text-muted">There are no clubs available yet.</div>
+                ) : (
+                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                    {clubs.map((club) => {
+                      const isAssigned = assignedClubIds.has(club.id);
+                      return (
+                        <article key={club.id} className="rounded-2xl border border-border bg-surface p-5">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <h3 className="truncate text-lg font-bold">{club.name}</h3>
+                              <p className="mt-2 line-clamp-2 min-h-10 text-sm text-text-muted">{club.description || "No club description provided."}</p>
+                            </div>
+                            <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${isAssigned ? "bg-green-100 text-green-800" : "bg-secondary text-text-muted"}`}>
+                              {isAssigned ? "Assigned to you" : "Not assigned"}
+                            </span>
+                          </div>
+                          <div className="mt-4 flex items-center justify-between gap-3 border-t border-border-subtle pt-4">
+                            <span className="text-xs text-text-subtle">Club #{club.id}</span>
+                            {isAssigned ? (
+                              <Link href="/club-coordinator/events" className="text-sm font-semibold text-primary hover:underline">Manage assigned clubs →</Link>
+                            ) : (
+                              <span className="text-xs text-text-subtle">View only</span>
+                            )}
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                )}
+              </section>
               <section><div><h2 className="text-2xl font-bold">Quick Actions</h2><p className="mt-1 text-sm text-text-muted">Jump directly to a club management service.</p></div><div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">{coordinatorQuickActions.map((action) => <Link key={action.title} href={action.href} className="flex items-center gap-4 rounded-2xl border border-border bg-surface p-5 transition hover:border-primary hover:shadow-lg"><span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary-subtle text-2xl">{action.icon}</span><div className="min-w-0 flex-1"><h3 className="text-sm font-semibold">{action.title}</h3><p className="mt-1 text-sm text-text-muted">{action.description}</p></div><span className="text-lg text-primary">→</span></Link>)}</div></section>
 
               <footer className="border-t border-border pt-6 text-center text-sm text-text-muted">© {new Date().getFullYear()} EduNex · Your campus, connected.</footer>

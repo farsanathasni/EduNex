@@ -40,10 +40,11 @@ export const useCreateClubMutation = () => {
 
 
 
-export const useStudentClubsQuery =()=>{
+export const useStudentClubsQuery = (enabled = true) => {
   return useQuery({
     queryKey:["student-clubs"],
-    queryFn:getStudentClubs
+    queryFn:getStudentClubs,
+    enabled,
   })
 }
 
@@ -84,10 +85,11 @@ export const useStudentClubAnnouncementsQuery = (clubId: number) => {
 };
 
 
-export const useMyStudentMembershipRequestsQuery = () => {
+export const useMyStudentMembershipRequestsQuery = (enabled = true) => {
   return useQuery({
     queryKey: ["student-memberships"],
     queryFn: getMyStudentMembershipRequests,
+    enabled,
   });
 };
 

@@ -1,11 +1,12 @@
 
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import CoordinatorLayout from "@/features/coordinator/components/coordinator-layout";
 import PageHeader from "@/components/ui/page-header";
 import Card from "@/components/ui/card";
 import { useCoordinatorClubMembers } from "@/features/coordinator/api/coordinator-query";
+import { useAccess } from "@/lib/navigation/access";
 
 // import CoordinatorLayout from "@/components/club-coordinator/CoordinatorLayout";
 // import Card from "@/app/ui/card";
@@ -18,27 +19,37 @@ type MembershipStatus = "approved" | "rejected";
 export default function ClubMembersPage() {
   const [activeFilter, setActiveFilter] =
     useState<MembershipStatus>("approved");
+  const [selectedClubId, setSelectedClubId] = useState<number | "all">("all");
+  const { me } = useAccess();
+  const coordinatedClubs = me?.coordinatedClubs ?? [];
+  const assignedClubIds = useMemo(() => new Set(coordinatedClubs.map((club) => club.id)), [coordinatedClubs]);
+  const hasAssignedClubs = coordinatedClubs.length > 0;
 
   const {
     data: members = [],
     isPending,
     isError,
     refetch,
-  } = useCoordinatorClubMembers();
+  } = useCoordinatorClubMembers(hasAssignedClubs);
 
-  const filteredMembers = members.filter(
+  const assignedMembers = members.filter((member) => assignedClubIds.has(member.clubId));
+  const selectedMembers = assignedMembers.filter((member) => selectedClubId === "all" || member.clubId === selectedClubId);
+
+  const filteredMembers = selectedMembers.filter(
     (member) => member.status === activeFilter,
   );
 
-  const approvedCount = members.filter(
+  const approvedCount = selectedMembers.filter(
     (member) => member.status === "approved",
   ).length;
 
-  const rejectedCount = members.filter(
+  const rejectedCount = selectedMembers.filter(
     (member) => member.status === "rejected",
   ).length;
 
-  const clubName = members[0]?.clubName ?? "Club Members";
+  const clubName = selectedClubId === "all"
+    ? coordinatedClubs.length === 1 ? coordinatedClubs[0].name : "Your Assigned Clubs"
+    : coordinatedClubs.find((club) => club.id === selectedClubId)?.name ?? "Club Members";
 
   return (
     <CoordinatorLayout>
@@ -86,6 +97,16 @@ export default function ClubMembersPage() {
             description="View approved and rejected student membership applications."
           />
 
+          {coordinatedClubs.length > 1 && (
+            <label className="mt-5 block max-w-sm text-sm font-medium text-text-muted">
+              Club
+              <select value={selectedClubId} onChange={(event) => setSelectedClubId(event.target.value === "all" ? "all" : Number(event.target.value))} className="mt-2 w-full rounded-xl border border-border bg-white px-4 py-3 text-text">
+                <option value="all">All assigned clubs</option>
+                {coordinatedClubs.map((club) => <option key={club.id} value={club.id}>{club.name}</option>)}
+              </select>
+            </label>
+          )}
+
           {/* Filters */}
           <div className="mt-5 flex flex-wrap gap-3">
             <button
@@ -114,7 +135,14 @@ export default function ClubMembersPage() {
           </div>
 
           {/* Loading */}
-          {isPending && (
+          {!hasAssignedClubs && (
+            <Card className="mt-5 border-dashed p-12 text-center">
+              <h3 className="font-bold text-text">No clubs assigned</h3>
+              <p className="mt-2 text-sm text-text-muted">Club members will appear here after a club is assigned to your coordinator account.</p>
+            </Card>
+          )}
+
+          {hasAssignedClubs && isPending && (
             <Card className="mt-5 p-8 text-center">
               <p className="text-sm text-text-muted">
                 Loading club members...
@@ -123,7 +151,7 @@ export default function ClubMembersPage() {
           )}
 
           {/* Error */}
-          {isError && (
+          {hasAssignedClubs && isError && (
             <Card className="mt-5 p-8 text-center">
               <p className="font-semibold text-text">
                 Unable to load club members.
@@ -140,7 +168,7 @@ export default function ClubMembersPage() {
           )}
 
           {/* Empty State */}
-          {!isPending && !isError && filteredMembers.length === 0 && (
+          {hasAssignedClubs && !isPending && !isError && filteredMembers.length === 0 && (
             <Card className="mt-5 border-dashed p-12 text-center">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-subtle text-2xl">
                 {activeFilter === "approved" ? "👥" : "📋"}
@@ -161,7 +189,7 @@ export default function ClubMembersPage() {
           )}
 
           {/* Member Cards */}
-          {!isPending && !isError && filteredMembers.length > 0 && (
+          {hasAssignedClubs && !isPending && !isError && filteredMembers.length > 0 && (
             <div className="mt-5 space-y-4">
               {filteredMembers.map((member) => (
                 <Card

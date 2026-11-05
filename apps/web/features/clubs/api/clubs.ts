@@ -91,10 +91,25 @@ export const createClub=async(data:CreateClubInput,):Promise<Club>=>{
 
 
 export const getStudentClubs = async (): Promise<Club[]> => {
+  const limit = 100;
+  const clubs: Club[] = [];
+  let page = 1;
+  let totalPages = 1;
 
-    const response = await api.get("/clubs/student");
-    return response.data.data;
-  
+  do {
+    const response = await api.get<{
+      data: Club[];
+      pagination?: { totalPages: number };
+    }>("/clubs/student", { params: { page, limit } });
+
+    clubs.push(...response.data.data);
+    totalPages =
+      response.data.pagination?.totalPages ??
+      (response.data.data.length === limit ? page + 1 : page);
+    page += 1;
+  } while (page <= totalPages);
+
+  return clubs;
 };
 
 

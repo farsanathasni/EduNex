@@ -8,24 +8,35 @@ import Link from "next/link";
 // One dashboard for every role: the cards are the sidebar pages the
 // current user is allowed to open (same source: lib/nav.ts).
 export default function DashboardPage() {
-  const { me, navItems, mode, canSwitchMode } = useAccess();
+  const {
+    me,
+    navItems,
+    mode,
+    hasRole,
+    isSuperAdmin,
+  } = useAccess();
 
   if (!me) return null;
 
   const cards = navItems.filter((item) => item.href !== "/dashboard");
+  const isStudentCoordinatorWorkspace =
+    !isSuperAdmin &&
+    !hasRole("hod") &&
+    !hasRole("faculty") &&
+    (hasRole("student") || hasRole("club-coordinator"));
 
   return (
     <div className="space-y-8">
       <section>
         <p className="text-sm font-semibold uppercase tracking-wider text-text-muted">
-          {canSwitchMode
+          {isStudentCoordinatorWorkspace
             ? mode === "coordinator"
               ? "Coordinator workspace"
               : "Student workspace"
             : "Your workspace"}
         </p>
 
-        <h1 className="mt-2 text-3xl font-bold">Welcome, {me.user.name}</h1>
+        <h1 className="mt-2 text-3xl font-bold">Welcome, {me.user?.name ?? "User"}</h1>
 
         <div className="mt-3 flex flex-wrap gap-2">
           {me.roles.map((role) => (

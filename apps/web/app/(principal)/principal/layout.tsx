@@ -4,39 +4,9 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
+import { RouteGuard } from "@/features/auth/components/route-guard";
+import { useAccess } from "@/lib/navigation/access";
 
-const menuItems = [
-  {
-    label: "Overview",
-    href: "/principal",
-    icon: "⌂",
-  },
-  {
-    label: "Staff Management",
-    href: "/principal/staff",
-    icon: "♙",
-  },
-  {
-    label: "Student Management",
-    href: "/principal/students",
-    icon: "♧",
-  },
-  {
-    label: "Departments",
-    href: "/principal/departments",
-    icon: "▦",
-  },
-  {
-    label: "College Events",
-    href: "/principal/events",
-    icon: "▣",
-  },
-  {
-    label: "Approvals",
-    href: "/principal/approvals",
-    icon: "✓",
-  },
-];
 
 export default function PrincipalLayout({
   children,
@@ -45,8 +15,18 @@ export default function PrincipalLayout({
 }) {
   const pathname = usePathname();
   const router = useRouter();
+  const { navItems } = useAccess();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const menuItems = navItems
+    .filter((item) => item.href.startsWith("/principal"))
+    .map((item) => ({
+      ...item,
+      label:
+        item.href === "/principal/students"
+          ? "Student Management"
+          : item.label,
+    }));
 
   const handleSignOut = async () => {
     setSigningOut(true);
@@ -61,6 +41,7 @@ export default function PrincipalLayout({
   };
 
   return (
+    <RouteGuard roles={["super-admin"]}>
     <div className="min-h-screen bg-background text-text md:flex">
       {mobileMenuOpen && (
         <button
@@ -153,5 +134,6 @@ export default function PrincipalLayout({
         </div>
       </div>
     </div>
+    </RouteGuard>
   );
 }

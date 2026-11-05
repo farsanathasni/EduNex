@@ -91,7 +91,7 @@ export const auth = betterAuth({
         club_coordinator: clubCoordinator,
       },
       defaultRole: "student",
-      adminRoles: ["hod"],
+      adminRoles: [],
     }),
   ],
 });

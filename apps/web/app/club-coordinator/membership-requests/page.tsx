@@ -6,18 +6,27 @@ import Card from "@/components/ui/card";
 import PageHeader from "@/components/ui/page-header";
 import { useCoordinatorMembershipRequests, useReviewClubMembershipRequest } from "@/features/coordinator/api/coordinator-query";
 import CoordinatorLayout from "@/features/coordinator/components/coordinator-layout";
+import { useMemo, useState } from "react";
+import { useAccess } from "@/lib/navigation/access";
 
 
 
 
 
 export default function MembershipRequestsPage() {
+  const [selectedClubId, setSelectedClubId] = useState<number | "all">("all");
+  const { me } = useAccess();
+  const coordinatedClubs = me?.coordinatedClubs ?? [];
+  const assignedClubIds = useMemo(() => new Set(coordinatedClubs.map((club) => club.id)), [coordinatedClubs]);
+  const hasAssignedClubs = coordinatedClubs.length > 0;
   const {
     data: requests = [],
     isPending,
     isError,
     refetch,
-  } = useCoordinatorMembershipRequests();
+  } = useCoordinatorMembershipRequests(hasAssignedClubs);
+  const assignedRequests = requests.filter((request) => assignedClubIds.has(request.clubId));
+  const visibleRequests = assignedRequests.filter((request) => selectedClubId === "all" || request.clubId === selectedClubId);
 
   const reviewMutation = useReviewClubMembershipRequest();
 
@@ -49,7 +58,7 @@ export default function MembershipRequestsPage() {
 
             <div className="mt-6 inline-block rounded-xl border border-white/20 bg-white/10 px-5 py-3">
               <p className="text-2xl font-bold">
-                {requests.length}
+                {visibleRequests.length}
               </p>
               <p className="text-xs text-blue-100">
                 Pending requests
@@ -65,7 +74,22 @@ export default function MembershipRequestsPage() {
             description="Review the details before approving or rejecting a request."
           />
 
-          {isPending ? (
+          {coordinatedClubs.length > 1 && (
+            <label className="mt-5 block max-w-sm text-sm font-medium text-text-muted">
+              Club
+              <select value={selectedClubId} onChange={(event) => setSelectedClubId(event.target.value === "all" ? "all" : Number(event.target.value))} className="mt-2 w-full rounded-xl border border-border bg-white px-4 py-3 text-text">
+                <option value="all">All assigned clubs</option>
+                {coordinatedClubs.map((club) => <option key={club.id} value={club.id}>{club.name}</option>)}
+              </select>
+            </label>
+          )}
+
+          {!hasAssignedClubs ? (
+            <Card className="mt-5 border-dashed p-12 text-center">
+              <h3 className="font-bold text-text">No clubs assigned</h3>
+              <p className="mt-2 text-sm text-text-muted">Membership requests will appear here after a club is assigned to your coordinator account.</p>
+            </Card>
+          ) : isPending ? (
             <Card className="mt-5 p-8 text-center">
               <p className="text-sm text-text-muted">
                 Loading membership requests...
@@ -83,7 +107,7 @@ export default function MembershipRequestsPage() {
                 Try again
               </Button>
             </Card>
-          ) : requests.length === 0 ? (
+          ) : visibleRequests.length === 0 ? (
             <Card className="mt-5 border-dashed p-12 text-center">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-subtle text-2xl">
                 👥
@@ -99,7 +123,7 @@ export default function MembershipRequestsPage() {
             </Card>
           ) : (
             <div className="mt-5 space-y-5">
-              {requests.map((request) => (
+              {visibleRequests.map((request) => (
                 <Card
                   key={request.requestId}
                   className="border-border-subtle p-5 shadow-subtle sm:p-6"

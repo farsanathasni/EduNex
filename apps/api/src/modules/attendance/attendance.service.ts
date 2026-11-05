@@ -9,20 +9,27 @@ import { coordinatorAssignments } from "../../db/schema/coordinator-schema.js";
 export const getEventAttendance = async (
   eventId: number,
   userId: string,
+  isSuperAdmin = false,
 ) => {
-  const [student] = await db
-    .select({id: StudentProfile.id,})
-    .from(StudentProfile)
-    .where(
-      and(
-        eq(StudentProfile.userId, userId),
-        eq(StudentProfile.isDeleted, false),
-      ),
-    )
-    .limit(1);
+  let studentId: number | undefined;
 
-  if (!student) {
-    throw new Error("STUDENT_PROFILE_NOT_FOUND");
+  if (!isSuperAdmin) {
+    const [student] = await db
+      .select({ id: StudentProfile.id })
+      .from(StudentProfile)
+      .where(
+        and(
+          eq(StudentProfile.userId, userId),
+          eq(StudentProfile.isDeleted, false),
+        ),
+      )
+      .limit(1);
+
+    if (!student) {
+      throw new Error("STUDENT_PROFILE_NOT_FOUND");
+    }
+
+    studentId = student.id;
   }
 
   const [event] = await db
@@ -43,19 +50,21 @@ export const getEventAttendance = async (
 
 
 
-  const [assignment] = await db
-    .select({id: coordinatorAssignments.id,})
-    .from(coordinatorAssignments)
-    .where(
-      and(
-        eq(coordinatorAssignments.studentId, student.id),
-        eq(coordinatorAssignments.clubId, event.clubId),
-      ),
-    )
-    .limit(1);
+  if (!isSuperAdmin) {
+    const [assignment] = await db
+      .select({ id: coordinatorAssignments.id })
+      .from(coordinatorAssignments)
+      .where(
+        and(
+          eq(coordinatorAssignments.studentId, studentId!),
+          eq(coordinatorAssignments.clubId, event.clubId),
+        ),
+      )
+      .limit(1);
 
-  if (!assignment) {
-    throw new Error("UNAUTHORIZED_EVENT_ACCESS");
+    if (!assignment) {
+      throw new Error("UNAUTHORIZED_EVENT_ACCESS");
+    }
   }
 
 
@@ -101,20 +110,27 @@ export const saveAttendance = async (
     studentId: number;
     status: "present" | "absent";
   }[],
+  isSuperAdmin = false,
 ) => {
-  const [student] = await db
-    .select({id: StudentProfile.id,})
-    .from(StudentProfile)
-    .where(
-      and(
-        eq(StudentProfile.userId, userId),
-        eq(StudentProfile.isDeleted, false),
-      ),
-    )
-    .limit(1);
+  let studentId: number | undefined;
 
-  if (!student) {
-    throw new Error("STUDENT_PROFILE_NOT_FOUND");
+  if (!isSuperAdmin) {
+    const [student] = await db
+      .select({ id: StudentProfile.id })
+      .from(StudentProfile)
+      .where(
+        and(
+          eq(StudentProfile.userId, userId),
+          eq(StudentProfile.isDeleted, false),
+        ),
+      )
+      .limit(1);
+
+    if (!student) {
+      throw new Error("STUDENT_PROFILE_NOT_FOUND");
+    }
+
+    studentId = student.id;
   }
 
 
@@ -129,19 +145,21 @@ export const saveAttendance = async (
   }
 
 
-  const [assignment] = await db
-    .select({id: coordinatorAssignments.id,})
-    .from(coordinatorAssignments)
-    .where(
-      and(
-        eq(coordinatorAssignments.studentId, student.id),
-        eq(coordinatorAssignments.clubId, event.clubId),
-      ),
-    )
-    .limit(1);
+  if (!isSuperAdmin) {
+    const [assignment] = await db
+      .select({ id: coordinatorAssignments.id })
+      .from(coordinatorAssignments)
+      .where(
+        and(
+          eq(coordinatorAssignments.studentId, studentId!),
+          eq(coordinatorAssignments.clubId, event.clubId),
+        ),
+      )
+      .limit(1);
 
-  if (!assignment) {
-    throw new Error("UNAUTHORIZED_EVENT_ACCESS");
+    if (!assignment) {
+      throw new Error("UNAUTHORIZED_EVENT_ACCESS");
+    }
   }
 
 
