@@ -13,6 +13,7 @@ import {
   updateCoordinator,
   deactivateCoordinator,
   type CreateCoordinatorInput,
+  type CoordinatorAssignmentsParams,
   type UpdateCoordinatorInput,
 } from "@/features/coordinator/api/coordinators";
 
@@ -55,10 +56,14 @@ export const useHodStudents = () => {
 };
 
 // Coordinator assignments
-export const useCoordinatorAssignments = () => {
+export const useCoordinatorAssignments = (
+  params?: CoordinatorAssignmentsParams,
+) => {
   return useQuery({
-    queryKey: CoordinatorAssignmentsKey,
-    queryFn: getCoordinatorAssignments,
+    queryKey: params
+      ? [...CoordinatorAssignmentsKey, params]
+      : CoordinatorAssignmentsKey,
+    queryFn: () => getCoordinatorAssignments(params),
     retry: retryUnlessAuthError,
   });
 };

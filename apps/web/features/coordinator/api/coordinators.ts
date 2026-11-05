@@ -1,4 +1,5 @@
 
+import { isAxiosError } from "axios";
 import { api } from "@/lib/axios";
 
 export type CoordinatorAssignment = {
@@ -15,6 +16,12 @@ export type CoordinatorAssignment = {
 export type CreateCoordinatorInput = {
   studentId: number;
   clubId: number;
+};
+
+export type CoordinatorAssignmentsParams = {
+  search?: string;
+  page?: number;
+  limit?: number;
 };
 
 export type UpdateCoordinatorInput = {
@@ -42,9 +49,12 @@ export type CoordinatorStatus = {
 };
 
 // Get coordinator assignments
-export const getCoordinatorAssignments = async () => {
+export const getCoordinatorAssignments = async (
+  params?: CoordinatorAssignmentsParams,
+) => {
   const { data } = await api.get<ApiResponse<CoordinatorAssignment[]>>(
     "/hod/coordinators",
+    { params },
   );
 
   if (!data.success) {
@@ -60,10 +70,18 @@ export const getCoordinatorAssignments = async () => {
 export const createCoordinator = async (
   input: CreateCoordinatorInput,
 ) => {
-  const { data } = await api.post<ApiResponse<CoordinatorAssignment>>(
-    "/hod/coordinators",
-    input,
-  );
+  let data: ApiResponse<CoordinatorAssignment>;
+  try {
+    ({ data } = await api.post<ApiResponse<CoordinatorAssignment>>(
+      "/hod/coordinators",
+      input,
+    ));
+  } catch (error) {
+    if (isAxiosError<{ message?: string }>(error)) {
+      throw new Error(error.response?.data?.message || "Failed to appoint coordinator.");
+    }
+    throw error;
+  }
 
   if (!data.success) {
     throw new Error(data.message || "Failed to appoint coordinator.");

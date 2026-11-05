@@ -141,6 +141,39 @@ export const GetStudentProfile = asyncHandler(
   },
 );
 
+// Get one active student record (Super Admin: any department, HOD: assigned department).
+export const GetStudentById = asyncHandler(
+  async (req: Request, res: Response) => {
+    const resolved = await getScope(res);
+    if (!resolved) return;
+
+    const studentId = Number(req.params.studentId);
+    if (!Number.isSafeInteger(studentId) || studentId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid student ID.",
+      });
+    }
+
+    const student = await studentService.getStudentById(
+      studentId,
+      resolved.departmentId,
+    );
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: "Student not found in your department.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Student fetched successfully.",
+      data: student,
+    });
+  },
+);
+
 // Get students with search, filters, and pagination.
 export const GetStudents = asyncHandler(
   async (req: Request, res: Response) => {
@@ -164,13 +197,11 @@ export const GetStudents = asyncHandler(
       validation.data;
 
     const access = res.locals.access as Access;
-    const isHod = access.roles.some((role) => role.slug === "hod");
 
-    // HODs can view across departments and retain an optional department
-    // filter. Other staff remain scoped to their own department.
+    // Super Admin may choose any department. Every other scoped account,
+    // including HOD, is restricted to its assigned department.
     if (
       !access.isSuperAdmin &&
-      !isHod &&
       resolved.departmentId !== undefined &&
       departmentId !== undefined &&
       departmentId !== resolved.departmentId
@@ -182,8 +213,7 @@ export const GetStudents = asyncHandler(
     }
 
     const result = await studentService.getStudents({
-      departmentId:
-        isHod || access.isSuperAdmin ? departmentId : resolved.departmentId,
+      departmentId: access.isSuperAdmin ? departmentId : resolved.departmentId,
       semester,
       search,
       page,

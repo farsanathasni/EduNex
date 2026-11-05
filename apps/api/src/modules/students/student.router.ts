@@ -4,6 +4,7 @@ import { Router } from "express";
 import {
   CreateStudentProfile,
   GetStudentProfile,
+  GetStudentById,
   GetStudents,
   UpdateStudentProfile,
   DeleteStudentProfile,
@@ -63,6 +64,14 @@ router.patch(
   requireAuth,
   rbac("coordinator", "update"),
   UpdateCoordinator,
+);
+
+// Keep static coordinator paths above this parameterized student details route.
+router.get(
+  "/:studentId",
+  requireAuth,
+  rbac("student", "view"),
+  GetStudentById,
 );
 
 export default router;
