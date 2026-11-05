@@ -148,6 +148,35 @@ export const studentService = {
     return student ?? null;
   },
 
+  // Get one active student record within the caller's allowed department scope.
+  getStudentById: async (studentId: number, departmentId?: number) => {
+    const [student] = await db
+      .select({
+        id: StudentProfile.id,
+        userId: StudentProfile.userId,
+        name: StudentProfile.name,
+        email: user.email,
+        admissionNumber: StudentProfile.admissionNumber,
+        departmentId: StudentProfile.departmentId,
+        departmentName: departments.name,
+        semester: StudentProfile.semester,
+        phone: StudentProfile.phone,
+      })
+      .from(StudentProfile)
+      .innerJoin(departments, eq(StudentProfile.departmentId, departments.id))
+      .innerJoin(user, eq(StudentProfile.userId, user.id))
+      .where(
+        and(
+          eq(StudentProfile.id, studentId),
+          eq(StudentProfile.isDeleted, false),
+          inDepartment(StudentProfile.departmentId, departmentId),
+        ),
+      )
+      .limit(1);
+
+    return student ?? null;
+  },
+
   // Get students with search, filters, and pagination.
   getStudents: async ({
     departmentId,
