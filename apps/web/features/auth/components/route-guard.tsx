@@ -34,12 +34,18 @@ export function RouteGuard({ children, roles }: RouteGuardProps) {
     .sort((a, b) => b.href.length - a.href.length)[0];
 
   const loginRequired = unauthorized || (!isPending && !isError && !me?.user);
+  const isPrincipalAdmin = isSuperAdmin || hasAnyRole(["super-admin"]);
   const routeAllowed =
     isSuperAdmin ||
     ((!roles || roles.length === 0 || hasAnyRole(roles)) &&
       (!matchedNavItem?.permission ||
         can(matchedNavItem.permission[0], matchedNavItem.permission[1])));
-  const redirectTo = loginRequired ? "/login" : !isPending && !isError && me && !routeAllowed ? "/dashboard" : null;
+  const deniedAccessDestination = isPrincipalAdmin ? "/principal" : "/dashboard";
+  const redirectTo = loginRequired
+    ? "/login"
+    : !isPending && !isError && me && !routeAllowed
+      ? deniedAccessDestination
+      : null;
 
   useEffect(() => {
     if (redirectTo) router.replace(redirectTo);

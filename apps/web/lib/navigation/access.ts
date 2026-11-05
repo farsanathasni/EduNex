@@ -55,6 +55,7 @@ export function useAccess() {
     NAV.filter((item) =>
       isNavVisible(item, {
         mode: targetMode,
+        isSuperAdmin,
         hasAnyRole,
         can,
       }),
