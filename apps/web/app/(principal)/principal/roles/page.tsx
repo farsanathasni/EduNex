@@ -1,39 +1,29 @@
-
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 
 import {
-  getRoles,
-  getRole,
-  getPermissionCatalog,
   createRole,
-  updateRole,
+  getPermissionCatalog,
+  getRoles,
   type ApiResponse,
-  type Role,
-  type RoleDetail,
   type PermissionGroup,
+  type Role,
 } from "@/features/principal/api/roles";
 
 export default function RolesPage() {
+  const router = useRouter();
   const queryClient = useQueryClient();
-
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingRoleId, setEditingRoleId] = useState<number | null>(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [permissionIds, setPermissionIds] = useState<number[]>([]);
 
-  const isEditing = editingRoleId !== null;
-
-  const {
-    data,
-    isPending,
-    isError,
-    error,
-    refetch,
-  } = useQuery<ApiResponse<Role[]>>({
+  const { data, isPending, isError, error, refetch } = useQuery<
+    ApiResponse<Role[]>
+  >({
     queryKey: ["principal", "roles"],
     queryFn: getRoles,
     retry: false,
@@ -50,85 +40,25 @@ export default function RolesPage() {
     retry: false,
   });
 
-  const {
-    data: roleDetailData,
-    isPending: roleLoading,
-    isError: roleLoadingError,
-  } = useQuery<ApiResponse<RoleDetail>>({
-    queryKey: ["principal", "role", editingRoleId],
-    queryFn: () => getRole(editingRoleId!),
-    enabled: isModalOpen && isEditing,
-    retry: false,
-  });
-
-  const roleDetail = roleDetailData?.data;
-
-  useEffect(() => {
-    if (roleDetail && editingRoleId !== null) {
-      setName(roleDetail.name);
-      setDescription(roleDetail.description ?? "");
-      setPermissionIds(roleDetail.permissionIds);
-    }
-  }, [roleDetail, editingRoleId]);
-
   const createMutation = useMutation({
     mutationFn: createRole,
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["principal", "roles"],
-      });
+      void queryClient.invalidateQueries({ queryKey: ["principal", "roles"] });
       closeModal();
     },
   });
 
-  const updateMutation = useMutation({
-    mutationFn: (input: {
-      id: number;
-      data: {
-        name?: string;
-        description?: string;
-        permissionIds?: number[];
-      };
-    }) => updateRole(input.id, input.data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ["principal", "roles"],
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["principal", "role", editingRoleId],
-      });
-      closeModal();
-    },
-  });
-
-  const roles = data?.data ?? [];
+  // Principal is the Super Admin in EduNex, so hide any legacy duplicate role
+  // row while leaving the backend record and all other role data untouched.
+  const roles = (data?.data ?? []).filter((role) => role.slug !== "principal");
   const permissionGroups = permissionData?.data ?? [];
-
-  const isSaving = createMutation.isPending || updateMutation.isPending;
 
   function closeModal() {
     setIsModalOpen(false);
-    setEditingRoleId(null);
     setName("");
     setDescription("");
     setPermissionIds([]);
     createMutation.reset();
-    updateMutation.reset();
-  }
-
-  function openCreateModal() {
-    closeModal();
-    setIsModalOpen(true);
-  }
-
-  function openEditModal(roleId: number) {
-    setName("");
-    setDescription("");
-    setPermissionIds([]);
-    createMutation.reset();
-    updateMutation.reset();
-    setEditingRoleId(roleId);
-    setIsModalOpen(true);
   }
 
   function togglePermission(id: number) {
@@ -141,39 +71,25 @@ export default function RolesPage() {
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
-    if (isEditing && editingRoleId !== null) {
-      updateMutation.mutate({
-        id: editingRoleId,
-        data: {
-          name: name.trim(),
-          description: description.trim(),
-          permissionIds,
-        },
-      });
-    } else {
-      createMutation.mutate({
-        name: name.trim(),
-        description: description.trim() || undefined,
-        permissionIds,
-      });
-    }
+    createMutation.mutate({
+      name: name.trim(),
+      description: description.trim() || undefined,
+      permissionIds,
+    });
   }
-
-  const mutationError = createMutation.error || updateMutation.error;
 
   return (
     <div className="space-y-6">
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Roles & Permissions</h1>
+          <h1 className="text-3xl font-bold">Roles &amp; Permissions</h1>
           <p className="mt-2 text-sm text-text-muted">
             Manage roles and control what users can access in EduNex.
           </p>
         </div>
-
         <button
-          onClick={openCreateModal}
+          type="button"
+          onClick={() => setIsModalOpen(true)}
           className="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground"
         >
           + Create Role
@@ -188,6 +104,7 @@ export default function RolesPage() {
             {error instanceof Error ? error.message : "Unable to load roles."}
           </p>
           <button
+            type="button"
             onClick={() => void refetch()}
             className="mt-4 rounded-lg bg-primary px-4 py-2 text-primary-foreground"
           >
@@ -204,45 +121,38 @@ export default function RolesPage() {
                 <th className="p-4">Description</th>
                 <th className="p-4">Assigned Users</th>
                 <th className="p-4">Type</th>
-                <th className="p-4">Actions</th>
               </tr>
             </thead>
-
             <tbody>
               {roles.map((role) => (
                 <tr
                   key={role.id}
-                  className="border-b border-border last:border-0"
+                  role="link"
+                  tabIndex={0}
+                  aria-label={`View ${role.name} role details`}
+                  onClick={() => router.push(`/principal/roles/${role.id}`)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      router.push(`/principal/roles/${role.id}`);
+                    }
+                  }}
+                  className="cursor-pointer border-b border-border last:border-0 hover:bg-background focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
                 >
                   <td className="p-4 font-medium">{role.name}</td>
                   <td className="p-4 text-text-muted">{role.slug}</td>
-                  <td className="p-4">
-                    {role.description || "No description"}
-                  </td>
+                  <td className="p-4">{role.description || "No description"}</td>
                   <td className="p-4">{role.totalAssigned}</td>
                   <td className="p-4">
                     <span className="rounded-full bg-background px-3 py-1 text-xs">
                       {role.isSystem ? "System" : "Custom"}
                     </span>
                   </td>
-                  <td className="p-4">
-                    <button
-                      onClick={() => openEditModal(role.id)}
-                      disabled={role.slug === "super-admin"}
-                      className="rounded-lg border border-border px-3 py-1.5 text-sm hover:bg-background disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      Edit
-                    </button>
-                  </td>
                 </tr>
               ))}
-
               {roles.length === 0 && (
                 <tr>
-                  <td
-                    colSpan={6}
-                    className="p-8 text-center text-text-muted"
-                  >
+                  <td colSpan={5} className="p-8 text-center text-text-muted">
                     No roles found.
                   </td>
                 </tr>
@@ -257,175 +167,111 @@ export default function RolesPage() {
           <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-xl">
             <div className="flex items-center justify-between border-b border-border p-5">
               <div>
-                <h2 className="text-xl font-semibold">
-                  {isEditing ? "Edit Role" : "Create New Role"}
-                </h2>
+                <h2 className="text-xl font-semibold">Create New Role</h2>
                 <p className="mt-1 text-sm text-text-muted">
-                  {isEditing
-                    ? "Update role details and permissions."
-                    : "Define a role and assign its permissions."}
+                  Define a role and assign its permissions.
                 </p>
               </div>
-
               <button
                 type="button"
                 onClick={closeModal}
+                aria-label="Close create role dialog"
                 className="rounded-lg px-3 py-2 text-text-muted hover:bg-background"
               >
-                ✕
+                ×
               </button>
             </div>
 
-            {isEditing && roleLoading ? (
-              <p className="p-6 text-sm text-text-muted">
-                Loading role details...
-              </p>
-            ) : isEditing && roleLoadingError ? (
-              <p className="p-6 text-sm text-red-600">
-                Unable to load role details. Close the modal and try again.
-              </p>
-            ) : (
-              <form
-                onSubmit={handleSubmit}
-                className="flex min-h-0 flex-1 flex-col"
-              >
-                <div className="space-y-5 overflow-y-auto p-5">
-                  <div>
-                    <label className="mb-2 block text-sm font-medium">
-                      Role Name *
-                    </label>
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g. Event Manager"
-                      required
-                      minLength={2}
-                      maxLength={100}
-                      disabled={isEditing && !!roleDetail?.isSystem}
-                      className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary disabled:opacity-60"
-                    />
-                    {isEditing && roleDetail?.isSystem && (
-                      <p className="mt-1 text-xs text-text-muted">
-                        System role names cannot be changed.
-                      </p>
-                    )}
+            <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
+              <div className="space-y-5 overflow-y-auto p-5">
+                <div>
+                  <label htmlFor="new-role-name" className="mb-2 block text-sm font-medium">
+                    Role Name *
+                  </label>
+                  <input
+                    id="new-role-name"
+                    type="text"
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    placeholder="e.g. Event Manager"
+                    required
+                    minLength={2}
+                    maxLength={100}
+                    className="w-full rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="new-role-description" className="mb-2 block text-sm font-medium">
+                    Description
+                  </label>
+                  <textarea
+                    id="new-role-description"
+                    value={description}
+                    onChange={(event) => setDescription(event.target.value)}
+                    placeholder="Describe the responsibilities of this role"
+                    maxLength={500}
+                    rows={3}
+                    className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"
+                  />
+                </div>
+                <div>
+                  <div className="mb-3 flex items-center justify-between">
+                    <h3 className="text-sm font-semibold">Permissions</h3>
+                    <span className="text-xs text-text-muted">{permissionIds.length} selected</span>
                   </div>
-
-                  <div>
-                    <label className="mb-2 block text-sm font-medium">
-                      Description
-                    </label>
-                    <textarea
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
-                      placeholder="Describe the responsibilities of this role"
-                      maxLength={500}
-                      rows={3}
-                      className="w-full resize-none rounded-lg border border-border bg-background px-3 py-2.5 text-sm outline-none focus:border-primary"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="mb-3 flex items-center justify-between">
-                      <h3 className="text-sm font-semibold">Permissions</h3>
-                      <span className="text-xs text-text-muted">
-                        {permissionIds.length} selected
-                      </span>
-                    </div>
-
-                    {permissionsLoading ? (
-                      <p className="text-sm text-text-muted">
-                        Loading permissions...
-                      </p>
-                    ) : permissionsError ? (
-                      <p className="text-sm text-red-600">
-                        Unable to load permissions.
-                      </p>
-                    ) : (
-                      <div className="space-y-4">
-                        {permissionGroups.map((group) => (
-                          <div
-                            key={group.resource}
-                            className="rounded-xl border border-border p-4"
-                          >
-                            <h4 className="mb-3 text-sm font-semibold capitalize">
-                              {group.resource}
-                            </h4>
-
-                            <div className="grid gap-3 sm:grid-cols-2">
-                              {group.permissions.map((permission) => (
-                                <label
-                                  key={permission.id}
-                                  className="flex cursor-pointer items-start gap-2 text-sm"
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={permissionIds.includes(
-                                      permission.id,
-                                    )}
-                                    onChange={() =>
-                                      togglePermission(permission.id)
-                                    }
-                                    className="mt-1 accent-primary"
-                                  />
-
-                                  <span>
-                                    <span className="font-medium capitalize">
-                                      {permission.action}
-                                    </span>
-                                    {permission.description && (
-                                      <span className="mt-0.5 block text-xs text-text-muted">
-                                        {permission.description}
-                                      </span>
-                                    )}
-                                  </span>
-                                </label>
-                              ))}
-                            </div>
+                  {permissionsLoading ? (
+                    <p className="text-sm text-text-muted">Loading permissions...</p>
+                  ) : permissionsError ? (
+                    <p className="text-sm text-red-600">Unable to load permissions.</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {permissionGroups.map((group) => (
+                        <div key={group.resource} className="rounded-xl border border-border p-4">
+                          <h4 className="mb-3 text-sm font-semibold capitalize">{group.resource}</h4>
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            {group.permissions.map((permission) => (
+                              <label key={permission.id} className="flex cursor-pointer items-start gap-2 text-sm">
+                                <input
+                                  type="checkbox"
+                                  checked={permissionIds.includes(permission.id)}
+                                  onChange={() => togglePermission(permission.id)}
+                                  className="mt-1 accent-primary"
+                                />
+                                <span>
+                                  <span className="font-medium capitalize">{permission.action}</span>
+                                  {permission.description && (
+                                    <span className="mt-0.5 block text-xs text-text-muted">{permission.description}</span>
+                                  )}
+                                </span>
+                              </label>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {mutationError && (
-                    <p className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
-                      {mutationError instanceof Error
-                        ? mutationError.message
-                        : "Unable to save role."}
-                    </p>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </div>
-
-                <div className="flex justify-end gap-3 border-t border-border p-5">
-                  <button
-                    type="button"
-                    onClick={closeModal}
-                    className="rounded-lg border border-border px-4 py-2 text-sm"
-                  >
-                    Cancel
-                  </button>
-
-                  <button
-                    type="submit"
-                    disabled={
-                      isSaving ||
-                      name.trim().length < 2 ||
-                      permissionsLoading ||
-                      permissionsError
-                    }
-                    className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    {isSaving
-                      ? "Saving..."
-                      : isEditing
-                        ? "Save Changes"
-                        : "Create Role"}
-                  </button>
-                </div>
-              </form>
-            )}
+                {createMutation.error && (
+                  <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-600">
+                    {createMutation.error instanceof Error
+                      ? createMutation.error.message
+                      : "Unable to create role."}
+                  </p>
+                )}
+              </div>
+              <div className="flex justify-end gap-3 border-t border-border p-5">
+                <button type="button" onClick={closeModal} className="rounded-lg border border-border px-4 py-2 text-sm">
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={createMutation.isPending || name.trim().length < 2 || permissionsLoading || permissionsError}
+                  className="rounded-lg bg-primary px-5 py-2 text-sm font-medium text-primary-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {createMutation.isPending ? "Creating..." : "Create Role"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
