@@ -5,5 +5,9 @@ export default function CoordinatorRouteLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <RouteGuard roles={["club-coordinator"]}>{children}</RouteGuard>;
+  return (
+    <RouteGuard roles={["student"]} coordinatorOnly>
+      {children}
+    </RouteGuard>
+  );
 }

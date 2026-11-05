@@ -111,7 +111,22 @@ export const getHodDashboardStats = async (
       ),
   ]);
 
+  // Get the assigned department details.
+  const departmentResult =
+    departmentId !== undefined
+      ? await db
+          .select({
+            id: departments.id,
+            name: departments.name,
+            code: departments.code,
+          })
+          .from(departments)
+          .where(eq(departments.id, departmentId))
+          .limit(1)
+      : [];
+
   return {
+    department: departmentResult[0] ?? null,
     totalStudents: studentResult[0].total,
     totalStaff: staffResult[0].total,
     totalCoordinators: coordinatorResult[0].total,
@@ -125,7 +140,7 @@ export const getHodStudents = async (
   semester?: number,
   search?: string,
   page = 1,
-  limit = 10,
+  limit = 50,
 ) => {
   // Soft-deleted students must never show up.
   const conditions: SQL[] = [eq(StudentProfile.isDeleted, false)];

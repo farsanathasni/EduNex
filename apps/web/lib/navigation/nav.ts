@@ -162,46 +162,48 @@ export const NAV: NavItem[] = [
     mode: "student",
   },
 
+    // Coordinator view
+  
   // Coordinator view
-  {
-    label: "My Club Events",
-    href: "/club-coordinator/events",
-    icon: "▣",
-    roles: ["club-coordinator"],
-    permission: ["event", "view"],
-    mode: "coordinator",
-  },
-  {
-    label: "Membership Requests",
-    href: "/club-coordinator/membership-requests",
-    icon: "\u2667",
-    roles: ["club-coordinator"],
-    permission: ["club", "update"],
-    mode: "coordinator",
-  },
-  {
-    label: "Club Members",
-    href: "/club-coordinator/members",
-    icon: "\u2667",
-    roles: ["club-coordinator"],
-    permission: ["club", "update"],
-    mode: "coordinator",
-  },
-  {
-    label: "Request for Event",
-    href: "/club-coordinator/request-event",
-    icon: "+",
-    roles: ["club-coordinator"],
-    permission: ["event", "create"],
-    mode: "coordinator",
-  },
-  {
-    label: "Profile",
-    href: "/club-coordinator/profile",
-    icon: "\u2659",
-    roles: ["club-coordinator"],
-    mode: "coordinator",
-  },
+{
+  label: "My Club Events",
+  href: "/club-coordinator/events",
+  icon: "▣",
+  roles: ["student"],
+  permission: ["event", "view"],
+  mode: "coordinator",
+},
+{
+  label: "Membership Requests",
+  href: "/club-coordinator/membership-requests",
+  icon: "♧",
+  roles: ["student"],
+  // permission: ["club", "update"],
+  mode: "coordinator",
+},
+{
+  label: "Club Members",
+  href: "/club-coordinator/members",
+  icon: "♙",
+  roles: ["student"],
+  // permission: ["club", "update"],
+  mode: "coordinator",
+},
+{
+  label: "Request Event",
+  href: "/club-coordinator/request-event",
+  icon: "+",
+  roles: ["student"],
+  permission: ["event", "create"],
+  mode: "coordinator",
+},
+{
+  label: "My Profile",
+  href: "/club-coordinator/profile",
+  icon: "☺",
+  roles: ["student"],
+  mode: "coordinator",
+},
 ];
 
 export const isNavVisible = (
@@ -212,21 +214,23 @@ export const isNavVisible = (
     hasAnyRole: (slugs: string[]) => boolean;
     can: (resource: string, action: string) => boolean;
   },
-)=> {
-  const isPrincipalAdmin =
+) => {
+  const isSuperAdmin =
     ctx.isSuperAdmin || ctx.hasAnyRole(["super-admin"]);
 
-  if (item.href === "/dashboard" && isPrincipalAdmin) return false;
+  if (item.href === "/dashboard" && isSuperAdmin) {
+    return false;
+  }
 
-  const hasBothModes =
-    ctx.hasAnyRole(["student"]) && ctx.hasAnyRole(["club-coordinator"]);
+  const roleAllowed =
+    !item.roles || ctx.hasAnyRole(item.roles);
 
-  return (!item.roles ||
-    ctx.hasAnyRole(item.roles) ||
-    ctx.hasAnyRole(["super-admin"])) &&
-  (!item.permission || ctx.can(item.permission[0], item.permission[1])) &&
-  (!item.mode ||
-    !hasBothModes ||
-    ctx.mode === item.mode ||
-    ctx.hasAnyRole(["super-admin"]));
+  const permissionAllowed =
+    !item.permission ||
+    ctx.can(item.permission[0], item.permission[1]);
+
+  const modeAllowed =
+    !item.mode || ctx.mode === item.mode;
+
+  return roleAllowed && permissionAllowed && modeAllowed;
 };

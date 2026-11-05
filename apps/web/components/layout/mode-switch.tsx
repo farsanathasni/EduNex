@@ -1,6 +1,7 @@
 "use client";
 
 import { useAccess } from "@/lib/navigation/access";
+import Button from "../ui/button";
 
 // Shown only for accounts that are both Student and Club Coordinator.
 export function ModeSwitch() {
@@ -11,12 +12,12 @@ export function ModeSwitch() {
   const next = mode === "student" ? "coordinator" : "student";
 
   return (
-    <button
+    <Button
       type="button"
       onClick={() => setMode(next)}
-      className="rounded-lg border border-border bg-surface px-3 py-2 text-sm font-medium transition hover:bg-background"
+      className="rounded-xl border "
     >
       {mode === "student" ? "Switch to Coordinator" : "Switch to Student"}
-    </button>
+    </Button>
   );
 }

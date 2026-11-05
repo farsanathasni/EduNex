@@ -369,6 +369,15 @@ export const studentService = {
       )
       .limit(1);
 
+//       console.log("Coordinator appointment debug:", {
+//   studentId,
+//   clubId,
+//   hodDepartmentId: departmentId,
+//   studentDepartmentId: student.departmentId,
+// });
+
+// console.log("Selected club:", club);
+
     if (!club) {
       throw new Error("CLUB_NOT_FOUND_OR_FORBIDDEN");
     }
