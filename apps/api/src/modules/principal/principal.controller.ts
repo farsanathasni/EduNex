@@ -127,9 +127,12 @@ import asyncHandler from "../../middleware/asyncHandler.js";
 import {
   getStaffProfile,
   createHod,
+  createStaffAccount,
+  StaffCreationError,
   getDepartments,
 } from "./principal.service.js";
 import { createHodSchema } from "../hod/hod.validation.js";
+import { createStaffSchema } from "../staff/staff.validation.js";
 
 // Access is decided by the rbac() middleware on the router
 // (admin:view, staff:create, department:view), so these handlers
@@ -192,6 +195,13 @@ export const CreateHod = asyncHandler(
         data: hod,
       });
     } catch (error) {
+      if (error instanceof StaffCreationError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      }
+
       const message =
         error instanceof Error ? error.message : "Unable to create HOD.";
 
@@ -205,6 +215,44 @@ export const CreateHod = asyncHandler(
         });
       }
 
+      throw error;
+    }
+  },
+);
+
+export const CreateStaff = asyncHandler(
+  async (req: Request, res: Response) => {
+    const user = res.locals.user;
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Please log in first.",
+      });
+    }
+
+    const validation = createStaffSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid staff details.",
+        errors: validation.error.flatten(),
+      });
+    }
+
+    try {
+      const createdStaff = await createStaffAccount(validation.data, user.id);
+      return res.status(201).json({
+        success: true,
+        message: `${validation.data.role === "hod" ? "HOD" : "Faculty"} account created. A password setup email has been sent.`,
+        data: createdStaff,
+      });
+    } catch (error) {
+      if (error instanceof StaffCreationError) {
+        return res.status(error.statusCode).json({
+          success: false,
+          message: error.message,
+        });
+      }
       throw error;
     }
   },

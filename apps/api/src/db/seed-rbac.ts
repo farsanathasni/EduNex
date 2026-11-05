@@ -274,6 +274,7 @@ const rolePermissionMap: Record<string, string[]> = {
     "student:view",
     "student:update",
     "staff:view",
+    "staff:update",
     "department:view",
     "club:view",
     "club:create",

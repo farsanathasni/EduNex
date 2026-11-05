@@ -46,6 +46,7 @@ import { Router } from "express";
 import {
   GetPrincipalDashboard,
   CreateHod,
+  CreateStaff,
   GetDepartments,
 } from "./principal.controller.js";
 import { requireAuth } from "../../middleware/auth.middleware.js";
@@ -69,6 +70,14 @@ principalRouter.post(
   requireAuth,
   rbac("staff", "create"),
   CreateHod,
+);
+
+// Principal (Super Admin) creates either an HOD or Faculty account.
+principalRouter.post(
+  "/staff",
+  requireAuth,
+  rbac("staff", "create"),
+  CreateStaff,
 );
 
 // Get departments

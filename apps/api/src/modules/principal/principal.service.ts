@@ -110,6 +110,7 @@ import type { CreateHodInput } from "../hod/hod.validation.js";
 import { departments } from "../../db/schema/others-schema.js";
 import { roles, userRoles } from "../../db/schema/rbac-schema.js";
 import { randomBytes } from "node:crypto";
+import type { CreateStaffInput } from "../staff/staff.validation.js";
 
 // Optional staff record for display (employee ID, designation).
 // Permissions come from RBAC, not from this table, so a Super Admin
@@ -124,112 +125,185 @@ export const getStaffProfile = async (userId: string) => {
   return profile ?? null;
 };
 
-// Create a new HOD account
-export const createHod = async (
-  input: CreateHodInput,
-  createdBy: string, // user id of the Super Admin / Principal creating the HOD
+export class StaffCreationError extends Error {
+  constructor(
+    message: string,
+    public readonly statusCode: number,
+  ) {
+    super(message);
+    this.name = "StaffCreationError";
+  }
+}
+
+// Shared account/staff/RBAC creation used by both the Principal staff API
+// and the existing HOD creation endpoint.
+export const createStaffAccount = async (
+  input: CreateStaffInput,
+  createdBy: string,
 ) => {
-  // Check whether the employee ID is already registered
+  const [existingUser] = await db
+    .select({ id: user.id })
+    .from(user)
+    .where(eq(user.email, input.email))
+    .limit(1);
+  if (existingUser) {
+    throw new StaffCreationError("Email is already registered.", 409);
+  }
+
   const [existingStaff] = await db
     .select({ id: staff.id })
     .from(staff)
     .where(eq(staff.employeeId, input.employeeId))
     .limit(1);
-
   if (existingStaff) {
-    throw new Error("Employee ID is already registered");
+    throw new StaffCreationError("Employee ID is already registered.", 409);
+  }
+
+  const [department] = await db
+    .select({ id: departments.id })
+    .from(departments)
+    .where(eq(departments.id, input.departmentId))
+    .limit(1);
+  if (!department) {
+    throw new StaffCreationError("Selected department was not found.", 400);
   }
 
   const temporaryPassword = randomBytes(32).toString("base64url");
+  let createdUser: { id: string; name: string; email: string } | undefined;
 
-  // Create the login account using Better Auth.
-  // The sign-up hook gives the new account the Student role.
-  const result = await auth.api.signUpEmail({
-    body: {
-      name: input.name,
-      email: input.email,
-      password: temporaryPassword,
-    },
-  });
-
-  if (!result.user) {
-    throw new Error("Unable to create the HOD login account");
-  }
-
-  // Save the staff record and the RBAC role together.
-  await db.transaction(async (tx) => {
-    await tx.insert(staff).values({
-      id: crypto.randomUUID(),
-      userId: result.user.id,
-      employeeId: input.employeeId,
-      role: "hod",
-      departmentId: Number(input.departmentId),
-      designation: input.designation,
-      phone: input.phone || null,
-      isActive: true,
+  try {
+    // Better Auth hashes this generated temporary password. It is never
+    // returned or sent to the new staff member.
+    const result = await auth.api.signUpEmail({
+      body: {
+        name: input.name,
+        email: input.email,
+        password: temporaryPassword,
+      },
     });
 
-    const [hodRole] = await tx
-      .select({ id: roles.id })
-      .from(roles)
-      .where(eq(roles.slug, "hod"))
-      .limit(1);
-
-    if (!hodRole) {
-      throw new Error("HOD role is missing. Run the RBAC seed script.");
+    if (!result.user) {
+      throw new Error("Unable to create the staff login account.");
     }
+    createdUser = result.user;
 
-    await tx
-      .insert(userRoles)
-      .values({
-        userId: result.user.id,
-        roleId: hodRole.id,
-        assignedBy: createdBy,
-      })
-      .onConflictDoNothing();
+    await db.transaction(async (tx) => {
+      await tx.insert(staff).values({
+        id: crypto.randomUUID(),
+        userId: createdUser!.id,
+        employeeId: input.employeeId,
+        role: input.role,
+        departmentId: input.departmentId,
+        designation: input.designation,
+        phone: input.phone || null,
+        isActive: true,
+      });
 
-    // A HOD is staff, not a student: drop the default Student role.
-    const [studentRole] = await tx
-      .select({ id: roles.id })
-      .from(roles)
-      .where(eq(roles.slug, "student"))
-      .limit(1);
+      const [staffRole] = await tx
+        .select({ id: roles.id })
+        .from(roles)
+        .where(eq(roles.slug, input.role))
+        .limit(1);
+      if (!staffRole) {
+        throw new Error(`${input.role.toUpperCase()} role is missing. Run the RBAC seed script.`);
+      }
 
-    if (studentRole) {
       await tx
-        .delete(userRoles)
-        .where(
-          and(
-            eq(userRoles.userId, result.user.id),
-            eq(userRoles.roleId, studentRole.id),
-          ),
-        );
+        .insert(userRoles)
+        .values({
+          userId: createdUser!.id,
+          roleId: staffRole.id,
+          assignedBy: createdBy,
+        })
+        .onConflictDoNothing();
+
+      const [studentRole] = await tx
+        .select({ id: roles.id })
+        .from(roles)
+        .where(eq(roles.slug, "student"))
+        .limit(1);
+      if (studentRole) {
+        await tx
+          .delete(userRoles)
+          .where(
+            and(
+              eq(userRoles.userId, createdUser!.id),
+              eq(userRoles.roleId, studentRole.id),
+            ),
+          );
+      }
+
+      await tx
+        .update(user)
+        .set({ role: input.role })
+        .where(eq(user.id, createdUser!.id));
+    });
+
+    // This uses Better Auth's existing sendResetPassword hook and EduNex
+    // email template to deliver the setup link.
+    await auth.api.requestPasswordReset({
+      body: {
+        email: createdUser.email,
+        redirectTo: `${process.env.WEB_URL || "http://localhost:3000"}/resetPassword`,
+      },
+    });
+  } catch (error) {
+    if (createdUser) {
+      // The auth user, staff record, and RBAC rows should not remain partial
+      // if the transaction or password setup email fails.
+      try {
+        await db.delete(user).where(eq(user.id, createdUser.id));
+      } catch {
+        // Preserve the original creation failure for the controller.
+      }
     }
 
-    // Keep the Better Auth role aligned with the EduNex RBAC role.
-    await tx
-      .update(user)
-      .set({ role: "hod" })
-      .where(eq(user.id, result.user.id));
-  });
+    const dbError = error as { code?: string; constraint?: string };
+    if (dbError.code === "23505") {
+      if (dbError.constraint?.includes("employee")) {
+        throw new StaffCreationError("Employee ID is already registered.", 409);
+      }
+      if (dbError.constraint?.includes("email")) {
+        throw new StaffCreationError("Email is already registered.", 409);
+      }
+    }
 
-  await auth.api.requestPasswordReset({
-    body: {
-      email: result.user.email,
-      redirectTo: `${process.env.WEB_URL || "http://localhost:3000"}/resetPassword`,
-    },
-  });
+    if (error instanceof StaffCreationError) throw error;
+    throw new StaffCreationError(
+      "Unable to create the staff account or send its password setup email.",
+      502,
+    );
+  }
 
   return {
-    id: result.user.id,
-    name: result.user.name,
-    email: result.user.email,
+    id: createdUser!.id,
+    name: createdUser!.name,
+    email: createdUser!.email,
     employeeId: input.employeeId,
-    role: "hod" as const,
+    role: input.role,
     departmentId: input.departmentId,
     designation: input.designation,
     phone: input.phone || null,
   };
+};
+
+// Keep the existing HOD endpoint and request shape while sharing the
+// account creation and password setup implementation.
+export const createHod = async (
+  input: CreateHodInput,
+  createdBy: string,
+) => {
+  const created = await createStaffAccount(
+    {
+      ...input,
+      role: "hod",
+      departmentId: Number(input.departmentId),
+    },
+    createdBy,
+  );
+
+  // Match the pre-existing HOD response field types and shape.
+  return { ...created, departmentId: input.departmentId, role: "hod" as const };
 };
 
 export const getDepartments = async () => {
