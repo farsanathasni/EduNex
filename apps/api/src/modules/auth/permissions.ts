@@ -10,6 +10,9 @@ const statement = {
 
 export const ac = createAccessControl(statement);
 
+// EduNex RBAC is the source of truth for permissions.
+export const superAdmin = ac.newRole({});
+
 // HOD account-management access is handled by EduNex RBAC, not Better Auth.
 export const hod = ac.newRole({});
 

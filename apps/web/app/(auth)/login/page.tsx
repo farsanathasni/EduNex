@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import { authClient } from "@/lib/auth-client";
+import { fetchMe, getDashboardPath } from "@/features/auth/api/me";
 import { LoginFormValues, loginSchema } from "@/features/auth/validation/login-schema";
 
 import Button from "@/components/ui/button";
@@ -43,7 +44,17 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/studentDashboard");
+      const me = await fetchMe();
+      const destination = getDashboardPath(me);
+
+      if (!destination) {
+        setServerError(
+          "Your account does not have a dashboard role assigned. Contact your administrator."
+        );
+        return;
+      }
+
+      router.replace(destination);
       router.refresh();
     } catch {
       setServerError(
@@ -155,18 +166,6 @@ export default function LoginPage() {
             Create an account
           </Link>
         </p>
-
-        <div className="mt-5 border-t border-border-subtle pt-5 text-center">
-          <p className="text-sm text-text-muted">
-            Are you a teacher?{" "}
-            <Link
-              href="/teacher-login"
-              className="font-semibold text-primary hover:underline"
-            >
-              Teacher Login
-            </Link>
-          </p>
-        </div>
 
         <p className="mt-6 text-center text-xs text-text-subtle">
           © {new Date().getFullYear()} EduNex Campus Management

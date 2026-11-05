@@ -104,6 +104,7 @@
 import { eq, and } from "drizzle-orm";
 import { db } from "../../config/database.js";
 import { auth } from "../../auth.js";
+import { user } from "../../db/schema/auth-schema.js";
 import { staff } from "../../db/schema/staff-schema.js";
 import type { CreateHodInput } from "../hod/hod.validation.js";
 import { departments } from "../../db/schema/others-schema.js";
@@ -204,6 +205,12 @@ export const createHod = async (
           ),
         );
     }
+
+    // Keep the Better Auth role aligned with the EduNex RBAC role.
+    await tx
+      .update(user)
+      .set({ role: "hod" })
+      .where(eq(user.id, result.user.id));
   });
 
   await auth.api.requestPasswordReset({
