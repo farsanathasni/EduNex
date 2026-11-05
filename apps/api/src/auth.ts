@@ -10,6 +10,7 @@ import { sendEmail } from "./utils/email.js";
 
 import {
   ac,
+  superAdmin,
   hod,
   teacher,
   clubCoordinator,
@@ -85,10 +86,11 @@ export const auth = betterAuth({
     admin({
       ac,
       roles: {
+        "super-admin": superAdmin,
         hod,
-        teacher,
+        faculty: teacher,
         student,
-        club_coordinator: clubCoordinator,
+        "club-coordinator": clubCoordinator,
       },
       defaultRole: "student",
       adminRoles: [],

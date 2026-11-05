@@ -15,18 +15,16 @@ import {
 import Button from "@/components/ui/button";
 import Card from "@/components/ui/card";
 import Input from "@/components/ui/input";
-import { fetchMe } from "../api/me";
+import { fetchMe, getDashboardPath } from "../api/me";
 
 type RoleLoginFormProps = {
   title: string;
   description: string;
-  // dashboardPath: string;
 };
 
 export default function RoleLoginForm({
   title,
   description,
-  // dashboardPath,
 }: RoleLoginFormProps) {
   const router = useRouter();
   const [serverError, setServerError] = useState("");
@@ -44,82 +42,38 @@ export default function RoleLoginForm({
     },
   });
 
-  // const handleLogin = async (values: LoginFormValues) => {
-  //   setServerError("");
-
-  //   try {
-  //     const { error } = await authClient.signIn.email({
-  //       email: values.email.trim(),
-  //       password: values.password,
-  //     });
-
-  //     if (error) {
-  //       setServerError(error.message || "Invalid email or password.");
-  //       return;
-  //     }
-
-  //     router.push(dashboardPath);
-  //     router.refresh();
-  //   } catch {
-  //     setServerError(
-  //       "Unable to log in. Please check your connection and try again."
-  //     );
-  //   }
-  // };
   const handleLogin = async (values: LoginFormValues) => {
-  setServerError("");
+    setServerError("");
 
-  try {
-    const { error } = await authClient.signIn.email({
-      email: values.email.trim(),
-      password: values.password,
-    });
+    try {
+      const { error } = await authClient.signIn.email({
+        email: values.email.trim(),
+        password: values.password,
+      });
 
-    if (error) {
-      setServerError(error.message || "Invalid email or password.");
-      return;
-    }
+      if (error) {
+        setServerError(error.message || "Invalid email or password.");
+        return;
+      }
 
-    // Fetch logged-in user's details and RBAC roles.
-    const me = await fetchMe();
+      const me = await fetchMe();
+      const destination = getDashboardPath(me);
 
-    // Student login
-    if (me.user.role === "student") {
-      router.replace("/studentDashboard");
-      router.refresh();
-      return;
-    }
-
-    // Teacher login: identify the actual RBAC role.
-    if (me.user.role === "teacher") {
-      const roleSlugs = me.roles.map((role) => role.slug);
-
-      if (roleSlugs.includes("super-admin")) {
-        router.replace("/principal/dashboard");
-      } else if (roleSlugs.includes("hod")) {
-        router.replace("/hod/dashboard");
-      } else if (roleSlugs.includes("faculty")) {
-        router.replace("/teacher/dashboard");
-      } else {
+      if (!destination) {
         setServerError(
-          "Your account does not have a valid staff role. Please contact the administrator.",
+          "Your account does not have a supported dashboard role. Please contact the administrator.",
         );
         return;
       }
 
+      router.replace(destination);
       router.refresh();
-      return;
+    } catch {
+      setServerError(
+        "Unable to log in or fetch your account details. Please try again.",
+      );
     }
-
-    setServerError("Your account has an unsupported role.");
-  } catch (error) {
-    console.error("Login error:", error);
-
-    setServerError(
-      "Unable to log in or fetch your account details. Please try again.",
-    );
-  }
-};
+  };
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4 py-10">

@@ -51,27 +51,38 @@ async function seedSuperAdmin() {
     );
   }
 
-  // 3. Check whether the account already has this role.
-  const [existingAssignment] = await db
-    .select({ id: userRoles.id })
-    .from(userRoles)
-    .where(
-      and(
-        eq(userRoles.userId, adminUser.id),
-        eq(userRoles.roleId, superAdminRole.id),
-      ),
-    )
-    .limit(1);
+  // 3. Assign the role, drop the default Student role, and align the
+  //    Better Auth role with the EduNex RBAC role.
+  await db.transaction(async (tx) => {
+    await tx
+      .insert(userRoles)
+      .values({
+        userId: adminUser.id,
+        roleId: superAdminRole.id,
+      })
+      .onConflictDoNothing();
 
-  if (existingAssignment) {
-    console.log("This account already has the Super Admin role.");
-    return;
-  }
+    const [studentRole] = await tx
+      .select({ id: roles.id })
+      .from(roles)
+      .where(eq(roles.slug, "student"))
+      .limit(1);
 
-  // 4. Assign the role to the existing account.
-  await db.insert(userRoles).values({
-    userId: adminUser.id,
-    roleId: superAdminRole.id,
+    if (studentRole) {
+      await tx
+        .delete(userRoles)
+        .where(
+          and(
+            eq(userRoles.userId, adminUser.id),
+            eq(userRoles.roleId, studentRole.id),
+          ),
+        );
+    }
+
+    await tx
+      .update(user)
+      .set({ role: "super-admin" })
+      .where(eq(user.id, adminUser.id));
   });
 
   console.log("Super Admin role assigned successfully.");

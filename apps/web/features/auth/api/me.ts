@@ -1,61 +1,52 @@
 import { useQuery } from "@tanstack/react-query";
 import { isAxiosError } from "axios";
 
-import { api } from "@/lib/axios";
+import {
+  getCurrentUser,
+  type CurrentUserData,
+  type UserRole,
+} from "./current-user";
 
-export type Role = { id?: number; slug: string; name?: string };
+export type Role = UserRole;
 
-// export type Me = {
-//   user: { id: string; name: string; email: string; image?: string | null };
-//   roles: Role[];
-//   /** "resource:action", e.g. "event:approve" */
-//   permissions: string[];
-//   coordinatedClubs: { id: number; name: string }[];
-//   profile: Record<string, unknown>;
-// };
-export type Me = {
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    image?: string | null;
-    role: "student" | "teacher";
-  };
-  roles: Role[];
-  permissions: string[];
-  coordinatedClubs: { id: number; name: string }[];
-  profile: Record<string, unknown>;
-};
-
-
-// Tolerant of small differences in the /api/me response.
-// Tighten once the real JSON is known.
-const normalize = (raw: any): Me => {
-  const data = raw?.data ?? raw;
-
-  return {
-    user: data.user,
-    roles: (data.roles ?? []).map((r: any) =>
-      typeof r === "string" ? { slug: r } : r,
-    ),
-    permissions: (data.permissions ?? []).map((p: any) =>
-      typeof p === "string" ? p : `${p.resource}:${p.action}`,
-    ),
-    coordinatedClubs: data.coordinatedClubs ?? data.clubs ?? [],
-    profile: data.profile ?? {},
-  };
-};
+export type Me = CurrentUserData;
 
 export const ME_KEY = ["me"] as const;
 
 export async function fetchMe(): Promise<Me> {
-  // If your axios baseURL already ends with "/api", use "/me" instead.
-  const res = await api.get("/me");
-  return normalize(res.data);
+  return getCurrentUser();
 }
 
 export const isUnauthorized = (error: unknown) =>
   isAxiosError(error) && error.response?.status === 401;
+
+export function getDashboardPath(me: Me): string | null {
+  const roleSlugs = new Set(me.roles.map((role) => role.slug));
+
+  if (me.isSuperAdmin || roleSlugs.has("super-admin")) {
+    return "/principal";
+  }
+
+  if (roleSlugs.has("hod")) {
+    return "/hod/dashboard";
+  }
+
+  if (roleSlugs.has("faculty")) {
+    return "/teacher/dashboard";
+  }
+
+  // Students keep their normal dashboard, including students who are also
+  // club coordinators. The existing mode switch handles their club workspace.
+  if (roleSlugs.has("student")) {
+    return "/studentDashboard";
+  }
+
+  if (roleSlugs.has("club-coordinator")) {
+    return "/club-coordinator/events";
+  }
+
+  return null;
+}
 
 export function useMe() {
   return useQuery({

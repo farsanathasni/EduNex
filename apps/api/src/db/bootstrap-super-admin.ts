@@ -71,12 +71,38 @@ async function bootstrapSuperAdmin() {
     )
     .limit(1);
 
-  if (!existingAssignment) {
-    await db.insert(userRoles).values({
-      userId: adminUser.id,
-      roleId: superAdminRole.id,
-    });
-  }
+  await db.transaction(async (tx) => {
+    if (!existingAssignment) {
+      await tx.insert(userRoles).values({
+        userId: adminUser.id,
+        roleId: superAdminRole.id,
+      });
+    }
+
+    // A Super Admin is staff, not a student: drop the default Student role.
+    const [studentRole] = await tx
+      .select({ id: roles.id })
+      .from(roles)
+      .where(eq(roles.slug, "student"))
+      .limit(1);
+
+    if (studentRole) {
+      await tx
+        .delete(userRoles)
+        .where(
+          and(
+            eq(userRoles.userId, adminUser.id),
+            eq(userRoles.roleId, studentRole.id),
+          ),
+        );
+    }
+
+    // Keep the Better Auth role aligned with the EduNex RBAC role.
+    await tx
+      .update(user)
+      .set({ role: "super-admin" })
+      .where(eq(user.id, adminUser.id));
+  });
 
   console.log("Super Admin role is assigned.");
   console.log(`Account: ${adminUser.email}`);
