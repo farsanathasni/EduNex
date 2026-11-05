@@ -2,12 +2,15 @@
 
 import { useAccess } from "@/lib/navigation/access";
 import Link from "next/link";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 
 
 // One dashboard for every role: the cards are the sidebar pages the
 // current user is allowed to open (same source: lib/nav.ts).
 export default function DashboardPage() {
+  const router = useRouter();
   const {
     me,
     navItems,
@@ -16,7 +19,16 @@ export default function DashboardPage() {
     isSuperAdmin,
   } = useAccess();
 
+  const isPrincipalAdmin = isSuperAdmin || hasRole("super-admin");
+
+  useEffect(() => {
+    if (me && isPrincipalAdmin) router.replace("/principal");
+  }, [me, isPrincipalAdmin, router]);
+
   if (!me) return null;
+  if (isPrincipalAdmin) {
+    return <p className="py-10 text-text-muted">Opening Principal dashboard...</p>;
+  }
 
   const cards = navItems.filter((item) => item.href !== "/dashboard");
   const isStudentCoordinatorWorkspace =

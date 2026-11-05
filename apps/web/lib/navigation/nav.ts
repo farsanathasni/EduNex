@@ -77,6 +77,13 @@ export const NAV: NavItem[] = [
     permission: ["staff", "view"],
   },
   {
+    label: "Staff Management",
+    href: "/hod/staff",
+    icon: "\u2659",
+    roles: HOD,
+    permission: ["staff", "view"],
+  },
+  {
     label: "Students",
     href: "/hod/students",
     icon: "♧",
@@ -203,25 +210,27 @@ export const isNavVisible = (
   item: NavItem,
   ctx: {
     mode: Mode;
+    isSuperAdmin: boolean;
     hasAnyRole: (slugs: string[]) => boolean;
     can: (resource: string, action: string) => boolean;
   },
 ) => {
-  const isSuperAdmin = ctx.hasAnyRole(["super-admin"]);
+  const isSuperAdmin =
+    ctx.isSuperAdmin || ctx.hasAnyRole(["super-admin"]);
+
+  if (item.href === "/dashboard" && isSuperAdmin) {
+    return false;
+  }
 
   const roleAllowed =
-    !item.roles ||
-    ctx.hasAnyRole(item.roles) ||
-    isSuperAdmin;
+    !item.roles || ctx.hasAnyRole(item.roles);
 
   const permissionAllowed =
     !item.permission ||
     ctx.can(item.permission[0], item.permission[1]);
 
   const modeAllowed =
-    !item.mode ||
-    ctx.mode === item.mode ||
-    isSuperAdmin;
+    !item.mode || ctx.mode === item.mode;
 
   return roleAllowed && permissionAllowed && modeAllowed;
 };

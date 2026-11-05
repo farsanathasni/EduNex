@@ -1,3 +1,5 @@
+
+
 "use client";
 
 import { useEffect } from "react";
@@ -63,10 +65,19 @@ export function RouteGuard({
     isSuperAdmin ||
     (roleAllowed && permissionAllowed && coordinatorAllowed);
 
+  const isPrincipalAdmin =
+    isSuperAdmin || hasAnyRole(["super-admin"]);
+
+  const deniedAccessDestination = isPrincipalAdmin
+    ? "/principal"
+    : coordinatorOnly
+      ? "/studentDashboard"
+      : "/dashboard";
+
   const redirectTo = loginRequired
     ? "/login"
     : !isPending && !isError && me && !routeAllowed
-      ? "/studentDashboard"
+      ? deniedAccessDestination
       : null;
 
   useEffect(() => {

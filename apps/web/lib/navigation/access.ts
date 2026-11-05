@@ -68,6 +68,7 @@ const mode: Mode = canSwitchMode
     NAV.filter((item) =>
       isNavVisible(item, {
         mode: targetMode,
+        isSuperAdmin,
         hasAnyRole,
         can,
       }),
