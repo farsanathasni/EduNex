@@ -128,11 +128,14 @@ import {
   getStaffProfile,
   createHod,
   createStaffAccount,
+  createStudentAccount,
   StaffCreationError,
   getDepartments,
 } from "./principal.service.js";
 import { createHodSchema } from "../hod/hod.validation.js";
 import { createStaffSchema } from "../staff/staff.validation.js";
+import { createManagedStudentSchema } from "../students/student.validation.js";
+import type { Access } from "../rbac/rbac.access.js";
 
 // Access is decided by the rbac() middleware on the router
 // (admin:view, staff:create, department:view), so these handlers
@@ -252,6 +255,43 @@ export const CreateStaff = asyncHandler(
           success: false,
           message: error.message,
         });
+      }
+      throw error;
+    }
+  },
+);
+
+export const CreateStudent = asyncHandler(
+  async (req: Request, res: Response) => {
+    if (!res.locals.user) {
+      return res.status(401).json({ success: false, message: "Please log in first." });
+    }
+    if (!(res.locals.access as Access | undefined)?.isSuperAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Only the Principal can create managed student accounts.",
+      });
+    }
+
+    const validation = createManagedStudentSchema.safeParse(req.body);
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid student details.",
+        errors: validation.error.flatten(),
+      });
+    }
+
+    try {
+      const student = await createStudentAccount(validation.data);
+      return res.status(201).json({
+        success: true,
+        message: "Student account created. A password setup email has been sent.",
+        data: student,
+      });
+    } catch (error) {
+      if (error instanceof StaffCreationError) {
+        return res.status(error.statusCode).json({ success: false, message: error.message });
       }
       throw error;
     }

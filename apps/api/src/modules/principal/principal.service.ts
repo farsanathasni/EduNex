@@ -111,6 +111,8 @@ import { departments } from "../../db/schema/others-schema.js";
 import { roles, userRoles } from "../../db/schema/rbac-schema.js";
 import { randomBytes } from "node:crypto";
 import type { CreateStaffInput } from "../staff/staff.validation.js";
+import type { CreateManagedStudentInput } from "../students/student.validation.js";
+import { StudentProfile } from "../../db/schema/student-profile.js";
 
 // Optional staff record for display (employee ID, designation).
 // Permissions come from RBAC, not from this table, so a Super Admin
@@ -304,6 +306,101 @@ export const createHod = async (
 
   // Match the pre-existing HOD response field types and shape.
   return { ...created, departmentId: input.departmentId, role: "hod" as const };
+};
+
+export const createStudentAccount = async (
+  input: CreateManagedStudentInput,
+) => {
+  const [existingAccount] = await db
+    .select({ id: user.id })
+    .from(user)
+    .where(eq(user.email, input.email))
+    .limit(1);
+  if (existingAccount) {
+    throw new StaffCreationError("Email is already registered.", 409);
+  }
+
+  const [existingAdmission] = await db
+    .select({ id: StudentProfile.id })
+    .from(StudentProfile)
+    .where(eq(StudentProfile.admissionNumber, input.admissionNumber))
+    .limit(1);
+  if (existingAdmission) {
+    throw new StaffCreationError("Admission number is already registered.", 409);
+  }
+
+  const [department] = await db
+    .select({ id: departments.id })
+    .from(departments)
+    .where(eq(departments.id, input.departmentId))
+    .limit(1);
+  if (!department) {
+    throw new StaffCreationError("Selected department was not found.", 400);
+  }
+
+  let createdUser: { id: string; name: string; email: string } | undefined;
+  try {
+    // Better Auth creates a random temporary credential and its existing
+    // user hook assigns the Student role. The credential is never returned.
+    const result = await auth.api.signUpEmail({
+      body: {
+        name: input.name,
+        email: input.email,
+        password: randomBytes(32).toString("base64url"),
+      },
+    });
+    if (!result.user) throw new Error("Unable to create the student login account.");
+    createdUser = result.user;
+
+    await db.insert(StudentProfile).values({
+      userId: createdUser.id,
+      name: input.name,
+      admissionNumber: input.admissionNumber,
+      departmentId: input.departmentId,
+      semester: input.semester,
+      phone: input.phone || null,
+    });
+
+    // Uses Better Auth's existing reset-password email template and setup link.
+    await auth.api.requestPasswordReset({
+      body: {
+        email: createdUser.email,
+        redirectTo: `${process.env.WEB_URL || "http://localhost:3000"}/resetPassword`,
+      },
+    });
+  } catch (error) {
+    if (createdUser) {
+      try {
+        await db.delete(user).where(eq(user.id, createdUser.id));
+      } catch {
+        // Preserve the original account/setup failure.
+      }
+    }
+
+    const dbError = error as { code?: string; constraint?: string };
+    if (dbError.code === "23505") {
+      if (dbError.constraint?.toLowerCase().includes("admission")) {
+        throw new StaffCreationError("Admission number is already registered.", 409);
+      }
+      if (dbError.constraint?.toLowerCase().includes("email")) {
+        throw new StaffCreationError("Email is already registered.", 409);
+      }
+    }
+    if (error instanceof StaffCreationError) throw error;
+    throw new StaffCreationError(
+      "Unable to create the student account or send its password setup email.",
+      502,
+    );
+  }
+
+  return {
+    name: createdUser!.name,
+    email: createdUser!.email,
+    admissionNumber: input.admissionNumber,
+    departmentId: input.departmentId,
+    semester: input.semester,
+    phone: input.phone || null,
+  };
 };
 
 export const getDepartments = async () => {

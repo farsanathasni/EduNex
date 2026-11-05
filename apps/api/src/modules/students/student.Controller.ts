@@ -39,6 +39,15 @@ const getScope = async (res: Response) => {
   };
 };
 
+const requirePrincipal = (res: Response) => {
+  if ((res.locals.access as Access).isSuperAdmin) return true;
+  res.status(403).json({
+    success: false,
+    message: "Only the Principal can manage coordinator assignments.",
+  });
+  return false;
+};
+
 // Create a student profile.
 export const CreateStudentProfile = asyncHandler(
   async (req: Request, res: Response) => {
@@ -344,6 +353,7 @@ export const DeleteStudentProfile = asyncHandler(
 // Create a coordinator assignment (HOD: own department, Super Admin: any).
 export const CreateCoordinator = asyncHandler(
   async (req: Request, res: Response) => {
+    if (!requirePrincipal(res)) return;
     const user = res.locals.user;
 
     if (!user) {
@@ -352,9 +362,6 @@ export const CreateCoordinator = asyncHandler(
         message: "Unauthorized. Please log in.",
       });
     }
-
-    const resolved = await getScope(res);
-    if (!resolved) return;
 
     const studentId = Number(req.body.studentId);
     const clubId = Number(req.body.clubId);
@@ -376,7 +383,7 @@ export const CreateCoordinator = asyncHandler(
         studentId,
         clubId,
         user.id,
-        resolved.departmentId,
+        undefined,
       );
 
       return res.status(201).json({
@@ -388,6 +395,9 @@ export const CreateCoordinator = asyncHandler(
       });
     } catch (error) {
       if (error instanceof Error) {
+        if ((error as Error & { code?: string }).code === "23505") {
+          return res.status(409).json({ success: false, message: "This student is already assigned to this club." });
+        }
         switch (error.message) {
           case "STUDENT_NOT_FOUND_OR_FORBIDDEN":
             return res.status(404).json({
@@ -425,8 +435,7 @@ export const CreateCoordinator = asyncHandler(
 // Get coordinator assignments with search and pagination.
 export const GetCoordinatorAssignments = asyncHandler(
   async (req: Request, res: Response) => {
-    const resolved = await getScope(res);
-    if (!resolved) return;
+    if (!requirePrincipal(res)) return;
 
     const page = Number(req.query.page ?? 1);
     const limit = Number(req.query.limit ?? 10);
@@ -449,7 +458,7 @@ export const GetCoordinatorAssignments = asyncHandler(
     }
 
     const result = await studentService.getCoordinatorAssignments(
-      resolved.departmentId,
+      undefined,
       search,
       page,
       limit,
@@ -464,11 +473,10 @@ export const GetCoordinatorAssignments = asyncHandler(
   },
 );
 
-// Update a coordinator assignment (HOD: own department, Super Admin: any).
+// Update a coordinator assignment (Principal only).
 export const UpdateCoordinator = asyncHandler(
   async (req: Request, res: Response) => {
-    const resolved = await getScope(res);
-    if (!resolved) return;
+    if (!requirePrincipal(res)) return;
 
     const assignmentId = Number(req.params.assignmentId);
     const studentId = Number(req.body.studentId);
@@ -493,7 +501,7 @@ export const UpdateCoordinator = asyncHandler(
         assignmentId,
         studentId,
         clubId,
-        resolved.departmentId,
+        undefined,
       );
 
       return res.status(200).json({
@@ -540,5 +548,25 @@ export const UpdateCoordinator = asyncHandler(
 
       throw error;
     }
+  },
+);
+
+export const DeleteCoordinator = asyncHandler(
+  async (req: Request, res: Response) => {
+    if (!requirePrincipal(res)) return;
+    const assignmentId = Number(req.params.assignmentId);
+    if (!Number.isSafeInteger(assignmentId) || assignmentId <= 0) {
+      return res.status(400).json({ success: false, message: "Invalid assignment ID." });
+    }
+
+    const removed = await studentService.deleteCoordinator(assignmentId);
+    if (!removed) {
+      return res.status(404).json({ success: false, message: "Coordinator assignment not found." });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Coordinator assignment removed successfully.",
+    });
   },
 );

@@ -11,7 +11,6 @@ export default function HodStudentDetailsRoute() {
       studentId={studentId}
       directoryHref="/hod/students"
       canEdit
-      canAssignCoordinator
     />
   );
 }

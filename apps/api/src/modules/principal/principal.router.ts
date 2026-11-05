@@ -47,6 +47,7 @@ import {
   GetPrincipalDashboard,
   CreateHod,
   CreateStaff,
+  CreateStudent,
   GetDepartments,
 } from "./principal.controller.js";
 import { requireAuth } from "../../middleware/auth.middleware.js";
@@ -78,6 +79,13 @@ principalRouter.post(
   requireAuth,
   rbac("staff", "create"),
   CreateStaff,
+);
+
+principalRouter.post(
+  "/students",
+  requireAuth,
+  rbac("student", "create"),
+  CreateStudent,
 );
 
 // Get departments

@@ -279,9 +279,6 @@ const rolePermissionMap: Record<string, string[]> = {
     "club:view",
     "club:create",
     "club:update",
-    "coordinator:view",
-    "coordinator:create",
-    "coordinator:update",
     "event:view",
     // Approving or rejecting event requests. Coordinators and faculty
     // have event:update but must NOT be able to approve.

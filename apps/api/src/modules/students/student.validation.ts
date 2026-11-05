@@ -31,6 +31,20 @@ export const createStudentProfileSchema = z.object({
     ),
 });
 
+export const createManagedStudentSchema = z.object({
+  name: z.string().trim().min(1, "Name is required").max(100),
+  email: z.string().trim().email("Enter a valid email address").max(254),
+  admissionNumber: z.string().trim().min(1, "Admission number is required").max(30),
+  departmentId: z.coerce.number().int().positive("Select a valid department"),
+  semester: z.coerce.number().int().min(1).max(8),
+  phone: z.string().trim().refine(
+    (phone) => !phone || isPossiblePhoneNumber(phone),
+    "Enter a valid international phone number.",
+  ).optional(),
+});
+
+export type CreateManagedStudentInput = z.infer<typeof createManagedStudentSchema>;
+
 export type CreateStudentProfileInput = z.infer<
   typeof createStudentProfileSchema
 >;

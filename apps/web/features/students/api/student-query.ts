@@ -1,4 +1,4 @@
-import { CreateStudentProfile, deleteStudent, getStudentById, getStudentProfile, getStudents, updateStudent, type StudentListParams, type StudentProfileInput, type UpdateStudentInput } from "@/features/students/api/student";
+import { CreateStudentProfile, createManagedStudent, deleteStudent, getStudentById, getStudentProfile, getStudents, updateStudent, type CreateManagedStudentInput, type StudentListParams, type StudentProfileInput, type UpdateStudentInput } from "@/features/students/api/student";
 import {useMutation, useQuery, useQueryClient,} from "@tanstack/react-query";
 
 export const StudentProfileKey = ["student-profile"] as const;
@@ -41,6 +41,16 @@ export const useDeleteStudent = () => {
     onSuccess: async (_data, studentId) => {
       await queryClient.invalidateQueries({ queryKey: StudentListKey });
       await queryClient.invalidateQueries({ queryKey: studentDetailKey(studentId) });
+    },
+  });
+};
+
+export const useCreateManagedStudent = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: CreateManagedStudentInput) => createManagedStudent(input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: StudentListKey });
     },
   });
 };

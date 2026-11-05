@@ -3,6 +3,7 @@ import {
   and,
   count,
   ilike,
+  inArray,
   or,
   type SQL,
 } from "drizzle-orm";
@@ -301,23 +302,43 @@ export const studentService = {
     studentId: number,
     departmentId?: number, // set = HOD (own department only), undefined = Super Admin
   ) => {
-    const result = await db
-      .update(StudentProfile)
-      .set({
-        isDeleted: true,
-      })
-      .where(
-        and(
+    const [profile] = await db
+      .select({ userId: StudentProfile.userId })
+      .from(StudentProfile)
+      .where(and(
+        eq(StudentProfile.id, studentId),
+        eq(StudentProfile.isDeleted, false),
+        inDepartment(StudentProfile.departmentId, departmentId),
+      ))
+      .limit(1);
+    if (!profile) return null;
+
+    return db.transaction(async (tx) => {
+      const [deletedProfile] = await tx
+        .update(StudentProfile)
+        .set({ isDeleted: true })
+        .where(and(
           eq(StudentProfile.id, studentId),
           eq(StudentProfile.isDeleted, false),
           inDepartment(StudentProfile.departmentId, departmentId),
-        ),
-      )
-      .returning();
+        ))
+        .returning();
+      if (!deletedProfile) return null;
 
-    return Array.isArray(result)
-      ? result[0] ?? null
-      : null;
+      // Keep the user, profile, assignments, and historical records, while
+      // removing the RBAC roles that grant Student/Coordinator access.
+      const revokedRoles = await tx
+        .select({ id: roles.id })
+        .from(roles)
+        .where(or(eq(roles.slug, "student"), eq(roles.slug, "club-coordinator")));
+      if (revokedRoles.length > 0) {
+        await tx.delete(userRoles).where(and(
+          eq(userRoles.userId, profile.userId),
+          inArray(userRoles.roleId, revokedRoles.map((role) => role.id)),
+        ));
+      }
+      return deletedProfile;
+    });
   },
 
   // Create a coordinator assignment.
@@ -532,8 +553,10 @@ export const studentService = {
         .select({
           id: coordinatorAssignments.id,
           studentId: coordinatorAssignments.studentId,
+          departmentId: StudentProfile.departmentId,
           studentName: StudentProfile.name,
           admissionNumber: StudentProfile.admissionNumber,
+          departmentName: departments.name,
           clubId: coordinatorAssignments.clubId,
           clubName: clubs.name,
           appointedBy: coordinatorAssignments.appointedBy,
@@ -551,6 +574,7 @@ export const studentService = {
           clubs,
           eq(coordinatorAssignments.clubId, clubs.id),
         )
+        .innerJoin(departments, eq(StudentProfile.departmentId, departments.id))
         .where(whereCondition)
         .limit(limit)
         .offset(offset),
@@ -569,6 +593,7 @@ export const studentService = {
           clubs,
           eq(coordinatorAssignments.clubId, clubs.id),
         )
+        .innerJoin(departments, eq(StudentProfile.departmentId, departments.id))
         .where(whereCondition),
     ]);
 
@@ -751,6 +776,46 @@ export const studentService = {
       }
 
       return assignment;
+    });
+  },
+
+  // Remove one coordinator-to-club assignment without deleting the student.
+  // The coordinator role is removed only when no other assignments remain.
+  deleteCoordinator: async (assignmentId: number) => {
+    const [existing] = await db
+      .select({
+        studentId: coordinatorAssignments.studentId,
+        userId: StudentProfile.userId,
+      })
+      .from(coordinatorAssignments)
+      .innerJoin(StudentProfile, eq(coordinatorAssignments.studentId, StudentProfile.id))
+      .where(and(
+        eq(coordinatorAssignments.id, assignmentId),
+        eq(StudentProfile.isDeleted, false),
+      ))
+      .limit(1);
+    if (!existing) return null;
+
+    const coordinatorRole = await getClubCoordinatorRole();
+    return db.transaction(async (tx) => {
+      const [removed] = await tx
+        .delete(coordinatorAssignments)
+        .where(eq(coordinatorAssignments.id, assignmentId))
+        .returning({ id: coordinatorAssignments.id });
+      if (!removed) return null;
+
+      const [remaining] = await tx
+        .select({ id: coordinatorAssignments.id })
+        .from(coordinatorAssignments)
+        .where(eq(coordinatorAssignments.studentId, existing.studentId))
+        .limit(1);
+      if (!remaining) {
+        await tx.delete(userRoles).where(and(
+          eq(userRoles.userId, existing.userId),
+          eq(userRoles.roleId, coordinatorRole.id),
+        ));
+      }
+      return removed;
     });
   },
 };

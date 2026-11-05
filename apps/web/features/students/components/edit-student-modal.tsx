@@ -6,7 +6,7 @@ import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
 import { useDepartment } from "@/features/departments/api/department-query";
 import type { Department } from "@/features/departments/api/department";
-import { retryUnlessAuthError, useCoordinatorAssignments, useCreateCoordinator } from "@/features/coordinator/api/coordinator-query";
+import { retryUnlessAuthError, useCoordinatorAssignments, useCreateCoordinator, useDeactivateCoordinator, useUpdateCoordinator } from "@/features/coordinator/api/coordinator-query";
 import { useClubsQuery } from "@/features/clubs/api/club-query";
 import type { StudentListItem } from "@/features/students/api/student";
 import { useUpdateStudent } from "@/features/students/api/student-query";
@@ -155,6 +155,7 @@ export default function EditStudentModal({
 
 function CoordinatorAssignmentPanel({ student }: { student: StudentListItem }) {
   const [clubId, setClubId] = useState("");
+  const [selectedClubs, setSelectedClubs] = useState<Record<number, string>>({});
   const [successMessage, setSuccessMessage] = useState("");
   const clubsQuery = useClubsQuery(retryUnlessAuthError);
   const assignmentsQuery = useCoordinatorAssignments({
@@ -163,8 +164,10 @@ function CoordinatorAssignmentPanel({ student }: { student: StudentListItem }) {
     limit: 100,
   });
   const createMutation = useCreateCoordinator();
+  const updateMutation = useUpdateCoordinator();
+  const deleteMutation = useDeactivateCoordinator();
 
-  const assignments = (assignmentsQuery.data ?? []).filter(
+  const assignments = (assignmentsQuery.data?.assignments ?? []).filter(
     (assignment) => assignment.studentId === student.id,
   );
   const assignedClubIds = new Set(assignments.map((assignment) => assignment.clubId));
@@ -197,11 +200,48 @@ function CoordinatorAssignmentPanel({ student }: { student: StudentListItem }) {
       ) : (
         <>
           {assignments.length > 0 && (
-            <div className="text-sm text-text-muted">
-              <p>Already assigned to:</p>
-              <ul className="mt-1 list-inside list-disc">
-                {assignments.map((assignment) => <li key={assignment.id}>{assignment.clubName}</li>)}
-              </ul>
+            <div className="space-y-3">
+              <p className="text-sm font-medium">Current assignments</p>
+              {assignments.map((assignment) => (
+                <div key={assignment.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-border p-3">
+                  <span className="min-w-32 flex-1 text-sm">{assignment.clubName}</span>
+                  <select
+                    value={selectedClubs[assignment.id] ?? String(assignment.clubId)}
+                    onChange={(event) => setSelectedClubs((current) => ({ ...current, [assignment.id]: event.target.value }))}
+                    className="min-w-40 flex-1 rounded-lg border border-border bg-background px-3 py-2 text-sm"
+                    disabled={updateMutation.isPending || deleteMutation.isPending}
+                    aria-label={`Change ${student.name}'s club assignment`}
+                  >
+                    {clubsQuery.data?.filter((club) => club.departmentId === student.departmentId).map((club) => (
+                      <option key={club.id} value={club.id}>{club.name}</option>
+                    ))}
+                  </select>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={updateMutation.isPending || deleteMutation.isPending || Number(selectedClubs[assignment.id] ?? assignment.clubId) === assignment.clubId}
+                  onClick={() => {
+                    const nextClubId = Number(selectedClubs[assignment.id]);
+                    updateMutation.mutate({ assignmentId: assignment.id, input: { studentId: student.id, clubId: nextClubId } }, {
+                      onSuccess: () => { setSuccessMessage("Coordinator assignment updated."); setSelectedClubs((current) => ({ ...current, [assignment.id]: String(nextClubId) })); },
+                    });
+                  }}
+                  >{updateMutation.isPending ? "Saving..." : "Change club"}</Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="border-red-200 text-red-700 hover:bg-red-50"
+                    disabled={deleteMutation.isPending || updateMutation.isPending}
+                    onClick={() => {
+                      if (window.confirm(`Remove ${student.name}'s assignment to ${assignment.clubName}?`)) {
+                        deleteMutation.mutate(assignment.id, { onSuccess: () => setSuccessMessage("Coordinator assignment removed.") });
+                      }
+                    }}
+                  >{deleteMutation.isPending ? "Removing..." : "Remove"}</Button>
+                </div>
+              ))}
             </div>
           )}
           {availableClubs.length > 0 ? (
@@ -230,6 +270,7 @@ function CoordinatorAssignmentPanel({ student }: { student: StudentListItem }) {
           {createMutation.error && (
             <p role="alert" className="text-sm text-red-600">{createMutation.error.message || "Unable to assign coordinator."}</p>
           )}
+          {(updateMutation.error || deleteMutation.error) && <p role="alert" className="text-sm text-red-600">{updateMutation.error?.message || deleteMutation.error?.message || "Unable to update coordinator assignments."}</p>}
           {successMessage && <p role="status" className="text-sm text-green-700">{successMessage}</p>}
         </>
       )}

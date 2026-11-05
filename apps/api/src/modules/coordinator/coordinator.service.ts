@@ -17,7 +17,10 @@ export const getCoordinatorStatus = async (
       id: StudentProfile.id,
     })
     .from(StudentProfile)
-    .where(eq(StudentProfile.userId, userId))
+    .where(and(
+      eq(StudentProfile.userId, userId),
+      eq(StudentProfile.isDeleted, false),
+    ))
     .limit(1);
 
   if (!student) {
