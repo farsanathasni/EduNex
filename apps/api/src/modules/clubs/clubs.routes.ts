@@ -33,30 +33,35 @@ clubsRouter.get(
 clubsRouter.get(
   "/student",
   requireAuth,
+  rbac("club", "view"),
   GetStudentClubs,
 );
 
 clubsRouter.get(
   "/student/:clubId",
   requireAuth,
+  rbac("club", "view"),
   GetStudentClubById,
 );
 
 clubsRouter.get(
   "/student/:clubId/coordinators",
   requireAuth,
+  rbac("club", "view"),
   GetStudentClubCoordinators,
 );
 
 clubsRouter.get(
   "/student/:clubId/events",
   requireAuth,
+  rbac("club", "view"),
   GetStudentClubEvents,
 );
 
 clubsRouter.get(
   "/student/:clubId/announcements",
   requireAuth,
+  rbac("club", "view"),
   GetStudentClubAnnouncements,
 );
 
@@ -64,6 +69,7 @@ clubsRouter.get(
 clubsRouter.get(
   "/student/my/memberships",
   requireAuth,
+  rbac("club", "view"),
   GetMyStudentMembershipRequests,
 );
 
@@ -80,6 +86,7 @@ clubsRouter.post(
 clubsRouter.post(
   "/student/:clubId/membership",
   requireAuth,
+  rbac("club", "view"),
   CreateStudentMembershipRequest,
 );
 
@@ -88,6 +95,7 @@ clubsRouter.post(
 clubsRouter.get(
   "/coordinator/membership-requests",
   requireAuth,
+  rbac("club", "update"),
   GetCoordinatorMembershipRequests,
 );
 
@@ -95,6 +103,7 @@ clubsRouter.get(
 clubsRouter.patch(
   "/coordinator/membership-requests/:requestId",
   requireAuth,
+  rbac("club", "update"),
   ReviewClubMembershipRequest,
 );
 
@@ -102,6 +111,7 @@ clubsRouter.patch(
 clubsRouter.get(
   "/coordinator/members",
   requireAuth,
+  rbac("club", "update"),
   GetCoordinatorClubMembers,
 );
 

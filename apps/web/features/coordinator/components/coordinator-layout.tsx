@@ -4,23 +4,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { useAccess } from "@/lib/navigation/access";
+import { ModeSwitch } from "@/components/layout/mode-switch";
 
-const navigation = [
-  { name: "Dashboard", href: "/club-coordinator/dashboard", icon: "▦" },
-  { name: "Browse Events", href: "/club-coordinator/events", icon: "◷" },
-  {
-    name: "Membership Requests",
-    href: "/club-coordinator/membership-requests",
-    icon: "👥",
-  },
-  {
-  name: "Club Members",
-  href: "/club-coordinator/members",
-  icon: "👥",
-},
-  { name: "Request for Event", href: "/club-coordinator/request-event", icon: "+" },
-  { name: "Profile", href: "/club-coordinator/profile", icon: "♙" },
-];
 
 export default function CoordinatorLayout({
   children,
@@ -28,6 +14,31 @@ export default function CoordinatorLayout({
   children: ReactNode;
 }) {
   const pathname = usePathname();
+  const { getNavItems, mode, isSuperAdmin } = useAccess();
+  const navigation = getNavItems(mode)
+    .filter(
+      (item) =>
+        item.href === "/dashboard" ||
+        item.href.startsWith("/club-coordinator/"),
+    )
+    .map((item) => ({
+      ...item,
+      name:
+        item.href === "/dashboard"
+          ? "Dashboard"
+          : item.href === "/club-coordinator/events"
+          ? "Browse Events"
+          : item.label,
+      icon:
+        item.href === "/dashboard"
+          ? "\u25a6"
+          : item.href === "/club-coordinator/events"
+          ? "\u25f7"
+          : item.href === "/club-coordinator/membership-requests" ||
+              item.href === "/club-coordinator/members"
+            ? "\u{1f465}"
+            : item.icon,
+    }));
   const currentPage =
     navigation.find((item) => item.href === pathname)?.name ?? "Dashboard";
 
@@ -102,20 +113,25 @@ export default function CoordinatorLayout({
             </h2>
           </div>
 
-          <Link
-            href="/club-coordinator/profile"
-            className="flex items-center gap-3 rounded-xl p-1 hover:bg-slate-50"
-          >
-            <div className="hidden text-right sm:block">
-              <p className="text-sm font-semibold text-slate-800">
-                Alex Johnson
-              </p>
-              <p className="text-xs text-slate-500">Club Coordinator</p>
-            </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 font-bold text-indigo-700">
-              AJ
-            </div>
-          </Link>
+          <div className="flex items-center gap-3">
+            <ModeSwitch />
+            {(mode === "coordinator" || isSuperAdmin) && (
+              <Link
+                href="/club-coordinator/profile"
+                className="flex items-center gap-3 rounded-xl p-1 hover:bg-slate-50"
+              >
+                <div className="hidden text-right sm:block">
+                  <p className="text-sm font-semibold text-slate-800">
+                    Alex Johnson
+                  </p>
+                  <p className="text-xs text-slate-500">Club Coordinator</p>
+                </div>
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 font-bold text-indigo-700">
+                  AJ
+                </div>
+              </Link>
+            )}
+          </div>
         </header>
 
         <main className="mx-auto w-full max-w-[1600px] p-5 sm:p-8">

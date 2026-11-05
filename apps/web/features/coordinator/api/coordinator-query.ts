@@ -125,11 +125,12 @@ export const useCoordinatorStatusQuery = () => {
 };
 
 // Membership requests
-export const useCoordinatorMembershipRequests = () => {
+export const useCoordinatorMembershipRequests = (enabled = true) => {
   return useQuery({
     queryKey: ["coordinator", "membership-requests"],
     queryFn: getCoordinatorMembershipRequests,
     retry: retryUnlessAuthError,
+    enabled,
   });
 };
 
@@ -159,10 +160,11 @@ export const useReviewClubMembershipRequest = () => {
 };
 
 // Club members
-export const useCoordinatorClubMembers = () => {
+export const useCoordinatorClubMembers = (enabled = true) => {
   return useQuery({
     queryKey: ["coordinator", "club-members"],
     queryFn: getCoordinatorClubMembers,
     retry: retryUnlessAuthError,
+    enabled,
   });
 };

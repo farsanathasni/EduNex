@@ -133,8 +133,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </button>
 
           <div className="flex-1">
-            <p className="font-semibold">{me.user.name}</p>
-            <p className="text-xs text-text-muted">{me.user.email}</p>
+            <p className="font-semibold">{me.user?.name ?? "User"}</p>
+<p className="text-xs text-text-muted">{me.user?.email ?? ""}</p>
           </div>
 
           <ModeSwitch />

@@ -53,8 +53,7 @@ import { rbac } from "../../middleware/rbac.middleware.js";
 
 const principalRouter = Router();
 
-// Access is decided only by RBAC permissions, so Super Admin
-// (and the legacy Principal role) pass through the same check.
+// Access is decided by RBAC permissions; Principal accounts use Super Admin.
 
 // Principal dashboard
 principalRouter.get(

@@ -11,8 +11,11 @@ import {
   createClubSchema,
   type CreateClubInput,
 } from "@/features/clubs/validation/club-schema";
+import { useAccess } from "@/lib/navigation/access";
 
 export default function ClubManagementView() {
+  const { can } = useAccess();
+  const canCreateClub = can("club", "create");
   const { data: session, isPending: sessionPending } =
     authClient.useSession();
 
@@ -65,7 +68,7 @@ export default function ClubManagementView() {
           </p>
         </header>
 
-        <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+        {canCreateClub && <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
           <h2 className="text-xl font-semibold text-gray-900">
             Create a club
           </h2>
@@ -138,7 +141,7 @@ export default function ClubManagementView() {
                 : "Create club"}
             </button>
           </form>
-        </section>
+        </section>}
 
         <section>
           <h2 className="mb-4 text-xl font-semibold text-gray-900">

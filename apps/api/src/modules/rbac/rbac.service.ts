@@ -121,6 +121,7 @@ export const createRole = async (input: {
 }) => {
   const slug = slugify(input.name);
   if (!slug) throw new Error("ROLE_NAME_INVALID");
+  if (slug === "principal") throw new Error("ROLE_RESERVED");
 
   return db.transaction(async (tx) => {
     const [existing] = await tx

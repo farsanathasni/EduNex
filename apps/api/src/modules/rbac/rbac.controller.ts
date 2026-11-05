@@ -97,6 +97,7 @@ export const GetRole = asyncHandler(async (req: Request, res: Response) => {
 
 const roleErrors: Record<string, [number, string]> = {
   ROLE_EXISTS: [409, "A role with this name already exists."],
+  ROLE_RESERVED: [409, "The Principal role is reserved; use Super Admin instead."],
   ROLE_NAME_INVALID: [400, "Role name must contain letters or numbers."],
   ROLE_NOT_FOUND: [404, "Role not found."],
   ROLE_LOCKED: [403, "The Super Admin role cannot be edited."],

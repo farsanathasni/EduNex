@@ -4,11 +4,8 @@ import { useMemo, useState } from "react";
 import CoordinatorLayout from "@/features/coordinator/components/coordinator-layout";
 import Card from "@/components/ui/card";
 import Button from "@/components/ui/button";
-import {
-  useAllEventsQuery,
-  useMyEventsQuery,
-} from "../../../features/events/api/event-query";
-type EventTab = "All" | "My Events";
+import { useMyEventsQuery } from "@/features/events/api/event-query";
+import { useAccess } from "@/lib/navigation/access";
 
 const gradients = [
   "from-[#234c96] via-[#315eaa] to-[#7898d6]",
@@ -18,18 +15,26 @@ const gradients = [
 
 export default function BrowseEventsPage() {
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState<EventTab>("All");
+  const [selectedClubId, setSelectedClubId] = useState<number | "all">("all");
 
-  const allEventsQuery = useAllEventsQuery();
-  const myEventsQuery = useMyEventsQuery();
+  const { me } = useAccess();
+  const coordinatedClubs = me?.coordinatedClubs ?? [];
+  const assignedClubIds = new Set(coordinatedClubs.map((club) => club.id));
+  const hasAssignedClubs = coordinatedClubs.length > 0;
+  const myEventsQuery = useMyEventsQuery(hasAssignedClubs);
 
-  const activeQuery = category === "All" ? allEventsQuery : myEventsQuery;
-  const events = activeQuery.data ?? [];
+  const events = (myEventsQuery.data ?? []).filter((event) =>
+    assignedClubIds.has(event.clubId),
+  );
 
   const filteredEvents = useMemo(() => {
     const searchTerm = search.toLowerCase().trim();
 
     return events.filter((event) => {
+      if (selectedClubId !== "all" && event.clubId !== selectedClubId) {
+        return false;
+      }
+
       const searchableText = [
         event.title,
         event.clubName,
@@ -41,7 +46,7 @@ export default function BrowseEventsPage() {
 
       return searchableText.includes(searchTerm);
     });
-  }, [events, search]);
+  }, [events, search, selectedClubId]);
 
   const formatDate = (date: string) =>
     new Date(date).toLocaleDateString("en-IN", {
@@ -88,7 +93,7 @@ export default function BrowseEventsPage() {
               </div>
               <div className="rounded-2xl border border-white/15 bg-white/10 px-5 py-3 backdrop-blur-sm">
                 <p className="text-2xl font-bold">
-                  {category === "All" ? "Campus" : "Your clubs"}
+                  {coordinatedClubs.length === 1 ? coordinatedClubs[0].name : "Your assigned clubs"}
                 </p>
                 <p className="mt-1 text-xs text-blue-100">Explore together</p>
               </div>
@@ -128,23 +133,27 @@ export default function BrowseEventsPage() {
                 />
               </div>
 
-              <div className="flex rounded-xl bg-background p-1">
-                {(["All", "My Events"] as const).map((tab) => (
-                  <Button
-                    key={tab}
-                    type="button"
-                    onClick={() => setCategory(tab)}
-                    aria-pressed={category === tab}
-                    className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
-                      category === tab
-                        ? "bg-primary text-white shadow-sm"
-                        : "text-text-muted hover:bg-surface hover:text-text"
-                    }`}
-                  >
-                    {tab === "All" ? "All Events" : "My Events"}
-                  </Button>
-                ))}
-              </div>
+              {coordinatedClubs.length > 1 && (
+                <select
+                  value={selectedClubId}
+                  onChange={(event) =>
+                    setSelectedClubId(
+                      event.target.value === "all"
+                        ? "all"
+                        : Number(event.target.value),
+                    )
+                  }
+                  aria-label="Filter events by assigned club"
+                  className="rounded-xl border border-border bg-background px-4 py-3 text-sm text-text outline-none focus:border-primary"
+                >
+                  <option value="all">All assigned clubs</option>
+                  {coordinatedClubs.map((club) => (
+                    <option key={club.id} value={club.id}>
+                      {club.name}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           </Card>
         </section>
@@ -153,7 +162,9 @@ export default function BrowseEventsPage() {
           <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
             <div>
               <h2 className="text-xl font-bold text-text">
-                {category === "All" ? "Campus events" : "Events from your clubs"}
+                {selectedClubId === "all"
+                  ? "Events from your assigned clubs"
+                  : coordinatedClubs.find((club) => club.id === selectedClubId)?.name ?? "Assigned club events"}
               </h2>
               <p className="mt-1 text-sm text-text-muted">
                 {filteredEvents.length}{" "}
@@ -172,7 +183,14 @@ export default function BrowseEventsPage() {
             )}
           </div>
 
-          {activeQuery.isPending ? (
+          {!hasAssignedClubs ? (
+            <Card className="border-dashed border-border py-16 text-center">
+              <h3 className="text-lg font-bold text-text">No clubs assigned</h3>
+              <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-text-muted">
+                Events will appear here after a club is assigned to your coordinator account.
+              </p>
+            </Card>
+          ) : myEventsQuery.isPending ? (
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
               {[1, 2, 3].map((item) => (
                 <div
@@ -188,7 +206,7 @@ export default function BrowseEventsPage() {
                 </div>
               ))}
             </div>
-          ) : activeQuery.isError ? (
+          ) : myEventsQuery.isError ? (
             <Card className="border-dashed py-14 text-center">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50 text-2xl text-red-600">
                 !
@@ -197,7 +215,7 @@ export default function BrowseEventsPage() {
               <p className="mt-2 text-sm text-text-muted">
                 Please check your connection and try again.
               </p>
-              <Button className="mt-5" onClick={() => activeQuery.refetch()}>
+              <Button className="mt-5" onClick={() => myEventsQuery.refetch()}>
                 Try again
               </Button>
             </Card>
@@ -311,18 +329,16 @@ export default function BrowseEventsPage() {
               </div>
               <h3 className="mt-5 text-lg font-bold text-text">No events found</h3>
               <p className="mx-auto mt-2 max-w-sm text-sm leading-6 text-text-muted">
-                {search
+                {search || selectedClubId !== "all"
                   ? "Try a different search term or clear your search."
-                  : category === "All"
-                    ? "There are no published campus events yet."
-                    : "There are no published events for your assigned clubs."}
+                  : "There are no published events for your assigned clubs."}
               </p>
               <Button
                 variant="outline"
                 className="mt-5"
                 onClick={() => {
                   setSearch("");
-                  setCategory("All");
+                  setSelectedClubId("all");
                 }}
               >
                 Reset filters

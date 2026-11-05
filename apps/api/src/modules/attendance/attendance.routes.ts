@@ -1,12 +1,33 @@
 import { Router } from "express";
-import { attendanceParamsSchema, saveAttendanceSchema } from "./attendance.validation.js";
+import { requireAuth } from "../../middleware/auth.middleware.js";
+import { rbac } from "../../middleware/rbac.middleware.js";
+import {
+  attendanceParamsSchema,
+  saveAttendanceSchema,
+} from "./attendance.validation.js";
 import validate from "../../middleware/validate.middleware.js";
-import { getEventAttendanceController, saveAttendanceController } from "./attendance.controller.js";
+import {
+  getEventAttendanceController,
+  saveAttendanceController,
+} from "./attendance.controller.js";
 
+const attendanceRouter = Router();
 
-const  attendanceRouter=Router()
+attendanceRouter.get(
+  "/event/:eventId",
+  requireAuth,
+  rbac("attendance", "view"),
+  validate(attendanceParamsSchema, "params"),
+  getEventAttendanceController,
+);
 
-attendanceRouter.get("event/:id",validate(attendanceParamsSchema, "params"),getEventAttendanceController)
-attendanceRouter.post("event/:id",validate(attendanceParamsSchema, "params"),validate(saveAttendanceSchema, "body"),saveAttendanceController)
+attendanceRouter.post(
+  "/event/:eventId",
+  requireAuth,
+  rbac("attendance", "mark"),
+  validate(attendanceParamsSchema, "params"),
+  validate(saveAttendanceSchema, "body"),
+  saveAttendanceController,
+);
 
-export default attendanceRouter   
+export default attendanceRouter;
