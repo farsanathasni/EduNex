@@ -15,6 +15,20 @@ import {
   updateDepartmentSchema,
 } from "./departments.validation.js";
 
+const getDatabaseErrorCode = (error: unknown): string | undefined => {
+  let current: unknown = error;
+  const seen = new Set<object>();
+
+  while (typeof current === "object" && current !== null && !seen.has(current)) {
+    seen.add(current);
+    const candidate = current as { code?: unknown; cause?: unknown };
+    if (typeof candidate.code === "string") return candidate.code;
+    current = candidate.cause;
+  }
+
+  return undefined;
+};
+
 export const getDepartments = asyncHandler(
   async (req: Request, res: Response) => {
     const validation = departmentQuerySchema.safeParse(req.query);
@@ -83,7 +97,18 @@ export const createDepartments = asyncHandler(
       });
     }
 
-    const createdDepartments = await createDepartment(validation.data);
+    let createdDepartments: Awaited<ReturnType<typeof createDepartment>>;
+    try {
+      createdDepartments = await createDepartment(validation.data);
+    } catch (error) {
+      if (getDatabaseErrorCode(error) === "23505") {
+        return res.status(409).json({
+          success: false,
+          message: "A department with one of these names or codes already exists.",
+        });
+      }
+      throw error;
+    }
 
     return res.status(201).json({
       success: true,
@@ -117,7 +142,18 @@ export const editDepartment = asyncHandler(
       });
     }
 
-    const department = await updateDepartment(id, validation.data);
+    let department: Awaited<ReturnType<typeof updateDepartment>>;
+    try {
+      department = await updateDepartment(id, validation.data);
+    } catch (error) {
+      if (getDatabaseErrorCode(error) === "23505") {
+        return res.status(409).json({
+          success: false,
+          message: "A department with this name or code already exists.",
+        });
+      }
+      throw error;
+    }
 
     if (!department) {
       return res.status(404).json({
@@ -145,7 +181,19 @@ export const removeDepartment = asyncHandler(
       });
     }
 
-    const department = await deleteDepartment(id);
+    let department: Awaited<ReturnType<typeof deleteDepartment>>;
+    try {
+      department = await deleteDepartment(id);
+    } catch (error) {
+      if (getDatabaseErrorCode(error) === "23503") {
+        return res.status(409).json({
+          success: false,
+          message:
+            "This department is still referenced by existing records. Move or remove assigned students before deleting it.",
+        });
+      }
+      throw error;
+    }
 
     if (!department) {
       return res.status(404).json({
