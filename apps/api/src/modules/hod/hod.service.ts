@@ -85,13 +85,20 @@ export const getHodDashboardStats = async (
       .select({ total: count() })
       .from(coordinatorAssignments)
       .innerJoin(
+        StudentProfile,
+        eq(coordinatorAssignments.studentId, StudentProfile.id),
+      )
+      .innerJoin(
         clubs,
         eq(coordinatorAssignments.clubId, clubs.id),
       )
       .where(
-        departmentId !== undefined
-          ? eq(clubs.departmentId, departmentId)
-          : undefined,
+        and(
+          eq(StudentProfile.isDeleted, false),
+          departmentId !== undefined
+            ? eq(clubs.departmentId, departmentId)
+            : undefined,
+        ),
       ),
 
     db

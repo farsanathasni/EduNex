@@ -58,12 +58,14 @@ export const useHodStudents = () => {
 // Coordinator assignments
 export const useCoordinatorAssignments = (
   params?: CoordinatorAssignmentsParams,
+  enabled = true,
 ) => {
   return useQuery({
     queryKey: params
       ? [...CoordinatorAssignmentsKey, params]
       : CoordinatorAssignmentsKey,
     queryFn: () => getCoordinatorAssignments(params),
+    enabled,
     retry: retryUnlessAuthError,
   });
 };
@@ -80,6 +82,7 @@ export const useCreateCoordinator = () => {
       await queryClient.invalidateQueries({
         queryKey: CoordinatorAssignmentsKey,
       });
+      await queryClient.invalidateQueries({ queryKey: ["current-user"] });
     },
   });
 };
@@ -101,6 +104,7 @@ export const useUpdateCoordinator = () => {
       await queryClient.invalidateQueries({
         queryKey: CoordinatorAssignmentsKey,
       });
+      await queryClient.invalidateQueries({ queryKey: ["current-user"] });
     },
   });
 };
@@ -116,6 +120,7 @@ export const useDeactivateCoordinator = () => {
       await queryClient.invalidateQueries({
         queryKey: CoordinatorAssignmentsKey,
       });
+      await queryClient.invalidateQueries({ queryKey: ["current-user"] });
     },
   });
 };

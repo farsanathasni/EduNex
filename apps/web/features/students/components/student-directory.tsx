@@ -11,6 +11,7 @@ import { useStudents } from "@/features/students/api/student-query";
 import type { StudentListItem } from "@/features/students/api/student";
 import EditStudentModal from "@/features/students/components/edit-student-modal";
 import DeleteStudentDialog from "@/features/students/components/delete-student-dialog";
+import CreateStudentModal from "@/features/students/components/create-student-modal";
 
 const PAGE_SIZE = 10;
 const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8];
@@ -22,6 +23,7 @@ export default function StudentDirectory({
   canDelete = false,
   canChangeDepartment = false,
   canAssignCoordinator = false,
+  canCreate = false,
 }: {
   showDepartmentFilter: boolean;
   title?: string;
@@ -29,6 +31,7 @@ export default function StudentDirectory({
   canDelete?: boolean;
   canChangeDepartment?: boolean;
   canAssignCoordinator?: boolean;
+  canCreate?: boolean;
 }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -39,6 +42,7 @@ export default function StudentDirectory({
   const [editingStudent, setEditingStudent] = useState<StudentListItem | null>(null);
   const [deletingStudent, setDeletingStudent] = useState<StudentListItem | null>(null);
   const [successMessage, setSuccessMessage] = useState("");
+  const [creatingStudent, setCreatingStudent] = useState(false);
 
   const departmentQuery = useDepartment(showDepartmentFilter);
   const studentsQuery = useStudents({
@@ -58,11 +62,14 @@ export default function StudentDirectory({
 
   return (
     <section className="space-y-6">
-      <header>
-        <h1 className="text-3xl font-bold">{title}</h1>
-        <p className="mt-2 text-sm text-text-muted">
-          Search students and filter by department and semester.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">{title}</h1>
+          <p className="mt-2 text-sm text-text-muted">
+            Search students and filter by department and semester.
+          </p>
+        </div>
+        {canCreate && <Button onClick={() => { setSuccessMessage(""); setCreatingStudent(true); }}>Create Student</Button>}
       </header>
 
       {successMessage && (
@@ -275,6 +282,15 @@ export default function StudentDirectory({
           onUpdated={() => {
             setEditingStudent(null);
             setSuccessMessage("Student details updated successfully.");
+          }}
+        />
+      )}
+      {creatingStudent && (
+        <CreateStudentModal
+          onClose={() => setCreatingStudent(false)}
+          onCreated={() => {
+            setCreatingStudent(false);
+            setSuccessMessage("Student account created. Password setup instructions were emailed.");
           }}
         />
       )}

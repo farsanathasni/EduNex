@@ -11,6 +11,7 @@ import {
   CreateCoordinator,
   GetCoordinatorAssignments,
   UpdateCoordinator,
+  DeleteCoordinator,
 } from "./student.Controller.js";
 
 import { requireAuth } from "../../middleware/auth.middleware.js";
@@ -35,6 +36,13 @@ router.patch(
   requireAuth,
   rbac("student", "update"),
   UpdateStudentProfile,
+);
+
+router.delete(
+  "/coordinators/:assignmentId",
+  requireAuth,
+  rbac("coordinator", "delete"),
+  DeleteCoordinator,
 );
 
 router.delete(

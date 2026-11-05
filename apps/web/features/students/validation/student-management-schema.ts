@@ -23,4 +23,8 @@ export const studentEditSchema = z.object({
     ),
 });
 
+export const studentCreateSchema = studentEditSchema.extend({
+  email: z.string().trim().email("Enter a valid email address.").max(254),
+});
+
 export type StudentEditValues = z.infer<typeof studentEditSchema>;

@@ -9,6 +9,7 @@ export default function PrincipalStudentsPage() {
       canDelete
       canChangeDepartment
       canAssignCoordinator
+      canCreate
     />
   );
 }

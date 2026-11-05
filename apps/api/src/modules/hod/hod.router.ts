@@ -87,7 +87,7 @@
 
 // export default hodRouter;
 
-import { Router } from "express";
+import { Router, type RequestHandler } from "express";
 
 import {
   GetHodDashboard,
@@ -97,16 +97,16 @@ import {
   GetHodClubs,
 } from "./hod.controller.js";
 
-import {
-  CreateCoordinator,
-  GetCoordinatorAssignments,
-  UpdateCoordinator,
-} from "../students/student.Controller.js";
-
 import { requireAuth } from "../../middleware/auth.middleware.js";
 import { rbac } from "../../middleware/rbac.middleware.js";
 
 const hodRouter = Router();
+const coordinatorManagementMoved: RequestHandler = (_req, res) => {
+  res.status(403).json({
+    success: false,
+    message: "Coordinator assignments are managed by the Principal.",
+  });
+};
 
 // HOD dashboard
 hodRouter.get(
@@ -132,27 +132,10 @@ hodRouter.get(
   GetHodClubs,
 );
 
-// Coordinators
-hodRouter.post(
-  "/coordinators",
-  requireAuth,
-  rbac("coordinator", "create"),
-  CreateCoordinator,
-);
-
-hodRouter.get(
-  "/coordinators",
-  requireAuth,
-  rbac("coordinator", "view"),
-  GetCoordinatorAssignments,
-);
-
-hodRouter.patch(
-  "/coordinators/:assignmentId",
-  requireAuth,
-  rbac("coordinator", "update"),
-  UpdateCoordinator,
-);
+// Keep the old paths explicit so HOD requests receive 403, without retaining
+// a second set of Principal coordinator-management endpoints.
+hodRouter.all("/coordinators", requireAuth, coordinatorManagementMoved);
+hodRouter.all("/coordinators/:assignmentId", requireAuth, coordinatorManagementMoved);
 
 // Event approvals: only roles with event:approve (HOD, Super Admin).
 hodRouter.get(

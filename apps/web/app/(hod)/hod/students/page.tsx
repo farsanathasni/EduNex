@@ -55,7 +55,6 @@ export default function HODStudentsPage() {
         <StudentDirectory
           showDepartmentFilter={false}
           canEdit
-          canAssignCoordinator
         />
       </div>
     </main>

@@ -58,6 +58,15 @@ export interface UpdateStudentInput {
   phone: string | null;
 }
 
+export interface CreateManagedStudentInput {
+  name: string;
+  email: string;
+  admissionNumber: string;
+  departmentId: number;
+  semester: number;
+  phone?: string;
+}
+
 export interface StudentResponse<T> {
   success: boolean;
   message: string;
@@ -132,6 +141,19 @@ export const deleteStudent = async (studentId: number): Promise<void> => {
     }
   } catch (error) {
     throw getStudentApiError(error, "Failed to delete student.");
+  }
+};
+
+export const createManagedStudent = async (
+  input: CreateManagedStudentInput,
+): Promise<void> => {
+  try {
+    const response = await api.post<StudentResponse<unknown>>("/principal/students", input);
+    if (!response.data.success) {
+      throw new Error(response.data.message || "Failed to create student.");
+    }
+  } catch (error) {
+    throw getStudentApiError(error, "Failed to create student.");
   }
 };
 

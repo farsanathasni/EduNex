@@ -5,8 +5,10 @@ import { api } from "@/lib/axios";
 export type CoordinatorAssignment = {
   id: number;
   studentId: number;
+  departmentId: number;
   studentName: string;
   admissionNumber: string;
+  departmentName: string;
   clubId: number;
   clubName: string;
   appointedBy: string;
@@ -33,6 +35,12 @@ type ApiResponse<T> = {
   success: boolean;
   message: string;
   data: T;
+  pagination?: { total: number; page: number; limit: number; totalPages: number };
+};
+
+export type CoordinatorAssignmentsResult = {
+  assignments: CoordinatorAssignment[];
+  pagination: { total: number; page: number; limit: number; totalPages: number };
 };
 
 export type StudentCoordinatorAssignment = {
@@ -51,9 +59,9 @@ export type CoordinatorStatus = {
 // Get coordinator assignments
 export const getCoordinatorAssignments = async (
   params?: CoordinatorAssignmentsParams,
-) => {
+): Promise<CoordinatorAssignmentsResult> => {
   const { data } = await api.get<ApiResponse<CoordinatorAssignment[]>>(
-    "/hod/coordinators",
+    "/students/coordinators",
     { params },
   );
 
@@ -63,17 +71,20 @@ export const getCoordinatorAssignments = async (
     );
   }
 
-  return data.data;
+  return {
+    assignments: data.data,
+    pagination: data.pagination ?? { total: data.data.length, page: 1, limit: data.data.length, totalPages: 1 },
+  };
 };
 
 // Create coordinator
 export const createCoordinator = async (
   input: CreateCoordinatorInput,
 ) => {
-  let data: ApiResponse<CoordinatorAssignment>;
+  let data: ApiResponse<{ assignment: CoordinatorAssignment; emailSent: boolean }>;
   try {
-    ({ data } = await api.post<ApiResponse<CoordinatorAssignment>>(
-      "/hod/coordinators",
+    ({ data } = await api.post<ApiResponse<{ assignment: CoordinatorAssignment; emailSent: boolean }>>(
+      "/students/coordinators",
       input,
     ));
   } catch (error) {
@@ -87,7 +98,7 @@ export const createCoordinator = async (
     throw new Error(data.message || "Failed to appoint coordinator.");
   }
 
-  return data.data;
+  return data.data.assignment;
 };
 
 // Update coordinator
@@ -96,7 +107,7 @@ export const updateCoordinator = async (
   input: UpdateCoordinatorInput,
 ) => {
   const { data } = await api.patch<ApiResponse<CoordinatorAssignment>>(
-    `/hod/coordinators/${assignmentId}`,
+    `/students/coordinators/${assignmentId}`,
     input,
   );
 
@@ -112,7 +123,7 @@ export const deactivateCoordinator = async (
   assignmentId: number,
 ) => {
   const { data } = await api.delete<ApiResponse<null>>(
-    `/hod/coordinators/${assignmentId}`,
+    `/students/coordinators/${assignmentId}`,
   );
 
   if (!data.success) {
