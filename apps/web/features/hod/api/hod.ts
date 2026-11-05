@@ -1,11 +1,13 @@
 import { api } from "@/lib/axios";
 
 export interface HodDashboard {
-  staffId: number | string;
-  employeeId: string;
-  role: "hod";
-  departmentId: number | string | null;
-  designation: string | null;
+  departmentId: number;
+
+  department: {
+    id: number;
+    name: string;
+    code: string;
+  } | null;
 
   totalStudents: number;
   totalStaff: number;

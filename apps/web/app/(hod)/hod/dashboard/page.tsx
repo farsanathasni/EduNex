@@ -21,11 +21,13 @@ import { useHodDashboard } from "@/features/hod/api/hod-query";
 export default function HodDashboardPage() {
   const router = useRouter();
 
+  // Check logged-in session
   const {
     data: session,
     isPending: checkingSession,
   } = authClient.useSession();
 
+  // Fetch HOD dashboard data
   const {
     data: dashboard,
     isPending,
@@ -34,12 +36,14 @@ export default function HodDashboardPage() {
     refetch,
   } = useHodDashboard();
 
+  // Redirect unauthenticated users
   useEffect(() => {
     if (!checkingSession && !session?.user) {
       router.replace("/login");
     }
   }, [checkingSession, session, router]);
 
+  // Session loading
   if (checkingSession) {
     return (
       <p className="py-10 text-text-muted">
@@ -56,6 +60,7 @@ export default function HodDashboardPage() {
     );
   }
 
+  // Dashboard loading
   if (isPending) {
     return (
       <p className="py-10 text-text-muted">
@@ -64,6 +69,7 @@ export default function HodDashboardPage() {
     );
   }
 
+  // Dashboard error
   if (isError || !dashboard) {
     return (
       <Card padding="lg">
@@ -88,6 +94,7 @@ export default function HodDashboardPage() {
     );
   }
 
+  // Dashboard statistics
   const statistics = [
     {
       title: "Total Students",
@@ -111,6 +118,7 @@ export default function HodDashboardPage() {
     },
   ];
 
+  // Quick access sections
   const sections = [
     {
       title: "Student Management",
@@ -144,19 +152,57 @@ export default function HodDashboardPage() {
 
   return (
     <div className="space-y-8">
+
+      {/* Page Header */}
       <PageHeader
         eyebrow="HOD Workspace"
         title={`Welcome, ${session.user.name || "HOD"}`}
         description="Manage your department's students, clubs, coordinators, and event approvals."
       />
 
+      {/* Assigned Department */}
+      <Card padding="lg">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+
+          <div className="flex items-center gap-4">
+            <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-secondary text-primary">
+              <Building2 size={24} />
+            </div>
+
+            <div>
+              <p className="text-sm text-text-muted">
+                Your Assigned Department
+              </p>
+
+              <h2 className="mt-1 text-xl font-bold">
+                {dashboard.department?.name ||
+                  "Department not assigned"}
+              </h2>
+
+              <p className="mt-1 text-sm text-text-muted">
+                Department Code:{" "}
+                {dashboard.department?.code || "—"}
+              </p>
+            </div>
+          </div>
+
+          {dashboard.departmentId && (
+            <div className="rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-primary">
+              Department ID: {dashboard.departmentId}
+            </div>
+          )}
+
+        </div>
+      </Card>
+
+      {/* Department Statistics */}
       <Card padding="lg">
         <h2 className="text-lg font-semibold">
           Department Overview
         </h2>
 
         <p className="mt-2 text-sm text-text-muted">
-          Heres a summary of your departments activities.
+          Here's a summary of your department's activities.
         </p>
 
         <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -188,6 +234,7 @@ export default function HodDashboardPage() {
         </div>
       </Card>
 
+      {/* Quick Access */}
       <section>
         <h2 className="mb-4 text-xl font-bold">
           Quick Access
@@ -227,6 +274,7 @@ export default function HodDashboardPage() {
           })}
         </div>
       </section>
+
     </div>
   );
 }

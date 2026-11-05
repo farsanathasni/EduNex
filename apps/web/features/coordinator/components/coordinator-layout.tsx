@@ -2,10 +2,14 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { useAccess } from "@/lib/navigation/access";
 import { ModeSwitch } from "@/components/layout/mode-switch";
+// import { useRouter } from "next/router";
+import { authClient } from "@/lib/auth-client";
+import { LogOut } from "lucide-react";
+import Button from "@/components/ui/button";
 
 
 export default function CoordinatorLayout({
@@ -13,8 +17,15 @@ export default function CoordinatorLayout({
 }: {
   children: ReactNode;
 }) {
+  const router = useRouter();
   const pathname = usePathname();
   const { getNavItems, mode, isSuperAdmin } = useAccess();
+
+  const handleLogout = async () => {
+  await authClient.signOut();
+  router.replace("/login");
+};
+
   const navigation = getNavItems(mode)
     .filter(
       (item) =>
@@ -102,6 +113,16 @@ export default function CoordinatorLayout({
             EduNex © 2026
           </p>
         </div>
+        <div className="mt-auto border-t border-slate-100 p-4">
+  <Button
+    type="button"
+    onClick={handleLogout}
+    className="flex w-full items-center gap-3 rounded-xl px-4 py-3 "
+  >
+    <LogOut className="h-5 w-5" />
+    Logout
+  </Button>
+</div>
       </aside>
 
       <div className="min-w-0 flex-1 md:ml-64">

@@ -36,15 +36,21 @@ const activities = [
   { title: "Event details updated", description: "You updated your event information.", date: "2 days ago", icon: "📅" },
 ];
 
-const coordinatorQuickActions = [
-  { title: "View Events", description: "Manage your club events", icon: "📅", href: "/club-coordinator/events" },
-  { title: "Request an Event", description: "Submit a new event proposal", icon: "📝", href: "/club-coordinator/request-event" },
-];
+// const coordinatorQuickActions = [
+//   { title: "View Events", description: "Manage your club events", icon: "📅", href: "/" },
+//   { title: "Request an Event", description: "Submit a new event proposal", icon: "📝", href: "/club-coordinator/request-event" },
+// ];
 
 export default function StudentDashboard() {
   const pathname = usePathname();
   const router = useRouter();
   const { getNavItems, mode, setMode, canSwitchMode, me } = useAccess();
+  console.log("Access details:", {
+  mode,
+  canSwitchMode,
+  coordinatedClubs: me?.coordinatedClubs,
+  me,
+});
   const coordinatedClubs = me?.coordinatedClubs ?? [];
   const assignedClubIds = new Set(coordinatedClubs.map((club) => club.id));
   const { data: session, isPending } = authClient.useSession();
@@ -139,7 +145,7 @@ export default function StudentDashboard() {
         ? "—"
         : String(value);
   const coordinatorStats = [
-    { title: "Published Assigned Events", value: coordinatorCount(assignedEvents.length), icon: "📅", color: "bg-primary-subtle text-primary", href: "/club-coordinator/events" },
+    { title: "Published Assigned Events", value: coordinatorCount(assignedEvents.length), icon: "📅", color: "bg-primary-subtle text-primary", href: "/" },
     { title: "Upcoming Published Events", value: coordinatorCount(coordinatorUpcomingEvents.length), icon: "🎯", color: "bg-secondary text-secondary-foreground", href: "/club-coordinator/events" },
     { title: "Assigned Clubs", value: String(coordinatedClubs.length), icon: "🏷️", color: "bg-accent-subtle text-accent", href: "/club-coordinator/profile" },
     { title: "Past Events", value: coordinatorCount(coordinatorPastEvents.length), icon: "✅", color: "bg-secondary text-text-muted", href: "/club-coordinator/events" },
@@ -185,7 +191,7 @@ export default function StudentDashboard() {
   return (
     <div className="min-h-screen bg-background text-text">
       {mobileMenuOpen && (
-        <button type="button" aria-label="Close navigation" onClick={() => setMobileMenuOpen(false)} className="fixed inset-0 z-40 bg-slate-950/40 lg:hidden" />
+        <Button type="button" aria-label="Close navigation" onClick={() => setMobileMenuOpen(false)} className="fixed inset-0 z-40 bg-slate-950/40 lg:hidden" />
       )}
 
       <aside className={`fixed inset-y-0 left-0 z-50 flex w-[270px] flex-col border-r border-border bg-surface transition-transform duration-300 lg:translate-x-0 ${mobileMenuOpen ? "translate-x-0" : "-translate-x-full"}`}>
@@ -197,7 +203,7 @@ export default function StudentDashboard() {
               <p className="text-xs text-muted">Your campus, connected.</p>
             </div>
           </Link>
-          <button type="button" onClick={() => setMobileMenuOpen(false)} aria-label="Close menu" className="rounded-lg p-2 text-muted hover:bg-secondary lg:hidden">✕</button>
+          <Button type="button" onClick={() => setMobileMenuOpen(false)} aria-label="Close menu" className="rounded-lg p-2 text-muted hover:bg-secondary lg:hidden">✕</Button>
         </div>
 
         <div className="px-5 pt-7">
@@ -250,7 +256,7 @@ export default function StudentDashboard() {
         <header className="sticky top-0 z-30 border-b border-border bg-surface/90 backdrop-blur-xl">
           <div className="flex min-h-[82px] flex-wrap items-center justify-between gap-3 px-4 sm:px-6 lg:px-9">
             <div className="flex items-center gap-3">
-              <button type="button" onClick={() => setMobileMenuOpen(true)} aria-label="Open navigation" className="rounded-xl border border-border p-2.5 text-primary hover:bg-secondary lg:hidden">☰</button>
+              <Button type="button" onClick={() => setMobileMenuOpen(true)} aria-label="Open navigation" className="rounded-xl border border-border p-2.5 text-primary hover:bg-secondary lg:hidden">☰</Button>
               <div>
                 <p className="text-sm font-bold text-text">{mode === "student" ? "Student Dashboard" : "Club Coordinator Dashboard"}</p>
                 <p className="hidden text-xs text-muted sm:block">{mode === "student" ? "Your personal campus space" : "Manage your club activities"}</p>
@@ -266,10 +272,10 @@ export default function StudentDashboard() {
               )}
 
               {canSwitchMode && (
-                <button type="button" onClick={() => { setMode(mode === "student" ? "coordinator" : "student"); setMobileMenuOpen(false); }} className="rounded-xl bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 sm:px-4">
+                <Button type="button" onClick={() => { setMode(mode === "student" ? "coordinator" : "student"); setMobileMenuOpen(false); }} className="rounded-xl bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 sm:px-4">
                   <span className="sm:hidden">{mode === "student" ? "Coordinator →" : "← Student"}</span>
                   <span className="hidden sm:inline">{mode === "student" ? "Switch to Coordinator" : "Switch to Student"}</span>
-                </button>
+                </Button>
               )}
 
               <Button type="button" onClick={handleLogout} disabled={isSigningOut} className="rounded-xl border border-border px-3 py-2.5 ">
@@ -567,7 +573,7 @@ export default function StudentDashboard() {
                   </div>
                 )}
               </section>
-              <section><div><h2 className="text-2xl font-bold">Quick Actions</h2><p className="mt-1 text-sm text-text-muted">Jump directly to a club management service.</p></div><div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">{coordinatorQuickActions.map((action) => <Link key={action.title} href={action.href} className="flex items-center gap-4 rounded-2xl border border-border bg-surface p-5 transition hover:border-primary hover:shadow-lg"><span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary-subtle text-2xl">{action.icon}</span><div className="min-w-0 flex-1"><h3 className="text-sm font-semibold">{action.title}</h3><p className="mt-1 text-sm text-text-muted">{action.description}</p></div><span className="text-lg text-primary">→</span></Link>)}</div></section>
+              {/* <section><div><h2 className="text-2xl font-bold">Quick Actions</h2><p className="mt-1 text-sm text-text-muted">Jump directly to a club management service.</p></div><div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2">{coordinatorQuickActions.map((action) => <Link key={action.title} href={action.href} className="flex items-center gap-4 rounded-2xl border border-border bg-surface p-5 transition hover:border-primary hover:shadow-lg"><span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary-subtle text-2xl">{action.icon}</span><div className="min-w-0 flex-1"><h3 className="text-sm font-semibold">{action.title}</h3><p className="mt-1 text-sm text-text-muted">{action.description}</p></div><span className="text-lg text-primary">→</span></Link>)}</div></section> */}
 
               <footer className="border-t border-border pt-6 text-center text-sm text-text-muted">© {new Date().getFullYear()} EduNex · Your campus, connected.</footer>
             </>
