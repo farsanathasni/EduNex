@@ -259,6 +259,8 @@ const permissionCatalog: Record<string, string[]> = {
   coordinator: CRUD,
   attendance: ["view", "mark"],
   event: [...CRUD, "approve"],
+  membership: ["view", "approve", "reject"],
+  member: ["view"],
   certificate: CRUD,
 };
 
@@ -314,6 +316,10 @@ const rolePermissionMap: Record<string, string[]> = {
     "event:view",
     "event:create",
     "event:update",
+    "membership:view",
+    "membership:approve",
+    "membership:reject",
+    "member:view",
   ],
 };
 

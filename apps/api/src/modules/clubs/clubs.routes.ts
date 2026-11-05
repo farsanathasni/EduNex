@@ -2,7 +2,7 @@
 import { Router } from "express";
 
 import { requireAuth } from "../../middleware/auth.middleware.js";
-import { rbac } from "../../middleware/rbac.middleware.js";
+import { rbac, rbacMembershipDecision } from "../../middleware/rbac.middleware.js";
 
 import {
   CreateClub,
@@ -95,24 +95,23 @@ clubsRouter.post(
 clubsRouter.get(
   "/coordinator/membership-requests",
   requireAuth,
-  rbac("club", "update"),
+  rbac("membership", "view"),
   GetCoordinatorMembershipRequests,
 );
 
-// Coordinator: approve or reject a membership request.
 clubsRouter.patch(
   "/coordinator/membership-requests/:requestId",
   requireAuth,
-  rbac("club", "update"),
+  rbacMembershipDecision,
   ReviewClubMembershipRequest,
 );
-
 
 clubsRouter.get(
   "/coordinator/members",
   requireAuth,
-  rbac("club", "update"),
+  rbac("member", "view"),
   GetCoordinatorClubMembers,
 );
+
 
 export default clubsRouter;

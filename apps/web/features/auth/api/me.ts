@@ -5,14 +5,28 @@ import { api } from "@/lib/axios";
 
 export type Role = { id?: number; slug: string; name?: string };
 
+// export type Me = {
+//   user: { id: string; name: string; email: string; image?: string | null };
+//   roles: Role[];
+//   /** "resource:action", e.g. "event:approve" */
+//   permissions: string[];
+//   coordinatedClubs: { id: number; name: string }[];
+//   profile: Record<string, unknown>;
+// };
 export type Me = {
-  user: { id: string; name: string; email: string; image?: string | null };
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    image?: string | null;
+    role: "student" | "teacher";
+  };
   roles: Role[];
-  /** "resource:action", e.g. "event:approve" */
   permissions: string[];
   coordinatedClubs: { id: number; name: string }[];
   profile: Record<string, unknown>;
 };
+
 
 // Tolerant of small differences in the /api/me response.
 // Tighten once the real JSON is known.
