@@ -30,22 +30,35 @@ export function useAccess() {
     isSuperAdmin ||
     !!me?.permissions.includes(`${resource}:${action}`);
 
-  const canSwitchMode =
-    !isSuperAdmin &&
-    !hasRole("hod") &&
-    !hasRole("faculty") &&
-    hasRole("student") &&
-    hasRole("club-coordinator");
+  // const canSwitchMode =
+  //   !isSuperAdmin &&
+  //   !hasRole("hod") &&
+  //   !hasRole("faculty") &&
+  //   hasRole("student") &&
+  //   hasRole("club-coordinator");
 
-  const mode: Mode = canSwitchMode
-    ? storedMode
-    : !isSuperAdmin &&
-        !hasRole("hod") &&
-        !hasRole("faculty") &&
-        hasRole("club-coordinator") &&
-        !hasRole("student")
-      ? "coordinator"
-      : "student";
+  // const mode: Mode = canSwitchMode
+  //   ? storedMode
+  //   : !isSuperAdmin &&
+  //       !hasRole("hod") &&
+  //       !hasRole("faculty") &&
+  //       hasRole("club-coordinator") &&
+  //       !hasRole("student")
+  //     ? "coordinator"
+  //     : "student";
+
+  const coordinatedClubs = me?.coordinatedClubs ?? [];
+
+const canSwitchMode =
+  !isSuperAdmin &&
+  !hasRole("hod") &&
+  !hasRole("faculty") &&
+  hasRole("student") &&
+  coordinatedClubs.length > 0;
+
+const mode: Mode = canSwitchMode
+  ? storedMode
+  : "student";
 
   const setMode = (nextMode: Mode) => {
     if (canSwitchMode) setStoredMode(nextMode);

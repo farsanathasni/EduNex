@@ -20,7 +20,7 @@ const getPaginationParams = (req: Request) => {
     req.query.page === undefined ? 1 : Number(req.query.page);
 
   const limit =
-    req.query.limit === undefined ? 10 : Number(req.query.limit);
+    req.query.limit === undefined ? 50 : Number(req.query.limit);
 
   if (
     !Number.isSafeInteger(page) ||
@@ -61,6 +61,7 @@ const getScope = async (res: Response) => {
 };
 
 // HOD dashboard (also used by the Super Admin, across all departments).
+
 export const GetHodDashboard = asyncHandler(
   async (_req: Request, res: Response) => {
     const resolved = await getScope(res);
@@ -68,7 +69,9 @@ export const GetHodDashboard = asyncHandler(
 
     const staffRow = await getStaffByUserId(res.locals.user.id);
 
-    const stats = await getHodDashboardStats(resolved.departmentId);
+    const stats = await getHodDashboardStats(
+      resolved.departmentId,
+    );
 
     return res.status(200).json({
       success: true,
@@ -77,8 +80,14 @@ export const GetHodDashboard = asyncHandler(
         staffId: staffRow?.id ?? null,
         employeeId: staffRow?.employeeId ?? null,
         role: staffRow?.role ?? null,
+
         departmentId: staffRow?.departmentId ?? null,
+
+        // Added department details
+        department: stats.department,
+
         designation: staffRow?.designation ?? null,
+
         totalStudents: stats.totalStudents,
         totalStaff: stats.totalStaff,
         totalCoordinators: stats.totalCoordinators,
@@ -87,6 +96,7 @@ export const GetHodDashboard = asyncHandler(
     });
   },
 );
+
 
 // Get students with department filtering, search, and pagination.
 export const GetStudentsByDepartment = asyncHandler(
