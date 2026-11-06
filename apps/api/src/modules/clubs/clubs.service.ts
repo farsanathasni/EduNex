@@ -425,7 +425,9 @@ export const getCoordinatorMembershipRequests = async (
       departments,
       eq(StudentProfile.departmentId, departments.id),
     )
-    .where(eq(clubMemberships.status, "pending"))
+    .where(
+      eq(clubMemberships.status, "pending")
+    )
     .orderBy(desc(clubMemberships.requestedAt));
 
   return requests;
