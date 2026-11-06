@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "../../config/database.js";
 import { staff } from "../../db/schema/staff-schema.js";
 import {
@@ -7,6 +7,8 @@ import {
   roles,
   userRoles,
 } from "../../db/schema/rbac-schema.js";
+import { StudentProfile } from "../../db/schema/student-profile.js";
+import { coordinatorAssignments } from "../../db/schema/coordinator-schema.js";
 
 export const SUPER_ADMIN_SLUG = "super-admin";
 
@@ -61,6 +63,37 @@ export const loadAccess = async (userId: string): Promise<Access | null> => {
       .from(permissions);
     for (const p of all) granted.add(`${p.resource}:${p.action}`);
   }
+
+  // Dynamically grant coordinator permissions to assigned students.
+const isStudent = [...roleMap.values()].some(
+  (role) => role.slug === "student",
+);
+
+if (isStudent && !isSuperAdmin) {
+  const assignments = await db
+    .select({
+      studentId: coordinatorAssignments.studentId,
+    })
+    .from(coordinatorAssignments)
+    .innerJoin(
+      StudentProfile,
+      eq(coordinatorAssignments.studentId, StudentProfile.id),
+    )
+    .where(
+      and(
+        eq(StudentProfile.userId, userId),
+        eq(StudentProfile.isDeleted, false),
+      ),
+    );
+
+  // Only students with coordinator assignments receive these permissions.
+  if (assignments.length > 0) {
+    granted.add("membership:view");
+    granted.add("membership:approve");
+    granted.add("membership:reject");
+    granted.add("member:view");
+  }
+}
 
   return { userId, roles: [...roleMap.values()], isSuperAdmin, permissions: granted };
 };
