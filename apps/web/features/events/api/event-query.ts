@@ -1,7 +1,7 @@
 "use client";
 
-import { getAllEvents, getMyEvents } from "@/features/events/api/event";
-import { useQuery } from "@tanstack/react-query";
+import { createEventRequest, CreateEventRequestInput, getAllEvents, getMyEventRequests, getMyEvents } from "@/features/events/api/event";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 // import { getAllEvents, getMyEvents } from "@/lib/events";
 
 export const useAllEventsQuery = (enabled = true) => {
@@ -17,5 +17,31 @@ export const useMyEventsQuery = (enabled = true) => {
     queryKey: ["events", "my"],
     queryFn: getMyEvents,
     enabled,
+  });
+};
+
+
+
+
+export const useMyEventRequestsQuery = (enabled = true) => {
+  return useQuery({
+    queryKey: ["events", "requests", "my"],
+    queryFn: getMyEventRequests,
+    enabled,
+  });
+};
+
+export const useCreateEventRequest = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: CreateEventRequestInput) =>
+      createEventRequest(input),
+
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ["events"],
+      });
+    },
   });
 };

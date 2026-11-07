@@ -86,13 +86,26 @@ if (isStudent && !isSuperAdmin) {
       ),
     );
 
-  // Only students with coordinator assignments receive these permissions.
-  if (assignments.length > 0) {
-    granted.add("membership:view");
-    granted.add("membership:approve");
-    granted.add("membership:reject");
-    granted.add("member:view");
-  }
+  // Students with coordinator assignments receive coordinator permissions.
+if (assignments.length > 0) {
+  granted.add("coordinator:view");
+
+  granted.add("club:view");
+  granted.add("club:update");
+
+  granted.add("attendance:view");
+  granted.add("attendance:mark");
+
+  granted.add("event:view");
+  granted.add("event:create");
+  granted.add("event:update");
+
+  granted.add("membership:view");
+  granted.add("membership:approve");
+  granted.add("membership:reject");
+
+  granted.add("member:view");
+}
 }
 
   return { userId, roles: [...roleMap.values()], isSuperAdmin, permissions: granted };
