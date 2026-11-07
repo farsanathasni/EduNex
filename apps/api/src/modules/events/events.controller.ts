@@ -2,6 +2,10 @@
 import type { Request, Response } from "express";
 
 import asyncHandler from "../../middleware/asyncHandler.js";
+import {
+  resolveHodDepartmentScope,
+  type Access,
+} from "../rbac/rbac.access.js";
 import { getAllEvents, getMyEvents } from "./events.service.js";
 import { eventsQuerySchema } from "./events.validation.js";
 
@@ -19,7 +23,18 @@ export const getAllEventsController = asyncHandler(
 
     const { search, page, limit } = validation.data;
 
-    const result = await getAllEvents(search, page, limit);
+    const departmentId = await resolveHodDepartmentScope(
+      res.locals.access as Access,
+    );
+
+    if (departmentId === null) {
+      return res.status(403).json({
+        success: false,
+        message: "No department is assigned to your account.",
+      });
+    }
+
+    const result = await getAllEvents(search, page, limit, departmentId);
 
     return res.status(200).json({
       success: true,

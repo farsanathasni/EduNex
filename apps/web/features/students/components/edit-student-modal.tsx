@@ -17,6 +17,7 @@ export default function EditStudentModal({
   canChangeDepartment,
   canAssignCoordinator,
   departments = [],
+  inline = false,
   onClose,
   onUpdated,
 }: {
@@ -24,6 +25,7 @@ export default function EditStudentModal({
   canChangeDepartment: boolean;
   canAssignCoordinator: boolean;
   departments?: Department[];
+  inline?: boolean;
   onClose: () => void;
   onUpdated: () => void;
 }) {
@@ -35,6 +37,11 @@ export default function EditStudentModal({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const updateMutation = useUpdateStudent(student.id);
   const departmentQuery = useDepartment(canChangeDepartment);
+  const selectedDepartmentId = Number(departmentId);
+  const selectedDepartmentName =
+    departments.find((department) => department.id === selectedDepartmentId)?.name ??
+    departmentQuery.data?.find((department) => department.id === selectedDepartmentId)?.name ??
+    student.departmentName;
 
   const clearFieldError = (field: string) => {
     setErrors((current) => {
@@ -78,17 +85,17 @@ export default function EditStudentModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <section role="dialog" aria-modal="true" aria-labelledby="edit-student-title" className="flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-xl">
-        <header className="flex items-center justify-between border-b border-border p-5">
+    <div className={inline ? "rounded-xl border border-border bg-surface" : "fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"}>
+      <section role={inline ? undefined : "dialog"} aria-modal={inline ? undefined : true} aria-labelledby="edit-student-title" className={inline ? "w-full" : "flex max-h-[92vh] w-full max-w-3xl flex-col overflow-hidden rounded-2xl border border-border bg-surface shadow-xl"}>
+        {!inline && <header className="flex items-center justify-between border-b border-border p-5">
           <div>
             <h2 id="edit-student-title" className="text-xl font-semibold">Edit Student</h2>
             <p className="mt-1 text-sm text-text-muted">Update {student.name}&apos;s student profile.</p>
           </div>
           <Button variant="outline" size="sm" onClick={onClose} aria-label="Close edit student dialog">×</Button>
-        </header>
+        </header>}
 
-        <div className="space-y-5 overflow-y-auto p-5">
+        <div className={inline ? "space-y-5 p-6" : "space-y-5 overflow-y-auto p-5"}>
           <form onSubmit={handleSubmit} className="space-y-4">
             <FormField label="Student name" error={errors.name}>
               <Input value={name} onChange={(event) => { setName(event.target.value); clearFieldError("name"); }} maxLength={100} disabled={updateMutation.isPending} aria-invalid={!!errors.name} />
@@ -145,7 +152,12 @@ export default function EditStudentModal({
           </form>
 
           {canAssignCoordinator && (
-            <CoordinatorAssignmentPanel student={student} />
+            <CoordinatorAssignmentPanel
+              key={`${student.id}-${selectedDepartmentId}`}
+              student={student}
+              departmentId={selectedDepartmentId}
+              departmentName={selectedDepartmentName}
+            />
           )}
         </div>
       </section>
@@ -153,7 +165,15 @@ export default function EditStudentModal({
   );
 }
 
-function CoordinatorAssignmentPanel({ student }: { student: StudentListItem }) {
+function CoordinatorAssignmentPanel({
+  student,
+  departmentId,
+  departmentName,
+}: {
+  student: StudentListItem;
+  departmentId: number;
+  departmentName: string;
+}) {
   const [clubId, setClubId] = useState("");
   const [selectedClubs, setSelectedClubs] = useState<Record<number, string>>({});
   const [successMessage, setSuccessMessage] = useState("");
@@ -172,7 +192,7 @@ function CoordinatorAssignmentPanel({ student }: { student: StudentListItem }) {
   );
   const assignedClubIds = new Set(assignments.map((assignment) => assignment.clubId));
   const availableClubs = (clubsQuery.data ?? []).filter(
-    (club) => club.departmentId === student.departmentId && !assignedClubIds.has(club.id),
+    (club) => club.departmentId === departmentId && !assignedClubIds.has(club.id),
   );
 
   return (
@@ -180,7 +200,7 @@ function CoordinatorAssignmentPanel({ student }: { student: StudentListItem }) {
       <div>
         <h3 className="font-semibold">Club Coordinator Assignment</h3>
         <p className="mt-1 text-sm text-text-muted">
-          Assign this student to a club in {student.departmentName}.
+          Assign this student to a club in {departmentName}.
         </p>
       </div>
 
@@ -188,7 +208,7 @@ function CoordinatorAssignmentPanel({ student }: { student: StudentListItem }) {
         <p className="text-sm text-text-muted">Loading clubs and current assignments...</p>
       ) : assignmentsQuery.isError || clubsQuery.isError ? (
         <div role="alert" className="text-sm text-red-600">
-          <p>Unable to load coordinator options.</p>
+          <p>{clubsQuery.isError ? `Unable to load clubs: ${clubsQuery.error instanceof Error ? clubsQuery.error.message : "Please try again."}` : `Unable to load coordinator assignments: ${assignmentsQuery.error instanceof Error ? assignmentsQuery.error.message : "Please try again."}`}</p>
           <button
             type="button"
             onClick={() => { void assignmentsQuery.refetch(); void clubsQuery.refetch(); }}
@@ -212,7 +232,7 @@ function CoordinatorAssignmentPanel({ student }: { student: StudentListItem }) {
                     disabled={updateMutation.isPending || deleteMutation.isPending}
                     aria-label={`Change ${student.name}'s club assignment`}
                   >
-                    {clubsQuery.data?.filter((club) => club.departmentId === student.departmentId).map((club) => (
+                    {clubsQuery.data?.filter((club) => club.departmentId === departmentId && (club.id === assignment.clubId || !assignedClubIds.has(club.id))).map((club) => (
                       <option key={club.id} value={club.id}>{club.name}</option>
                     ))}
                   </select>
@@ -244,8 +264,9 @@ function CoordinatorAssignmentPanel({ student }: { student: StudentListItem }) {
               ))}
             </div>
           )}
-          {availableClubs.length > 0 ? (
-            <div className="flex flex-wrap items-end gap-3">
+          <div className="space-y-2">
+            {availableClubs.length > 0 ? (
+              <div className="flex flex-wrap items-end gap-3">
               <label className="min-w-56 flex-1 space-y-1.5 text-sm font-medium">
                 <span>Club</span>
                 <select value={clubId} onChange={(event) => { setClubId(event.target.value); setSuccessMessage(""); createMutation.reset(); }} disabled={createMutation.isPending} className="w-full rounded-lg border border-border bg-background px-3 py-2">
@@ -263,10 +284,11 @@ function CoordinatorAssignmentPanel({ student }: { student: StudentListItem }) {
               >
                 {createMutation.isPending ? "Assigning..." : "Assign coordinator"}
               </Button>
-            </div>
-          ) : (
-            <p className="text-sm text-text-muted">No unassigned clubs are available in this student&apos;s department.</p>
-          )}
+              </div>
+            ) : (
+              <p className="text-sm text-text-muted">No unassigned clubs are available in the selected department.</p>
+            )}
+          </div>
           {createMutation.error && (
             <p role="alert" className="text-sm text-red-600">{createMutation.error.message || "Unable to assign coordinator."}</p>
           )}

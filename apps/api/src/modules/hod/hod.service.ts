@@ -260,6 +260,7 @@ export const getHodClubs = async (
       .select({
         id: clubs.id,
         name: clubs.name,
+        description: clubs.description,
         departmentId: clubs.departmentId,
       })
       .from(clubs)

@@ -14,7 +14,17 @@ export const createClubSchema = z.object({
     .max(1000, "Description cannot exceed 1000 characters.")
     .optional(),
 
+  departmentId: z.coerce.number().int().positive(),
+});
+
+// HOD department scope is resolved from the authenticated account, so the
+// request may omit departmentId. Any supplied value is ignored by the handler.
+export const createHodClubSchema = createClubSchema.extend({
   departmentId: z.coerce.number().int().positive().optional(),
+});
+
+export const assignClubDepartmentSchema = z.object({
+  departmentId: z.coerce.number().int().positive(),
 });
 
 export const clubListQuerySchema = z.object({

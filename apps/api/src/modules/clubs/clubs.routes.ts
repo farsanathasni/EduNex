@@ -5,6 +5,7 @@ import { requireAuth } from "../../middleware/auth.middleware.js";
 import { rbac, rbacMembershipDecision } from "../../middleware/rbac.middleware.js";
 
 import {
+  AssignClubDepartment,
   CreateClub,
   CreateStudentMembershipRequest,
   GetAllClubs,
@@ -80,6 +81,16 @@ clubsRouter.post(
   requireAuth,
   rbac("club", "create"),
   CreateClub,
+);
+
+// Assign a department to an existing unassigned club. The handler also
+// requires the Principal/Super Admin role and refuses to change a club that
+// already has a department.
+clubsRouter.patch(
+  "/:clubId/department",
+  requireAuth,
+  rbac("club", "update"),
+  AssignClubDepartment,
 );
 
 // Submit a membership request.

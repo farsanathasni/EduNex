@@ -48,7 +48,7 @@ export default function StudentDetailsPage({
               <h1 className="text-2xl font-bold">{query.data.name}</h1>
               <p className="mt-1 text-sm text-text-muted">Student details</p>
             </div>
-            {(canEdit || canDelete) && (
+            {(canEdit || canDelete) && !isEditing && (
               <div className="flex flex-wrap gap-2">
                 {canEdit && (
                   <Button type="button" variant="outline" onClick={() => { setSuccessMessage(""); setIsEditing(true); }}>
@@ -64,29 +64,34 @@ export default function StudentDetailsPage({
             )}
           </header>
           {successMessage && <p role="status" className="mx-6 mt-5 rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800">{successMessage}</p>}
-          <dl className="grid gap-5 p-6 sm:grid-cols-2">
-            <Detail label="Email" value={query.data.email} />
-            <Detail label="Admission number" value={query.data.admissionNumber} />
-            <Detail label="Department" value={query.data.departmentName} />
-            <Detail label="Semester" value={`Semester ${query.data.semester}`} />
-            <Detail label="Phone" value={query.data.phone || "Not provided"} />
-          </dl>
+          {isEditing && canEdit ? (
+            <div className="p-6">
+              <h2 className="mb-4 text-lg font-semibold">Edit student details</h2>
+              <EditStudentModal
+                key={query.data.id}
+                student={query.data}
+                canChangeDepartment={canChangeDepartment}
+                canAssignCoordinator={canAssignCoordinator}
+                inline
+                onClose={() => setIsEditing(false)}
+                onUpdated={() => {
+                  setIsEditing(false);
+                  setSuccessMessage("Student details updated successfully.");
+                  void query.refetch();
+                }}
+              />
+            </div>
+          ) : (
+            <dl className="grid gap-5 p-6 sm:grid-cols-2">
+              <Detail label="Email" value={query.data.email} />
+              <Detail label="Admission number" value={query.data.admissionNumber} />
+              <Detail label="Department" value={query.data.departmentName} />
+              <Detail label="Semester" value={`Semester ${query.data.semester}`} />
+              <Detail label="Phone" value={query.data.phone || "Not provided"} />
+            </dl>
+          )}
         </section>
       ) : null}
-      {query.data && isEditing && canEdit && (
-        <EditStudentModal
-          key={query.data.id}
-          student={query.data}
-          canChangeDepartment={canChangeDepartment}
-          canAssignCoordinator={canAssignCoordinator}
-          onClose={() => setIsEditing(false)}
-          onUpdated={() => {
-            setIsEditing(false);
-            setSuccessMessage("Student details updated successfully.");
-            void query.refetch();
-          }}
-        />
-      )}
       {query.data && isDeleting && canDelete && (
         <DeleteStudentDialog
           student={query.data}

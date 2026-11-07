@@ -1,8 +1,11 @@
 import {
+  createHodClub,
+  getHodClubs,
   getHodDashboard,
   getHodStudents,
 } from "@/features/hod/api/hod";
-import { useQuery } from "@tanstack/react-query";
+import type { CreateHodClubInput } from "@/features/clubs/validation/club-schema";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 export const useHodDashboard = () => {
   return useQuery({
@@ -27,5 +30,27 @@ export const useHodStudents = (
     queryFn: () => getHodStudents(departmentId, semester),
     enabled,
     retry: false,
+  });
+};
+
+export const useHodClubs = (enabled = true) => {
+  return useQuery({
+    queryKey: ["hod", "clubs"],
+    queryFn: getHodClubs,
+    enabled,
+    retry: false,
+  });
+};
+
+export const useCreateHodClub = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: CreateHodClubInput) => createHodClub(input),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["hod", "clubs"] });
+      await queryClient.invalidateQueries({ queryKey: ["clubs"] });
+      await queryClient.invalidateQueries({ queryKey: ["student-clubs"] });
+    },
   });
 };

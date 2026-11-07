@@ -124,3 +124,17 @@ export const resolveDepartmentScope = async (
     ? { kind: "department", departmentId: row.departmentId }
     : null;
 };
+
+// undefined = unrestricted (Super Admin, students, faculty, coordinators).
+// number = HOD scoped to that department. null = HOD with no department.
+export const resolveHodDepartmentScope = async (
+  access: Access,
+): Promise<number | undefined | null> => {
+  if (access.isSuperAdmin) return undefined;
+
+  const isHod = access.roles.some((role) => role.slug === "hod");
+  if (!isHod) return undefined;
+
+  const scope = await resolveDepartmentScope(access);
+  return scope?.kind === "department" ? scope.departmentId : null;
+};
