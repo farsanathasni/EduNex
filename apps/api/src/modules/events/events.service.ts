@@ -3,6 +3,7 @@ import {
   and,
   asc,
   count,
+  desc,
   eq,
   ilike,
   inArray,
@@ -39,6 +40,7 @@ const getPagination = (
   total,
   totalPages: Math.ceil(total / limit),
 });
+
 
 export const getAllEvents = async (
   search = "",
@@ -165,6 +167,119 @@ export const getMyEvents = async (
       .select({ total: count() })
       .from(events)
       .innerJoin(clubs, eq(events.clubId, clubs.id))
+      .where(whereCondition),
+  ]);
+
+  const total = totalResult[0]?.total ?? 0;
+
+  return {
+    events: eventList,
+    pagination: getPagination(page, limit, total),
+  };
+};
+
+
+
+
+export const createEventRequest = async (
+  userId: string,
+  data: {
+    clubId: number;
+    title: string;
+    description?: string;
+    location?: string;
+    startTime: string;
+    endTime: string;
+  },
+) => {
+  // Find the logged-in student's profile.
+  const [student] = await db
+    .select({ id: StudentProfile.id })
+    .from(StudentProfile)
+    .where(
+      and(
+        eq(StudentProfile.userId, userId),
+        eq(StudentProfile.isDeleted, false),
+      ),
+    )
+    .limit(1);
+
+  if (!student) {
+    return null;
+  }
+
+  // Verify that this student is assigned as coordinator
+  // of the requested club.
+  const [assignment] = await db
+    .select({ id: coordinatorAssignments.id })
+    .from(coordinatorAssignments)
+    .where(
+      and(
+        eq(coordinatorAssignments.studentId, student.id),
+        eq(coordinatorAssignments.clubId, data.clubId),
+      ),
+    )
+    .limit(1);
+
+  if (!assignment) {
+    return null;
+  }
+
+  // Create the event request.
+  const [newEvent] = await db
+    .insert(events)
+    .values({
+      clubId: data.clubId,
+      requestedBy: userId,
+      title: data.title,
+      description: data.description ?? null,
+      location: data.location ?? null,
+      startTime: new Date(data.startTime).toISOString(),
+      endTime: new Date(data.endTime).toISOString(),
+      status: "pending",
+    })
+    .returning();
+
+  return newEvent;
+};
+
+
+
+export const getMyEventRequests = async (
+  userId: string,
+  search = "",
+  page = 1,
+  limit = 10,
+) => {
+  const whereCondition = and(
+    eq(events.requestedBy, userId),
+    getEventSearchCondition(search),
+  );
+
+  const [eventList, totalResult] = await Promise.all([
+    db
+      .select({
+        id: events.id,
+        clubId: events.clubId,
+        clubName: clubs.name,
+        title: events.title,
+        description: events.description,
+        location: events.location,
+        startTime: events.startTime,
+        endTime: events.endTime,
+        status: events.status,
+        createdAt: events.createdAt,
+      })
+      .from(events)
+      .innerJoin(clubs, eq(events.clubId, clubs.id))
+      .where(whereCondition)
+      .orderBy(desc(events.createdAt))
+      .limit(limit)
+      .offset((page - 1) * limit),
+
+    db
+      .select({ total: count() })
+      .from(events)
       .where(whereCondition),
   ]);
 
