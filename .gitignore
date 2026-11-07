@@ -1,5 +1,29 @@
-node_modules
+# Dependencies
+node_modules/
+
+# Environment variables
 .env
 .env.*
 !.env.example
+
+# Build output
 apps/api/dist/
+apps/web/.next/
+apps/web/out/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+
+# PowerShell cache
+ModuleAnalysisCache
+
+# Local audit and structure files
+frontend-audit.md
+structure.txt
+web-structure.txt

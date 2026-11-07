@@ -1,4 +1,4 @@
-
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import { toNodeHandler } from "better-auth/node";
@@ -16,6 +16,7 @@ import staffRouter from "./modules/staff/staff.router.js";
 
 import errorHandler from "./middleware/error.middleware.js";
 import rolesRouter, { meRouter } from "./modules/rbac/rbac.routes.js";
+import teacherRouter from "./modules/teacher/teacher.routes.js";
 
 const app = express();
 const PORT = 5000;
@@ -46,7 +47,7 @@ app.use("/api/staff", staffRouter);
 
 app.use("/api/me", meRouter);
 app.use("/api/roles", rolesRouter);
-
+app.use("/api/teacher", teacherRouter);
 app.use(errorHandler);
 
 app.listen(PORT, () => {

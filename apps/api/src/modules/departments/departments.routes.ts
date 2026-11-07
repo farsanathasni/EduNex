@@ -1,8 +1,5 @@
 
 import { Router } from "express";
-
-import { requireAuth } from "../../middleware/auth.middleware.js";
-import { rbac } from "../../middleware/rbac.middleware.js";
 import {
   createDepartments,
   editDepartment,
@@ -10,6 +7,8 @@ import {
   getDepartments,
   removeDepartment,
 } from "./departments.controller.js";
+import { requireAuth } from "../../middleware/auth.middleware.js";
+import { rbac } from "../../middleware/rbac.middleware.js";
 
 const router = Router();
 
