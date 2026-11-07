@@ -13,6 +13,8 @@ import {
   resolveDepartmentScope,
   type Access,
 } from "../rbac/rbac.access.js";
+import { createClub } from "../clubs/clubs.service.js";
+import { createHodClubSchema } from "../clubs/clubs.validation.js";
 
 // Validate pagination parameters.
 const getPaginationParams = (req: Request) => {
@@ -216,6 +218,46 @@ export const GetHodClubs = asyncHandler(
       message: "Clubs fetched successfully.",
       data: result.clubs,
       pagination: result.pagination,
+    });
+  },
+);
+
+// Create a club in the authenticated HOD's department. Any departmentId in
+// the request body is ignored; only the server-resolved scope is used.
+export const CreateHodClub = asyncHandler(
+  async (req: Request, res: Response) => {
+    const resolved = await getScope(res);
+    if (!resolved) return;
+
+    if (resolved.departmentId === undefined) {
+      return res.status(403).json({
+        success: false,
+        message: "Only an HOD assigned to a department can create clubs here.",
+      });
+    }
+
+    const validation = createHodClubSchema.safeParse(req.body);
+
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid club details.",
+        errors: validation.error.flatten(),
+      });
+    }
+
+    const { name, description } = validation.data;
+
+    const club = await createClub(
+      name,
+      description,
+      resolved.departmentId,
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: "Club created successfully.",
+      data: club,
     });
   },
 );

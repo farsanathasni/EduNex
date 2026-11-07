@@ -75,19 +75,47 @@ export interface CoordinatorClubMember {
 
 
 export const getClubs = async (): Promise<Club[]> => {
+  const limit = 100;
+  const clubs: Club[] = [];
+  let page = 1;
+  let totalPages = 1;
 
-    const response = await api.get("/clubs");
-    return response.data.data;
- 
+  do {
+    const response = await api.get<{
+      data: Club[];
+      pagination?: { totalPages: number };
+    }>("/clubs", { params: { page, limit } });
+
+    clubs.push(...response.data.data);
+    totalPages = response.data.pagination?.totalPages ??
+      (response.data.data.length === limit ? page + 1 : page);
+    page += 1;
+  } while (page <= totalPages);
+
+  return clubs;
 };
 
 
 export const createClub=async(data:CreateClubInput,):Promise<Club>=>{
  
-    const response=await api.post("/clubs",data)
+    const response=await api.post("/clubs",{
+      ...data,
+      departmentId: Number(data.departmentId),
+    })
     return response.data.data
  
 }
+
+export const assignClubDepartment = async (
+  clubId: number,
+  departmentId: number,
+): Promise<Club> => {
+  const response = await api.patch(`/clubs/${clubId}/department`, {
+    departmentId,
+  });
+
+  return response.data.data;
+};
 
 
 export const getStudentClubs = async (): Promise<Club[]> => {

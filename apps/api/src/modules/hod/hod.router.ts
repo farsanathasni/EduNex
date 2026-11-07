@@ -90,6 +90,7 @@
 import { Router, type RequestHandler } from "express";
 
 import {
+  CreateHodClub,
   GetHodDashboard,
   GetStudentsByDepartment,
   GetPendingEvents,
@@ -130,6 +131,14 @@ hodRouter.get(
   requireAuth,
   rbac("club", "view"),
   GetHodClubs,
+);
+
+// Club creation is scoped to the authenticated HOD's department.
+hodRouter.post(
+  "/clubs",
+  requireAuth,
+  rbac("club", "create"),
+  CreateHodClub,
 );
 
 // Keep the old paths explicit so HOD requests receive 403, without retaining

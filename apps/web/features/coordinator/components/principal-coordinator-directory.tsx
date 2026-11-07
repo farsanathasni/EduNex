@@ -64,8 +64,22 @@ function AssignmentRow({ assignment, selectedClubId, onClubChange, updatePending
   onDelete: () => void;
 }) {
   const clubsQuery = useClubsQuery(retryUnlessAuthError);
-  const clubs = (clubsQuery.data ?? []).filter((club) => club.departmentId === assignment.departmentId);
-  return <tr className="border-b border-border last:border-0"><td className="px-4 py-3 font-medium">{assignment.studentName}</td><td className="px-4 py-3">{assignment.admissionNumber}</td><td className="px-4 py-3">{assignment.departmentName}</td><td className="px-4 py-3">{assignment.clubName}</td><td className="px-4 py-3">{new Date(assignment.createdAt).toLocaleDateString()}</td><td className="px-4 py-3"><div className="flex min-w-64 gap-2"><select aria-label={`Select replacement club for ${assignment.studentName}`} value={selectedClubId} onChange={(event) => onClubChange(event.target.value)} disabled={clubsQuery.isPending || updatePending || deletePending} className="min-w-32 flex-1 rounded-lg border border-border bg-background px-2 py-1.5">{clubs.map((club) => <option key={club.id} value={club.id}>{club.name}</option>)}</select><Button size="sm" variant="outline" disabled={updatePending || deletePending || Number(selectedClubId) === assignment.clubId} onClick={() => onUpdate(Number(selectedClubId))}>Change</Button><Button size="sm" variant="outline" className="border-red-200 text-red-700 hover:bg-red-50" disabled={deletePending || updatePending} onClick={onDelete}>Remove</Button></div></td></tr>;
+  const studentAssignmentsQuery = useCoordinatorAssignments({
+    search: assignment.admissionNumber,
+    page: 1,
+    limit: 100,
+  });
+  const studentAssignments = (studentAssignmentsQuery.data?.assignments ?? []).filter(
+    (item) => item.studentId === assignment.studentId,
+  );
+  const assignedClubIds = new Set(studentAssignments.map((item) => item.clubId));
+  const clubs = (clubsQuery.data ?? []).filter(
+    (club) =>
+      club.departmentId === assignment.departmentId &&
+      (club.id === assignment.clubId || !assignedClubIds.has(club.id)),
+  );
+  const loading = clubsQuery.isPending || studentAssignmentsQuery.isPending;
+  return <tr className="border-b border-border last:border-0"><td className="px-4 py-3 font-medium">{assignment.studentName}</td><td className="px-4 py-3">{assignment.admissionNumber}</td><td className="px-4 py-3">{assignment.departmentName}</td><td className="px-4 py-3">{assignment.clubName}</td><td className="px-4 py-3">{new Date(assignment.createdAt).toLocaleDateString()}</td><td className="px-4 py-3"><div className="flex min-w-64 gap-2"><select aria-label={`Select replacement club for ${assignment.studentName}`} value={selectedClubId} onChange={(event) => onClubChange(event.target.value)} disabled={loading || updatePending || deletePending} className="min-w-32 flex-1 rounded-lg border border-border bg-background px-2 py-1.5">{clubs.map((club) => <option key={club.id} value={club.id}>{club.name}</option>)}</select><Button size="sm" variant="outline" disabled={loading || updatePending || deletePending || Number(selectedClubId) === assignment.clubId} onClick={() => onUpdate(Number(selectedClubId))}>Change</Button><Button size="sm" variant="outline" className="border-red-200 text-red-700 hover:bg-red-50" disabled={deletePending || updatePending} onClick={onDelete}>Remove</Button></div></td></tr>;
 }
 
 function AssignCoordinatorModal({ onClose, onAssigned }: { onClose: () => void; onAssigned: () => void }) {
@@ -83,7 +97,8 @@ function AssignCoordinatorModal({ onClose, onAssigned }: { onClose: () => void; 
   const assignedClubIds = new Set((existingAssignmentsQuery.data?.assignments ?? []).filter((item) => item.studentId === student?.id).map((item) => item.clubId));
   const clubs = (clubsQuery.data ?? []).filter((club) => (!student || club.departmentId === student.departmentId) && !assignedClubIds.has(club.id));
 
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"><section role="dialog" aria-modal="true" aria-labelledby="assign-coordinator-title" className="w-full max-w-xl space-y-5 rounded-2xl border border-border bg-surface p-6 shadow-xl">
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+    <section role="dialog" aria-modal="true" aria-labelledby="assign-coordinator-title" className="w-full max-w-xl space-y-5 rounded-2xl border border-border bg-surface p-6 shadow-xl">
     <header><h2 id="assign-coordinator-title" className="text-xl font-semibold">Assign Club Coordinator</h2><p className="mt-1 text-sm text-text-muted">Choose a student and one of their department&apos;s clubs.</p></header>
     {!student ? <div className="space-y-3"><label className="block space-y-1.5 text-sm font-medium"><span>Search students</span><Input value={studentSearch} onChange={(event) => { setStudentSearch(event.target.value); setStudentPage(1); }} placeholder="Name, admission number, or email" /></label>
       {studentsQuery.isPending ? <p className="text-sm text-text-muted">Loading students...</p> : studentsQuery.isError ? <p role="alert" className="text-sm text-red-600">{studentsQuery.error.message || "Unable to load students."}</p> : <><div className="max-h-52 overflow-y-auto rounded-lg border border-border">{(studentsQuery.data?.students ?? []).map((candidate) => <button type="button" key={candidate.id} onClick={() => { setStudent(candidate); setClubId(""); }} className="flex w-full justify-between border-b border-border px-3 py-2 text-left text-sm last:border-0 hover:bg-background"><span className="font-medium">{candidate.name}</span><span className="text-text-muted">{candidate.admissionNumber} · {candidate.departmentName}</span></button>)}</div><div className="flex justify-between text-xs text-text-muted"><span>{studentsQuery.data?.pagination.total ?? 0} students</span><div className="flex gap-2"><button type="button" disabled={studentPage <= 1} onClick={() => setStudentPage((value) => Math.max(1, value - 1))} className="underline disabled:opacity-50">Previous</button><button type="button" disabled={studentPage >= (studentsQuery.data?.pagination.totalPages ?? 0)} onClick={() => setStudentPage((value) => value + 1)} className="underline disabled:opacity-50">Next</button></div></div></>}
@@ -92,5 +107,6 @@ function AssignCoordinatorModal({ onClose, onAssigned }: { onClose: () => void; 
     </div>}
     {createMutation.error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{createMutation.error.message || "Unable to assign coordinator."}</p>}
     <footer className="flex justify-end gap-3 border-t border-border pt-4"><Button variant="outline" onClick={onClose} disabled={createMutation.isPending}>Cancel</Button><Button disabled={!student || !clubId || createMutation.isPending} onClick={() => student && createMutation.mutate({ studentId: student.id, clubId: Number(clubId) }, { onSuccess: onAssigned })}>{createMutation.isPending ? "Assigning..." : "Assign"}</Button></footer>
-  </section></div>;
+  </section>
+  </div>;
 }

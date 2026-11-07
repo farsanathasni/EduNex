@@ -6,6 +6,7 @@ import {
   eq,
   ilike,
   inArray,
+  isNull,
   or,
 } from "drizzle-orm";
 
@@ -47,10 +48,14 @@ export const getAllClubs = async (
   search = "",
   page = 1,
   limit = 10,
+  departmentId?: number,
 ) => {
-  const conditions = search
-    ? ilike(clubs.name, `%${search}%`)
-    : undefined;
+  const conditions = and(
+    search ? ilike(clubs.name, `%${search}%`) : undefined,
+    departmentId !== undefined
+      ? eq(clubs.departmentId, departmentId)
+      : undefined,
+  );
 
   const pagination = getPagination(page, limit);
 
@@ -90,6 +95,21 @@ export const getClubById = async (clubId: number) => {
     .limit(1);
 
   return result[0] ?? null;
+};
+
+// Attach a department only when the club is still unassigned. Existing
+// department assignments are never overwritten by this operation.
+export const assignClubDepartment = async (
+  clubId: number,
+  departmentId: number,
+) => {
+  const result = await db
+    .update(clubs)
+    .set({ departmentId })
+    .where(and(eq(clubs.id, clubId), isNull(clubs.departmentId)))
+    .returning();
+
+  return Array.isArray(result) ? result[0] ?? null : null;
 };
 
 export const getClubCoordinators = async (

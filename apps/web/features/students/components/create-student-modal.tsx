@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
+import { useClubsQuery } from "@/features/clubs/api/club-query";
+import { retryUnlessAuthError, useCreateCoordinator } from "@/features/coordinator/api/coordinator-query";
 import { useDepartment } from "@/features/departments/api/department-query";
 import { useCreateManagedStudent } from "@/features/students/api/student-query";
 import { studentCreateSchema } from "@/features/students/validation/student-management-schema";
@@ -20,12 +22,33 @@ export default function CreateStudentModal({
   const [departmentId, setDepartmentId] = useState("");
   const [semester, setSemester] = useState("");
   const [phone, setPhone] = useState("");
+  const [assignAsCoordinator, setAssignAsCoordinator] = useState(false);
+  const [clubId, setClubId] = useState("");
+  const [createdStudentId, setCreatedStudentId] = useState<number | null>(null);
+  const [partialFailure, setPartialFailure] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const departmentQuery = useDepartment();
+  const clubsQuery = useClubsQuery(retryUnlessAuthError);
   const mutation = useCreateManagedStudent();
+  const coordinatorMutation = useCreateCoordinator();
 
-  const submit = (event: React.FormEvent<HTMLFormElement>) => {
+  const assignCoordinator = async (studentId: number) => {
+    if (!clubId) return false;
+    try {
+      await coordinatorMutation.mutateAsync({ studentId, clubId: Number(clubId) });
+      return true;
+    } catch (error) {
+      setPartialFailure(error instanceof Error ? error.message : "Coordinator assignment failed.");
+      return false;
+    }
+  };
+
+  const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (assignAsCoordinator && !clubId) {
+      setErrors((current) => ({ ...current, clubId: "Select a club for the coordinator assignment." }));
+      return;
+    }
     const parsed = studentCreateSchema.safeParse({ name, email, admissionNumber, departmentId, semester, phone });
     if (!parsed.success) {
       const next: Record<string, string> = {};
@@ -38,15 +61,31 @@ export default function CreateStudentModal({
     }
 
     setErrors({});
-    mutation.mutate({
-      name: parsed.data.name,
-      email: parsed.data.email,
-      admissionNumber: parsed.data.admissionNumber,
-      departmentId: Number(parsed.data.departmentId),
-      semester: Number(parsed.data.semester),
-      ...(parsed.data.phone ? { phone: parsed.data.phone } : {}),
-    }, { onSuccess: onCreated });
+    setPartialFailure("");
+    try {
+      const student = await mutation.mutateAsync({
+        name: parsed.data.name,
+        email: parsed.data.email,
+        admissionNumber: parsed.data.admissionNumber,
+        departmentId: Number(parsed.data.departmentId),
+        semester: Number(parsed.data.semester),
+        ...(parsed.data.phone ? { phone: parsed.data.phone } : {}),
+      });
+      setCreatedStudentId(student.id);
+      if (assignAsCoordinator && !(await assignCoordinator(student.id))) return;
+      onCreated();
+    } catch {
+      // The mutation exposes its API error below.
+    }
   };
+
+  const retryCoordinatorAssignment = async () => {
+    if (createdStudentId && await assignCoordinator(createdStudentId)) onCreated();
+  };
+
+  const availableClubs = (clubsQuery.data ?? []).filter(
+    (club) => club.departmentId === Number(departmentId),
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
@@ -65,7 +104,7 @@ export default function CreateStudentModal({
           <Field label="Admission number" error={errors.admissionNumber}><Input value={admissionNumber} onChange={(e) => setAdmissionNumber(e.target.value)} maxLength={30} disabled={mutation.isPending} /></Field>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Department" error={errors.departmentId}>
-              <select value={departmentId} onChange={(e) => setDepartmentId(e.target.value)} disabled={departmentQuery.isPending || departmentQuery.isError || mutation.isPending} className="w-full rounded-lg border border-border bg-background px-3 py-2 disabled:opacity-60">
+              <select value={departmentId} onChange={(e) => { setDepartmentId(e.target.value); setClubId(""); setErrors((current) => { const next = { ...current }; delete next.clubId; return next; }); }} disabled={departmentQuery.isPending || departmentQuery.isError || mutation.isPending} className="w-full rounded-lg border border-border bg-background px-3 py-2 disabled:opacity-60">
                 <option value="">Select department</option>
                 {(departmentQuery.data ?? []).map((department) => <option key={department.id} value={department.id}>{department.name} ({department.code})</option>)}
               </select>
@@ -80,11 +119,39 @@ export default function CreateStudentModal({
           </div>
           <Field label="Phone number (optional)" error={errors.phone}><Input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Include country code" disabled={mutation.isPending} /></Field>
 
+          <div className="space-y-3 rounded-xl border border-border p-4">
+            <label className="flex items-start gap-3 text-sm font-medium">
+              <input type="checkbox" checked={assignAsCoordinator} onChange={(event) => { setAssignAsCoordinator(event.target.checked); setErrors((current) => { const next = { ...current }; delete next.clubId; return next; }); }} disabled={mutation.isPending || createdStudentId !== null} className="mt-1" />
+              <span>Also assign as Club Coordinator</span>
+            </label>
+            {assignAsCoordinator && (
+              <Field label="Coordinator club" error={errors.clubId}>
+                <select value={clubId} onChange={(event) => { setClubId(event.target.value); setErrors((current) => { const next = { ...current }; delete next.clubId; return next; }); }} disabled={!departmentId || clubsQuery.isPending || clubsQuery.isError || mutation.isPending || createdStudentId !== null} className="w-full rounded-lg border border-border bg-background px-3 py-2 disabled:opacity-60">
+                  <option value="">Select club</option>
+                  {availableClubs.map((club) => <option key={club.id} value={club.id}>{club.name}</option>)}
+                </select>
+                {!departmentId && <span className="block text-xs font-normal text-text-muted">Select a department to load its clubs.</span>}
+                {clubsQuery.isPending && <span className="block text-xs font-normal text-text-muted">Loading clubs...</span>}
+                {clubsQuery.isError && <span className="block text-xs font-normal text-red-600">Unable to load clubs. <button type="button" onClick={() => void clubsQuery.refetch()} className="underline">Try again</button></span>}
+                {!clubsQuery.isPending && !clubsQuery.isError && departmentId && availableClubs.length === 0 && <span className="block text-xs font-normal text-text-muted">No clubs are available in the selected department.</span>}
+              </Field>
+            )}
+          </div>
+
           {mutation.error && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">{mutation.error.message || "Unable to create student."}</p>}
+          {partialFailure && (
+            <div role="alert" className="space-y-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              <p>The student account and profile were created, but the coordinator assignment failed: {partialFailure}</p>
+              <p>The student is still saved and is visible in the refreshed directory.</p>
+              <Button type="button" variant="outline" size="sm" onClick={() => void retryCoordinatorAssignment()} disabled={coordinatorMutation.isPending || !createdStudentId}>
+                {coordinatorMutation.isPending ? "Assigning..." : "Retry coordinator assignment"}
+              </Button>
+            </div>
+          )}
           <footer className="flex justify-end gap-3 border-t border-border pt-4">
             <Button variant="outline" onClick={onClose} disabled={mutation.isPending}>Cancel</Button>
-            <Button type="submit" disabled={mutation.isPending || departmentQuery.isPending || departmentQuery.isError}>
-              {mutation.isPending ? "Creating..." : "Create Student"}
+            <Button type="submit" disabled={mutation.isPending || coordinatorMutation.isPending || departmentQuery.isPending || departmentQuery.isError || (assignAsCoordinator && (!clubId || clubsQuery.isPending || clubsQuery.isError)) || createdStudentId !== null}>
+              {mutation.isPending ? "Creating..." : assignAsCoordinator ? "Create and assign" : "Create Student"}
             </Button>
           </footer>
         </form>

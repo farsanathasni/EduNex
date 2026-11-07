@@ -67,6 +67,16 @@ export interface CreateManagedStudentInput {
   phone?: string;
 }
 
+export interface CreatedManagedStudent {
+  id: number;
+  name: string;
+  email: string;
+  admissionNumber: string;
+  departmentId: number;
+  semester: number;
+  phone: string | null;
+}
+
 export interface StudentResponse<T> {
   success: boolean;
   message: string;
@@ -146,12 +156,13 @@ export const deleteStudent = async (studentId: number): Promise<void> => {
 
 export const createManagedStudent = async (
   input: CreateManagedStudentInput,
-): Promise<void> => {
+): Promise<CreatedManagedStudent> => {
   try {
-    const response = await api.post<StudentResponse<unknown>>("/principal/students", input);
+    const response = await api.post<StudentResponse<CreatedManagedStudent>>("/principal/students", input);
     if (!response.data.success) {
       throw new Error(response.data.message || "Failed to create student.");
     }
+    return response.data.data;
   } catch (error) {
     throw getStudentApiError(error, "Failed to create student.");
   }

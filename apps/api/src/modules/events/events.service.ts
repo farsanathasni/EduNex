@@ -44,10 +44,14 @@ export const getAllEvents = async (
   search = "",
   page = 1,
   limit = 10,
+  departmentId?: number,
 ) => {
   const whereCondition = and(
     eq(events.status, "published"),
     getEventSearchCondition(search),
+    departmentId !== undefined
+      ? eq(clubs.departmentId, departmentId)
+      : undefined,
   );
 
   const [eventList, totalResult] = await Promise.all([
@@ -74,6 +78,7 @@ export const getAllEvents = async (
     db
       .select({ total: count() })
       .from(events)
+      .innerJoin(clubs, eq(events.clubId, clubs.id))
       .where(whereCondition),
   ]);
 
@@ -159,6 +164,7 @@ export const getMyEvents = async (
     db
       .select({ total: count() })
       .from(events)
+      .innerJoin(clubs, eq(events.clubId, clubs.id))
       .where(whereCondition),
   ]);
 

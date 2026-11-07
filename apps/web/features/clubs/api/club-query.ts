@@ -5,7 +5,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 
-import { createClub, createStudentMembershipRequest, getClubs, getMyStudentMembershipRequests, getStudentClubAnnouncements, getStudentClubById, getStudentClubCoordinators, getStudentClubEvents, getStudentClubs } from "@/features/clubs/api/clubs";
+import { assignClubDepartment, createClub, createStudentMembershipRequest, getClubs, getMyStudentMembershipRequests, getStudentClubAnnouncements, getStudentClubById, getStudentClubCoordinators, getStudentClubEvents, getStudentClubs } from "@/features/clubs/api/clubs";
 import type { CreateClubInput } from "@/features/clubs/validation/club-schema";
 
 
@@ -14,10 +14,11 @@ type QueryRetry =
   | number
   | ((failureCount: number, error: Error) => boolean);
 
-export const useClubsQuery = (retry?: QueryRetry) => {
+export const useClubsQuery = (retry?: QueryRetry, enabled = true) => {
   return useQuery({
     queryKey: ["clubs"],
     queryFn: getClubs,
+    enabled,
     ...(retry !== undefined ? { retry } : {}),
   });
 };
@@ -34,6 +35,20 @@ export const useCreateClubMutation = () => {
       await queryClient.invalidateQueries({
         queryKey: ["student-clubs"],
       });
+      await queryClient.invalidateQueries({ queryKey: ["hod", "clubs"] });
+    },
+  });
+};
+
+export const useAssignClubDepartmentMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: { clubId: number; departmentId: number }) =>
+      assignClubDepartment(input.clubId, input.departmentId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["clubs"] });
+      await queryClient.invalidateQueries({ queryKey: ["hod", "clubs"] });
     },
   });
 };

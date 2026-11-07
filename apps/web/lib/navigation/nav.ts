@@ -54,6 +54,13 @@ export const NAV: NavItem[] = [
     permission: ["coordinator", "view"],
   },
   {
+    label: "Clubs",
+    href: "/principal/clubs",
+    icon: "◈",
+    roles: ADMIN,
+    permission: ["club", "view"],
+  },
+  {
     label: "College Events",
     href: "/principal/events",
     icon: "▣",

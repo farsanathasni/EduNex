@@ -1,8 +1,15 @@
 
-import type { Request, Response } from "express";
-
+import type { Request, Response } from "express"
+import { eq } from "drizzle-orm"
 import asyncHandler from "../../middleware/asyncHandler.js";
+import { db } from "../../config/database.js";
+import { departments } from "../../db/schema/others-schema.js";
 import {
+  resolveHodDepartmentScope,
+  type Access,
+} from "../rbac/rbac.access.js";
+import {
+  assignClubDepartment,
   createClub,
   createMemberShipRequest,
   getAllClubs,
@@ -16,8 +23,10 @@ import {
   getMyMembershipRequests,
   getStudentProfileByUserId,
   reviewClubMembershipRequest,
-} from "./clubs.service.js";
+} from "./clubs.service.js"
+
 import {
+  assignClubDepartmentSchema,
   clubListQuerySchema,
   createClubSchema,
 } from "./clubs.validation.js";
@@ -25,8 +34,40 @@ import {
 const getListQuery = (req: Request) =>
   clubListQuerySchema.safeParse(req.query);
 
+const requirePrincipal = (
+  res: Response,
+  message = "Only the Principal can assign a department to a club.",
+) => {
+  if ((res.locals.access as Access | undefined)?.isSuperAdmin) return true;
+
+  res.status(403).json({
+    success: false,
+    message,
+  });
+  return false;
+};
+
+const departmentExists = async (departmentId: number) => {
+  const [department] = await db
+    .select({ id: departments.id })
+    .from(departments)
+    .where(eq(departments.id, departmentId))
+    .limit(1);
+
+  return !!department;
+};
+
 export const CreateClub = asyncHandler(
   async (req: Request, res: Response) => {
+    if (
+      !requirePrincipal(
+        res,
+        "Only the Principal can create a club for a selected department.",
+      )
+    ) {
+      return;
+    }
+
     const validation = createClubSchema.safeParse(req.body);
 
     if (!validation.success) {
@@ -39,12 +80,84 @@ export const CreateClub = asyncHandler(
 
     const { name, description, departmentId } = validation.data;
 
+    if (!(await departmentExists(departmentId))) {
+      return res.status(400).json({
+        success: false,
+        message: "Selected department does not exist.",
+      });
+    }
+
     const club = await createClub(name, description, departmentId);
 
     return res.status(201).json({
       success: true,
       message: "Club created successfully.",
       data: club,
+    });
+  },
+);
+
+export const AssignClubDepartment = asyncHandler(
+  async (req: Request, res: Response) => {
+    if (!requirePrincipal(res)) return;
+
+    const clubId = Number(req.params.clubId);
+
+    if (!Number.isSafeInteger(clubId) || clubId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid club ID.",
+      });
+    }
+
+    const validation = assignClubDepartmentSchema.safeParse(req.body);
+
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid department details.",
+        errors: validation.error.flatten(),
+      });
+    }
+
+    const { departmentId } = validation.data;
+
+    if (!(await departmentExists(departmentId))) {
+      return res.status(400).json({
+        success: false,
+        message: "Selected department does not exist.",
+      });
+    }
+
+    const club = await getClubById(clubId);
+
+    if (!club) {
+      return res.status(404).json({
+        success: false,
+        message: "Club not found.",
+      });
+    }
+
+    if (club.departmentId !== null) {
+      return res.status(409).json({
+        success: false,
+        message: "This club already belongs to a department.",
+      });
+    }
+
+    const updatedClub = await assignClubDepartment(clubId, departmentId);
+
+    if (!updatedClub) {
+      return res.status(409).json({
+        success: false,
+        message: "This club already belongs to a department.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Club department assigned successfully.",
+      data: updatedClub,
     });
   },
 );
@@ -62,7 +175,19 @@ export const GetAllClubs = asyncHandler(
     }
 
     const { page, limit, search } = validation.data;
-    const result = await getAllClubs(search, page, limit);
+
+    const departmentId = await resolveHodDepartmentScope(
+      res.locals.access as Access,
+    );
+
+    if (departmentId === null) {
+      return res.status(403).json({
+        success: false,
+        message: "No department is assigned to your account.",
+      });
+    }
+
+    const result = await getAllClubs(search, page, limit, departmentId);
 
     return res.status(200).json({
       success: true,
@@ -158,6 +283,28 @@ export const GetStudentClubEvents = asyncHandler(
         message: "Invalid search or pagination parameters.",
         errors: validation.error.flatten(),
       });
+    }
+
+    const departmentId = await resolveHodDepartmentScope(
+      res.locals.access as Access,
+    );
+
+    if (departmentId === null) {
+      return res.status(403).json({
+        success: false,
+        message: "No department is assigned to your account.",
+      });
+    }
+
+    if (departmentId !== undefined) {
+      const club = await getClubById(clubId);
+
+      if (!club || club.departmentId !== departmentId) {
+        return res.status(404).json({
+          success: false,
+          message: "Club not found.",
+        });
+      }
     }
 
     const { page, limit, search } = validation.data;

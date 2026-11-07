@@ -1,4 +1,6 @@
 import { api } from "@/lib/axios";
+import type { Club } from "@/features/clubs/api/clubs";
+import type { CreateHodClubInput } from "@/features/clubs/validation/club-schema";
 
 export interface HodDashboard {
   departmentId: number;
@@ -45,6 +47,35 @@ export const getHodDashboard = async (): Promise<HodDashboard> => {
     "/hod/dashboard",
   );
 
+  return response.data.data;
+};
+
+export const getHodClubs = async (): Promise<Club[]> => {
+  const limit = 100;
+  const clubs: Club[] = [];
+  let page = 1;
+  let totalPages = 1;
+
+  do {
+    const response = await api.get<{
+      data: Club[];
+      pagination?: { totalPages: number };
+    }>("/hod/clubs", { params: { page, limit } });
+
+    clubs.push(...response.data.data);
+    totalPages =
+      response.data.pagination?.totalPages ??
+      (response.data.data.length === limit ? page + 1 : page);
+    page += 1;
+  } while (page <= totalPages);
+
+  return clubs;
+};
+
+export const createHodClub = async (
+  data: CreateHodClubInput,
+): Promise<Club> => {
+  const response = await api.post("/hod/clubs", data);
   return response.data.data;
 };
 
