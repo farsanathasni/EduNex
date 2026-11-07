@@ -101,6 +101,11 @@ if (isStudent && !isSuperAdmin) {
 export const can = (access: Access, resource: string, action: string) =>
   access.isSuperAdmin || access.permissions.has(`${resource}:${action}`);
 
+export const hasRole = (access: Access, slug: string) =>
+  access.roles.some((role) => role.slug === slug);
+
+export const isHod = (access: Access) => hasRole(access, "hod");
+
 export type DepartmentScope =
   | { kind: "all" }
   | { kind: "department"; departmentId: number };
@@ -132,9 +137,32 @@ export const resolveHodDepartmentScope = async (
 ): Promise<number | undefined | null> => {
   if (access.isSuperAdmin) return undefined;
 
-  const isHod = access.roles.some((role) => role.slug === "hod");
-  if (!isHod) return undefined;
+  if (!isHod(access)) return undefined;
 
   const scope = await resolveDepartmentScope(access);
   return scope?.kind === "department" ? scope.departmentId : null;
 };
+
+export type ClubManagerScope =
+  | { kind: "all" }
+  | { kind: "department"; departmentId: number };
+
+// Club management is limited to the Principal (Super Admin) and HODs.
+// HODs can only manage clubs in their own department. Other roles with
+// club:update (for example coordinators) do not gain management access.
+export const resolveClubManagerScope = async (
+  access: Access,
+): Promise<ClubManagerScope | null> => {
+  if (access.isSuperAdmin) return { kind: "all" };
+  if (!isHod(access)) return null;
+
+  const scope = await resolveDepartmentScope(access);
+  return scope?.kind === "department"
+    ? { kind: "department", departmentId: scope.departmentId }
+    : null;
+};
+
+export const getClubDepartmentFilter = (
+  scope: ClubManagerScope,
+): number | undefined =>
+  scope.kind === "department" ? scope.departmentId : undefined;

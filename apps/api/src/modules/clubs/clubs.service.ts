@@ -21,6 +21,7 @@ import {
 import { StudentProfile } from "../../db/schema/student-profile.js";
 import { user } from "../../db/schema/auth-schema.js";
 import { coordinatorAssignments } from "../../db/schema/coordinator-schema.js";
+import type { UpdateClubInput } from "./clubs.validation.js";
 
 const getPagination = (page: number, limit: number) => ({
   limit,
@@ -110,6 +111,112 @@ export const assignClubDepartment = async (
     .returning();
 
   return Array.isArray(result) ? result[0] ?? null : null;
+};
+
+// departmentId set = HOD (own department only), undefined = Super Admin.
+export const updateClub = async (
+  clubId: number,
+  data: UpdateClubInput,
+  departmentId?: number,
+) => {
+  const updates: {
+    name?: string;
+    description?: string | null;
+    updatedAt: string;
+  } = {
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (data.name !== undefined) {
+    updates.name = data.name;
+  }
+
+  if (data.description !== undefined) {
+    updates.description = data.description || null;
+  }
+
+  const result = await db
+    .update(clubs)
+    .set(updates)
+    .where(
+      and(
+        eq(clubs.id, clubId),
+        departmentId !== undefined
+          ? eq(clubs.departmentId, departmentId)
+          : undefined,
+      ),
+    )
+    .returning();
+
+  return Array.isArray(result) ? result[0] ?? null : null;
+};
+
+// departmentId set = HOD (own department only), undefined = Super Admin.
+// Deletion is blocked while the club still owns related records so the
+// database's cascade rules cannot silently remove memberships, coordinators,
+// or announcements.
+export const deleteClub = async (
+  clubId: number,
+  departmentId?: number,
+) => {
+  return db.transaction(async (tx) => {
+    const scopeCondition = and(
+      eq(clubs.id, clubId),
+      departmentId !== undefined
+        ? eq(clubs.departmentId, departmentId)
+        : undefined,
+    );
+
+    const [club] = await tx
+      .select({ id: clubs.id })
+      .from(clubs)
+      .where(scopeCondition)
+      .limit(1)
+      .for("update");
+
+    if (!club) return null;
+
+    const [
+      eventResult,
+      membershipResult,
+      coordinatorResult,
+      announcementResult,
+    ] = await Promise.all([
+      tx
+        .select({ total: count() })
+        .from(events)
+        .where(eq(events.clubId, clubId)),
+      tx
+        .select({ total: count() })
+        .from(clubMemberships)
+        .where(eq(clubMemberships.clubId, clubId)),
+      tx
+        .select({ total: count() })
+        .from(coordinatorAssignments)
+        .where(eq(coordinatorAssignments.clubId, clubId)),
+      tx
+        .select({ total: count() })
+        .from(announcements)
+        .where(eq(announcements.clubId, clubId)),
+    ]);
+
+    const hasDependencies =
+      (eventResult[0]?.total ?? 0) > 0 ||
+      (membershipResult[0]?.total ?? 0) > 0 ||
+      (coordinatorResult[0]?.total ?? 0) > 0 ||
+      (announcementResult[0]?.total ?? 0) > 0;
+
+    if (hasDependencies) {
+      throw new Error("CLUB_HAS_DEPENDENT_RECORDS");
+    }
+
+    const [deletedClub] = await tx
+      .delete(clubs)
+      .where(scopeCondition)
+      .returning({ id: clubs.id });
+
+    return deletedClub ?? null;
+  });
 };
 
 export const getClubCoordinators = async (

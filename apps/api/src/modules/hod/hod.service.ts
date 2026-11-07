@@ -231,62 +231,6 @@ export const getHodStudents = async (
   };
 };
 
-// Get clubs (one department, or all of them).
-export const getHodClubs = async (
-  departmentId?: number,
-  search = "",
-  page = 1,
-  limit = 10,
-) => {
-  const conditions: SQL[] = [];
-
-  if (departmentId !== undefined) {
-    conditions.push(eq(clubs.departmentId, departmentId));
-  }
-
-  if (search.trim()) {
-    conditions.push(
-      ilike(clubs.name, `%${search.trim()}%`),
-    );
-  }
-
-  const whereCondition = conditions.length
-    ? and(...conditions)
-    : undefined;
-  const offset = (page - 1) * limit;
-
-  const [clubList, totalResult] = await Promise.all([
-    db
-      .select({
-        id: clubs.id,
-        name: clubs.name,
-        description: clubs.description,
-        departmentId: clubs.departmentId,
-      })
-      .from(clubs)
-      .where(whereCondition)
-      .limit(limit)
-      .offset(offset),
-
-    db
-      .select({ total: count() })
-      .from(clubs)
-      .where(whereCondition),
-  ]);
-
-  const total = totalResult[0].total;
-
-  return {
-    clubs: clubList,
-    pagination: {
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    },
-  };
-};
-
 // Get pending events (one department, or all of them).
 export const getPendingEvents = async (
   departmentId?: number,

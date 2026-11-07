@@ -137,9 +137,7 @@ export const deactivateCoordinator = async (
 
 // Get logged-in student's coordinator status
 export const getCoordinatorStatus = async (): Promise<CoordinatorStatus> => {
-  const { data } = await api.get<ApiResponse<CoordinatorStatus>>(
-    "/coordinator/",
-  );
+  const { data } = await api.get<ApiResponse<CoordinatorStatus>>("/coordinator/");
 
   if (!data.success) {
     throw new Error(

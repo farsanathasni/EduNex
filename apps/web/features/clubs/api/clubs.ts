@@ -1,6 +1,11 @@
 
+import axios from "axios";
+
 import { api } from "@/lib/axios";
-import { CreateClubInput } from "../validation/club-schema";
+import {
+  CreateClubInput,
+  UpdateClubInput,
+} from "../validation/club-schema";
 
 export interface Club {
   id: number;
@@ -8,6 +13,38 @@ export interface Club {
   description: string | null;
   departmentId: number | null;
 }
+
+export interface ClubPagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface ClubListParams {
+  search: string;
+  page: number;
+  limit: number;
+}
+
+export interface ClubListResult {
+  clubs: Club[];
+  pagination: ClubPagination;
+}
+
+interface ClubListResponse {
+  success: boolean;
+  message?: string;
+  data: Club[];
+  pagination?: ClubPagination;
+}
+
+const getApiError = (error: unknown, fallback: string) => {
+  if (axios.isAxiosError<{ message?: string }>(error)) {
+    return new Error(error.response?.data?.message || fallback);
+  }
+  return error instanceof Error ? error : new Error(fallback);
+};
 
 export interface ClubMembershipRequest {
   id:number,
@@ -74,26 +111,64 @@ export interface CoordinatorClubMember {
 }
 
 
-export const getClubs = async (): Promise<Club[]> => {
-  const limit = 100;
-  const clubs: Club[] = [];
-  let page = 1;
-  let totalPages = 1;
+export function getClubs(): Promise<Club[]>;
+export function getClubs(params: ClubListParams): Promise<ClubListResult>;
+export async function getClubs(
+  params?: ClubListParams,
+): Promise<Club[] | ClubListResult> {
+  try {
+    if (params) {
+      const response = await api.get<ClubListResponse>("/clubs", {
+        params,
+      });
 
-  do {
-    const response = await api.get<{
-      data: Club[];
-      pagination?: { totalPages: number };
-    }>("/clubs", { params: { page, limit } });
+      if (!response.data.success || !Array.isArray(response.data.data)) {
+        throw new Error(
+          response.data.message || "Invalid clubs API response.",
+        );
+      }
 
-    clubs.push(...response.data.data);
-    totalPages = response.data.pagination?.totalPages ??
-      (response.data.data.length === limit ? page + 1 : page);
-    page += 1;
-  } while (page <= totalPages);
+      if (!response.data.pagination) {
+        throw new Error("Club pagination information is missing.");
+      }
 
-  return clubs;
-};
+      return {
+        clubs: response.data.data,
+        pagination: response.data.pagination,
+      };
+    }
+
+    const limit = 100;
+    const clubs: Club[] = [];
+    let page = 1;
+    let totalPages = 1;
+
+    do {
+      const response = await api.get<ClubListResponse>("/clubs", {
+        params: { page, limit },
+      });
+
+      if (
+        !response.data.success ||
+        !Array.isArray(response.data.data)
+      ) {
+        throw new Error(
+          response.data.message || "Invalid clubs API response.",
+        );
+      }
+
+      clubs.push(...response.data.data);
+      totalPages =
+        response.data.pagination?.totalPages ??
+        (response.data.data.length === limit ? page + 1 : page);
+      page += 1;
+    } while (page <= totalPages);
+
+    return clubs;
+  } catch (error) {
+    throw getApiError(error, "Unable to load clubs.");
+  }
+}
 
 
 export const createClub=async(data:CreateClubInput,):Promise<Club>=>{
@@ -105,6 +180,29 @@ export const createClub=async(data:CreateClubInput,):Promise<Club>=>{
     return response.data.data
  
 }
+
+export const updateClub = async (
+  clubId: number,
+  data: UpdateClubInput,
+): Promise<Club> => {
+  try {
+    const response = await api.patch(`/clubs/${clubId}`, data);
+    return response.data.data;
+  } catch (error) {
+    throw getApiError(error, "Unable to update club.");
+  }
+};
+
+export const deleteClub = async (
+  clubId: number,
+): Promise<{ id: number }> => {
+  try {
+    const response = await api.delete(`/clubs/${clubId}`);
+    return response.data.data;
+  } catch (error) {
+    throw getApiError(error, "Unable to delete club.");
+  }
+};
 
 export const assignClubDepartment = async (
   clubId: number,

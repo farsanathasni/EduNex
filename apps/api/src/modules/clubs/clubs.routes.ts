@@ -8,6 +8,7 @@ import {
   AssignClubDepartment,
   CreateClub,
   CreateStudentMembershipRequest,
+  DeleteClub,
   GetAllClubs,
   GetCoordinatorClubMembers,
   GetCoordinatorMembershipRequests,
@@ -18,6 +19,7 @@ import {
   GetStudentClubEvents,
   GetStudentClubs,
   ReviewClubMembershipRequest,
+  UpdateClub,
 } from "./clubs.controller.js";
 
 const clubsRouter = Router();
@@ -91,6 +93,24 @@ clubsRouter.patch(
   requireAuth,
   rbac("club", "update"),
   AssignClubDepartment,
+);
+
+// Edit club details. The handler limits HODs to their own department and
+// does not accept a departmentId change.
+clubsRouter.patch(
+  "/:clubId",
+  requireAuth,
+  rbac("club", "update"),
+  UpdateClub,
+);
+
+// Delete a club. The handler applies the same department scope and blocks
+// deletion while dependent records still reference the club.
+clubsRouter.delete(
+  "/:clubId",
+  requireAuth,
+  rbac("club", "delete"),
+  DeleteClub,
 );
 
 // Submit a membership request.
