@@ -2,7 +2,7 @@ import { pgTable, index, foreignKey, unique, text, timestamp, bigint, varchar, b
 import { sql } from "drizzle-orm"
 import { user } from "./auth-schema.js";
 import { StudentProfile } from "./student-profile.js";
-
+import { staff } from "./staff-schema.js";
 
 export const departments = pgTable("departments", {
     // You can use { mode: "bigint" } if numbers are exceeding js number limitations
@@ -102,7 +102,7 @@ export const eventApprovals = pgTable("event_approvals", {
     // You can use { mode: "bigint" } if numbers are exceeding js number limitations
     eventId: bigint("event_id", { mode: "number" }).notNull(),
     // You can use { mode: "bigint" } if numbers are exceeding js number limitations
-    reviewerId: bigint("reviewer_id", { mode: "number" }).notNull(),
+    reviewerId: text("reviewer_id").notNull(),
     reviewerRole: varchar("reviewer_role", { length: 20 }).notNull(),
     decision: varchar({ length: 20 }).notNull(),
     comments: text(),
@@ -133,6 +133,11 @@ export const attendance = pgTable("attendance", {
             foreignColumns: [events.id],
             name: "attendance_event_id_fkey"
         }).onDelete("cascade"),
+        foreignKey({
+  columns: [table.studentId],
+  foreignColumns: [StudentProfile.id],
+  name: "attendance_student_id_fkey",
+}).onDelete("cascade"),
     unique("attendance_event_id_student_id_key").on(table.eventId, table.studentId),
     check("attendance_status_check", sql`(status)::text = ANY ((ARRAY['present'::character varying, 'absent'::character varying])::text[])`),
 ]);

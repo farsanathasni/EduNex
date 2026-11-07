@@ -1,4 +1,6 @@
-import { bigint, integer, pgTable, text } from "drizzle-orm/pg-core";
+
+import { bigint, boolean, integer, pgTable, text } from "drizzle-orm/pg-core";
+
 import { relations } from "drizzle-orm";
 import { user } from "./auth-schema.js";
 import { departments } from "./others-schema.js";
@@ -26,6 +28,7 @@ export const StudentProfile = pgTable("student-profile", {
   semester: integer("semester").notNull(),
 
   phone: text("phone"),
+  isDeleted: boolean("is_deleted").notNull().default(false),
 });
 
 export const StudentProfileRelation = relations(

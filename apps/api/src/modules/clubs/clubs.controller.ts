@@ -1,31 +1,32 @@
+
 import type { Request, Response } from "express";
+
 import asyncHandler from "../../middleware/asyncHandler.js";
-import { getActiveHod } from "../hod/hod.service.js";
-import {createClub,createMemberShipRequest,getAllClubs, getClubAnnouncements, getClubById, getClubCoordinators, getClubEvents, getMyMembershipRequests, getStudentProfileByUserId,} from "./clubs.service.js";
-import { createClubSchema } from "./clubs.validation.js";
+import {
+  createClub,
+  createMemberShipRequest,
+  getAllClubs,
+  getClubAnnouncements,
+  getClubById,
+  getClubCoordinators,
+  getClubEvents,
+  getCoordinatorClubMembers,
+  getCoordinatorMembershipRequests,
+  getCoordinatorProfileByUserId,
+  getMyMembershipRequests,
+  getStudentProfileByUserId,
+  reviewClubMembershipRequest,
+} from "./clubs.service.js";
+import {
+  clubListQuerySchema,
+  createClubSchema,
+} from "./clubs.validation.js";
 
-
+const getListQuery = (req: Request) =>
+  clubListQuerySchema.safeParse(req.query);
 
 export const CreateClub = asyncHandler(
   async (req: Request, res: Response) => {
-    const currentUser = res.locals.user;
-
-    if (!currentUser) {
-      return res.status(401).json({
-        success: false,
-        message: "Please log in.",
-      });
-    }
-
-    const hod = await getActiveHod(currentUser.id);
-
-    if (!hod) {
-      return res.status(403).json({
-        success: false,
-        message: "Active HOD permission required.",
-      });
-    }
-
     const validation = createClubSchema.safeParse(req.body);
 
     if (!validation.success) {
@@ -48,141 +49,169 @@ export const CreateClub = asyncHandler(
   },
 );
 
-
-
 export const GetAllClubs = asyncHandler(
-  async (_req: Request, res: Response) => {
-    const currentUser = res.locals.user;
+  async (req: Request, res: Response) => {
+    const validation = getListQuery(req);
 
-    if (!currentUser) {
-      return res.status(401).json({
+    if (!validation.success) {
+      return res.status(400).json({
         success: false,
-        message: "Please log in.",
+        message: "Invalid search or pagination parameters.",
+        errors: validation.error.flatten(),
       });
     }
 
-    const hod = await getActiveHod(currentUser.id);
-
-    if (!hod) {
-      return res.status(403).json({
-        success: false,
-        message: "Active HOD permission required.",
-      });
-    }
-
-    const data = await getAllClubs();
+    const { page, limit, search } = validation.data;
+    const result = await getAllClubs(search, page, limit);
 
     return res.status(200).json({
       success: true,
       message: "Clubs fetched successfully.",
+      data: result.clubs,
+      pagination: result.pagination,
+    });
+  },
+);
+
+export const GetStudentClubs = GetAllClubs;
+
+export const GetStudentClubById = asyncHandler(
+  async (req: Request, res: Response) => {
+    const clubId = Number(req.params.clubId);
+
+    if (!Number.isSafeInteger(clubId) || clubId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid club ID.",
+      });
+    }
+
+    const data = await getClubById(clubId);
+
+    if (!data) {
+      return res.status(404).json({
+        success: false,
+        message: "Club not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Club fetched successfully.",
       data,
     });
   },
 );
 
-
-
-export const GetStudentClubs=asyncHandler(async(_req:Request,res:Response)=>{
-  const data=await getAllClubs()
-
-  return res.status(200).json({
-    success:true,message:"Clubs fetched successfully.",
-    data
-  })
-})
-
-
-export const GetStudentClubById =asyncHandler(async(req:Request,res:Response)=>{
-  const clubId=Number(req.params.clubId)
-
-  if(!Number.isInteger(clubId)||clubId <=0){
-    return res.status(400).json({
-      success:false,message:"Invalid club ID.",
-    })
-  }
-
-  const data=await getClubById(clubId)
-
-  if(!data){
-    return res.status(404).json({
-      success:false,message:"Club not found."
-    })
-  }
-
-  return res.status(200).json({
-    success:true,message:"Club fetched successfully.",
-    data
-  })
-})
-
-
-
 export const GetStudentClubCoordinators = asyncHandler(
   async (req: Request, res: Response) => {
     const clubId = Number(req.params.clubId);
+    const validation = getListQuery(req);
 
-    if (!Number.isInteger(clubId) || clubId <= 0) {
+    if (!Number.isSafeInteger(clubId) || clubId <= 0) {
       return res.status(400).json({
         success: false,
         message: "Invalid club ID.",
-      })
+      });
     }
 
-    const data = await getClubCoordinators(clubId);
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid search or pagination parameters.",
+        errors: validation.error.flatten(),
+      });
+    }
+
+    const { page, limit, search } = validation.data;
+    const result = await getClubCoordinators(
+      clubId,
+      search,
+      page,
+      limit,
+    );
 
     return res.status(200).json({
       success: true,
       message: "Club coordinators fetched successfully.",
-      data,
-    })
-  });
-
-
+      data: result.coordinators,
+      pagination: result.pagination,
+    });
+  },
+);
 
 export const GetStudentClubEvents = asyncHandler(
   async (req: Request, res: Response) => {
     const clubId = Number(req.params.clubId);
+    const validation = getListQuery(req);
 
-    if (!Number.isInteger(clubId) || clubId <= 0) {
+    if (!Number.isSafeInteger(clubId) || clubId <= 0) {
       return res.status(400).json({
         success: false,
         message: "Invalid club ID.",
       });
     }
 
-    const data = await getClubEvents(clubId);
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid search or pagination parameters.",
+        errors: validation.error.flatten(),
+      });
+    }
+
+    const { page, limit, search } = validation.data;
+    const result = await getClubEvents(
+      clubId,
+      search,
+      page,
+      limit,
+    );
 
     return res.status(200).json({
       success: true,
       message: "Club events fetched successfully.",
-      data,
+      data: result.events,
+      pagination: result.pagination,
     });
-  })
-
-
+  },
+);
 
 export const GetStudentClubAnnouncements = asyncHandler(
   async (req: Request, res: Response) => {
     const clubId = Number(req.params.clubId);
+    const validation = getListQuery(req);
 
-    if (!Number.isInteger(clubId) || clubId <= 0) {
+    if (!Number.isSafeInteger(clubId) || clubId <= 0) {
       return res.status(400).json({
         success: false,
         message: "Invalid club ID.",
       });
     }
 
-    const data = await getClubAnnouncements(clubId);
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid pagination parameters.",
+        errors: validation.error.flatten(),
+      });
+    }
+
+    const { page, limit } = validation.data;
+    const result = await getClubAnnouncements(
+      clubId,
+      page,
+      limit,
+    );
 
     return res.status(200).json({
       success: true,
       message: "Club announcements fetched successfully.",
-      data,
+      data: result.announcements,
+      pagination: result.pagination,
     });
-  })
-
-
-
+  },
+);
 
 export const CreateStudentMembershipRequest = asyncHandler(
   async (req: Request, res: Response) => {
@@ -197,7 +226,7 @@ export const CreateStudentMembershipRequest = asyncHandler(
 
     const clubId = Number(req.params.clubId);
 
-    if (!Number.isInteger(clubId) || clubId <= 0) {
+    if (!Number.isSafeInteger(clubId) || clubId <= 0) {
       return res.status(400).json({
         success: false,
         message: "Invalid club ID.",
@@ -244,17 +273,24 @@ export const CreateStudentMembershipRequest = asyncHandler(
   },
 );
 
-
-
-
 export const GetMyStudentMembershipRequests = asyncHandler(
-  async (_req: Request, res: Response) => {
+  async (req: Request, res: Response) => {
     const currentUser = res.locals.user;
 
     if (!currentUser) {
       return res.status(401).json({
         success: false,
         message: "Please log in.",
+      });
+    }
+
+    const validation = getListQuery(req);
+
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid search or pagination parameters.",
+        errors: validation.error.flatten(),
       });
     }
 
@@ -267,12 +303,165 @@ export const GetMyStudentMembershipRequests = asyncHandler(
       });
     }
 
-    const data = await getMyMembershipRequests(student.id);
+    const { page, limit, search } = validation.data;
+    const result = await getMyMembershipRequests(
+      student.id,
+      search,
+      page,
+      limit,
+    );
 
     return res.status(200).json({
       success: true,
       message: "Membership requests fetched successfully.",
-      data,
+      data: result.requests,
+      pagination: result.pagination,
+    });
+  },
+);
+
+
+
+export const GetCoordinatorMembershipRequests = asyncHandler(
+  async (req: Request, res: Response) => {
+    const currentUser = res.locals.user;
+
+    if (!currentUser) {
+      return res.status(401).json({
+        success: false,
+        message: "Please log in.",
+      });
+    }
+
+    const coordinator = await getCoordinatorProfileByUserId(
+      currentUser.id,
+    );
+
+    if (!coordinator) {
+      return res.status(403).json({
+        success: false,
+        message: "Coordinator profile not found.",
+      });
+    }
+
+    const requests = await getCoordinatorMembershipRequests(
+      coordinator.id,
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Membership requests fetched successfully.",
+      data: requests,
+    });
+  },
+);
+
+
+export const ReviewClubMembershipRequest = asyncHandler(
+  async (req: Request, res: Response) => {
+    const currentUser = res.locals.user;
+
+    if (!currentUser) {
+      return res.status(401).json({
+        success: false,
+        message: "Please log in.",
+      });
+    }
+
+    const requestId = Number(req.params.requestId);
+    const { decision } = req.body;
+
+    if (!Number.isSafeInteger(requestId) || requestId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid membership request ID.",
+      });
+    }
+
+    if (decision !== "approved" && decision !== "rejected") {
+      return res.status(400).json({
+        success: false,
+        message: "Decision must be approved or rejected.",
+      });
+    }
+
+    const coordinator = await getCoordinatorProfileByUserId(
+      currentUser.id,
+    );
+
+    if (!coordinator) {
+      return res.status(403).json({
+        success: false,
+        message: "Coordinator profile not found.",
+      });
+    }
+
+    try {
+      const updatedRequest = await reviewClubMembershipRequest(
+        coordinator.id,
+        requestId,
+        decision,
+      );
+
+      return res.status(200).json({
+        success: true,
+        message: `Membership request ${decision} successfully.`,
+        data: updatedRequest,
+      });
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === "MEMBERSHIP_REQUEST_NOT_FOUND"
+      ) {
+        return res.status(404).json({
+          success: false,
+          message: "Membership request not found.",
+        });
+      }
+
+      if (
+        error instanceof Error &&
+        error.message === "MEMBERSHIP_REQUEST_ALREADY_REVIEWED"
+      ) {
+        return res.status(409).json({
+          success: false,
+          message: "This membership request has already been reviewed.",
+        });
+      }
+
+      throw error;
+    }
+  },
+);
+
+
+
+export const GetCoordinatorClubMembers = asyncHandler(
+  async (req: Request, res: Response) => {
+    if (!res.locals.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const coordinator = await getCoordinatorProfileByUserId(
+      res.locals.user.id,
+    );
+
+    if (!coordinator) {
+      return res.status(403).json({
+        success: false,
+        message: "Coordinator profile not found",
+      });
+    }
+
+    const members = await getCoordinatorClubMembers(coordinator.id);
+
+    return res.status(200).json({
+      success: true,
+      message: "Club members fetched successfully",
+      data: members,
     });
   },
 );

@@ -1,220 +1,323 @@
 import type { Request, Response } from "express";
+
 import asyncHandler from "../../middleware/asyncHandler.js";
 import {
-  getActiveHod,
+  getHodDashboardStats,
+  getPendingEvents,
+  reviewEvent,
   getHodStudents,
-  createCoordinator,
-  getCoordinatorAssignments,
+  getHodClubs,
+  getStaffByUserId,
 } from "./hod.service.js";
-import { getHodStudentsSchema , createCoordinatorSchema } from "./hod.validation.js";
+import {
+  resolveDepartmentScope,
+  type Access,
+} from "../rbac/rbac.access.js";
 
+// Validate pagination parameters.
+const getPaginationParams = (req: Request) => {
+  const page =
+    req.query.page === undefined ? 1 : Number(req.query.page);
+
+  const limit =
+    req.query.limit === undefined ? 10 : Number(req.query.limit);
+
+  if (
+    !Number.isSafeInteger(page) ||
+    page < 1 ||
+    !Number.isSafeInteger(limit) ||
+    limit < 1 ||
+    limit > 100
+  ) {
+    return null;
+  }
+
+  return { page, limit };
+};
+
+// Permission middleware (rbac) already decided WHAT the caller may do.
+// This decides WHICH department's data they may touch:
+//   Super Admin -> every department (departmentId undefined)
+//   HOD / staff -> their own department only
+// Sends the 403 itself and returns null when no scope applies.
+const getScope = async (res: Response) => {
+  const scope = await resolveDepartmentScope(
+    res.locals.access as Access,
+  );
+
+  if (!scope) {
+    res.status(403).json({
+      success: false,
+      message: "No department is assigned to your account.",
+    });
+    return null;
+  }
+
+  return {
+    scope,
+    departmentId:
+      scope.kind === "department" ? scope.departmentId : undefined,
+  };
+};
+
+// HOD dashboard (also used by the Super Admin, across all departments).
 export const GetHodDashboard = asyncHandler(
   async (_req: Request, res: Response) => {
-    const user = res.locals.user;
+    const resolved = await getScope(res);
+    if (!resolved) return;
 
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized. Please log in.",
-      });
-    }
+    const staffRow = await getStaffByUserId(res.locals.user.id);
 
-    const hod = await getActiveHod(user.id);
-
-    if (!hod) {
-      return res.status(403).json({
-        success: false,
-        message: "Access denied. Active HOD permission required.",
-      });
-    }
+    const stats = await getHodDashboardStats(resolved.departmentId);
 
     return res.status(200).json({
       success: true,
       message: "HOD dashboard fetched successfully.",
       data: {
-        staffId: hod.id,
-        employeeId: hod.employeeId,
-        role: hod.role,
-        departmentId: hod.departmentId,
-        designation: hod.designation,
+        staffId: staffRow?.id ?? null,
+        employeeId: staffRow?.employeeId ?? null,
+        role: staffRow?.role ?? null,
+        departmentId: staffRow?.departmentId ?? null,
+        designation: staffRow?.designation ?? null,
+        totalStudents: stats.totalStudents,
+        totalStaff: stats.totalStaff,
+        totalCoordinators: stats.totalCoordinators,
+        pendingApprovals: stats.pendingApprovals,
       },
     });
   },
 );
 
-export const GetHodStudents = asyncHandler(
+// Get students with department filtering, search, and pagination.
+export const GetStudentsByDepartment = asyncHandler(
   async (req: Request, res: Response) => {
-    const user = res.locals.user;
+    const resolved = await getScope(res);
+    if (!resolved) return;
 
-    if (!user) {
-      return res.status(401).json({
+    const pagination = getPaginationParams(req);
+
+    if (!pagination) {
+      return res.status(400).json({
         success: false,
-        message: "Unauthorized. Please log in.",
+        message: "Page must be positive and limit must be between 1 and 100.",
       });
     }
 
-    const hod = await getActiveHod(user.id);
+    const requestedDepartmentId =
+      req.query.departmentId === undefined
+        ? undefined
+        : Number(req.query.departmentId);
 
-    if (!hod) {
+    const access = res.locals.access as Access;
+    const isHod = access.roles.some((role) => role.slug === "hod");
+
+    if (
+      requestedDepartmentId !== undefined &&
+      (!Number.isSafeInteger(requestedDepartmentId) ||
+        requestedDepartmentId <= 0)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid department ID.",
+      });
+    }
+
+    // HODs and Super Admins may view all departments, with an optional
+    // department filter. Other staff remain scoped to their department.
+    if (
+      !access.isSuperAdmin &&
+      !isHod &&
+      resolved.departmentId !== undefined &&
+      requestedDepartmentId !== undefined &&
+      requestedDepartmentId !== resolved.departmentId
+    ) {
       return res.status(403).json({
         success: false,
-        message: "Access denied. Active HOD permission required.",
+        message: "You can only view students in your own department.",
       });
-    }
-
-    if (hod.departmentId === null) {
-      return res.status(400).json({
-        success: false,
-        message: "No department is assigned to this HOD.",
-      });
-    }
-
-    // Validate the semester query parameter.
-    const validation = getHodStudentsSchema.safeParse(req.query);
-
-    if (!validation.success) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid query parameters.",
-        errors: validation.error.flatten(),
-      });
-    }
-
-    // Read and validate the optional department filter.
-    const departmentIdParam = req.query.departmentId;
-    let departmentId: number | undefined;
-
-    if (departmentIdParam !== undefined) {
-      if (
-        typeof departmentIdParam !== "string" ||
-        !/^\d+$/.test(departmentIdParam) ||
-        !Number.isSafeInteger(Number(departmentIdParam)) ||
-        Number(departmentIdParam) <= 0
-      ) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid department ID.",
-        });
-      }
-
-      departmentId = Number(departmentIdParam);
     }
 
     const semester =
-      validation.data.semester === undefined
+      req.query.semester === undefined
         ? undefined
-        : Number(validation.data.semester);
+        : Number(req.query.semester);
 
-    // Apply both filters when provided.
-    const students = await getHodStudents(
-      departmentId,
+    if (
+      semester !== undefined &&
+      (!Number.isSafeInteger(semester) ||
+        semester < 1 ||
+        semester > 8)
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Semester must be between 1 and 8.",
+      });
+    }
+
+    const search =
+      typeof req.query.search === "string"
+        ? req.query.search.trim()
+        : "";
+
+    const result = await getHodStudents(
+      isHod || access.isSuperAdmin
+        ? requestedDepartmentId
+        : resolved.departmentId,
       semester,
+      search,
+      pagination.page,
+      pagination.limit,
     );
 
     return res.status(200).json({
       success: true,
       message: "Students fetched successfully.",
-      data: students,
+      data: result.students,
+      pagination: result.pagination,
     });
   },
 );
 
-// Keep this export if the router from the other branch uses this name.
-export const GetStudentsByDepartment = GetHodStudents;
-
-
-
-
-export const CreateCoordinator = asyncHandler(
+// Get clubs with search and pagination.
+export const GetHodClubs = asyncHandler(
   async (req: Request, res: Response) => {
-    const currentUser = res.locals.user;
+    const resolved = await getScope(res);
+    if (!resolved) return;
 
-    if (!currentUser) {
-      return res.status(401).json({
-        success: false,
-        message: "Please log in.",
-      });
-    }
+    const pagination = getPaginationParams(req);
 
-    const hod = await getActiveHod(currentUser.id);
-
-    if (!hod) {
-      return res.status(403).json({
-        success: false,
-        message: "Active HOD permission required.",
-      });
-    }
-
-    const validation = createCoordinatorSchema.safeParse(req.body);
-
-    if (!validation.success) {
+    if (!pagination) {
       return res.status(400).json({
         success: false,
-        message: "Invalid coordinator details.",
-        errors: validation.error.flatten(),
+        message: "Page must be positive and limit must be between 1 and 100.",
       });
     }
 
-    try {
-      const assignment = await createCoordinator(
-        validation.data.studentId,
-        validation.data.clubId,
-        currentUser.id,
-      );
+    const search =
+      typeof req.query.search === "string"
+        ? req.query.search.trim()
+        : "";
 
-      return res.status(201).json({
-        success: true,
-        message: "Coordinator appointed successfully.",
-        data: assignment,
+    const result = await getHodClubs(
+      resolved.departmentId,
+      search,
+      pagination.page,
+      pagination.limit,
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Clubs fetched successfully.",
+      data: result.clubs,
+      pagination: result.pagination,
+    });
+  },
+);
+
+// Get pending events with search and pagination.
+export const GetPendingEvents = asyncHandler(
+  async (req: Request, res: Response) => {
+    const resolved = await getScope(res);
+    if (!resolved) return;
+
+    const pagination = getPaginationParams(req);
+
+    if (!pagination) {
+      return res.status(400).json({
+        success: false,
+        message: "Page must be positive and limit must be between 1 and 100.",
       });
-    } catch (error) {
-      if (error instanceof Error) {
-        const messages: Record<string, string> = {
-          STUDENT_NOT_FOUND: "Student not found.",
-          CLUB_NOT_FOUND: "Club not found.",
-          COORDINATOR_ALREADY_ASSIGNED:
-            "This student is already assigned to this club.",
-        };
+    }
 
-        if (messages[error.message]) {
-          return res.status(400).json({
-            success: false,
-            message: messages[error.message],
-          });
-        }
+    const search =
+      typeof req.query.search === "string"
+        ? req.query.search.trim()
+        : "";
+
+    const result = await getPendingEvents(
+      resolved.departmentId,
+      search,
+      pagination.page,
+      pagination.limit,
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Pending events fetched successfully.",
+      data: result.events,
+      pagination: result.pagination,
+    });
+  },
+);
+
+// Approve or reject a pending event.
+export const ReviewEvent = asyncHandler(
+  async (req: Request, res: Response) => {
+    const resolved = await getScope(res);
+    if (!resolved) return;
+
+    const eventId = Number(req.params.eventId);
+
+    if (!Number.isSafeInteger(eventId) || eventId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid event ID.",
+      });
+    }
+
+    const { decision, comments } = req.body ?? {};
+
+    if (decision !== "approved" && decision !== "rejected") {
+      return res.status(400).json({
+        success: false,
+        message: "Decision must be approved or rejected.",
+      });
+    }
+
+    if (
+      comments !== undefined &&
+      typeof comments !== "string"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Comments must be a string.",
+      });
+    }
+
+    const access = res.locals.access as Access;
+    const staffRow = await getStaffByUserId(res.locals.user.id);
+
+    let result;
+
+    try {
+      result = await reviewEvent(
+        eventId,
+        // Keep recording the staff id when there is one (as before).
+        staffRow?.id ?? res.locals.user.id,
+        resolved.departmentId,
+        decision,
+        comments,
+        access.isSuperAdmin ? "admin" : "hod",
+      );
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === "EVENT_NOT_PENDING_OR_FORBIDDEN"
+      ) {
+        return res.status(404).json({
+          success: false,
+          message:
+            "Event not found, not pending, or not accessible to your department.",
+        });
       }
 
       throw error;
     }
-  },
-);
-
-export const GetCoordinatorAssignments = asyncHandler(
-  async (_req: Request, res: Response) => {
-    const currentUser = res.locals.user;
-
-    if (!currentUser) {
-      return res.status(401).json({
-        success: false,
-        message: "Please log in.",
-      });
-    }
-
-    const hod = await getActiveHod(currentUser.id);
-
-    if (!hod) {
-      return res.status(403).json({
-        success: false,
-        message: "Active HOD permission required.",
-      });
-    }
-
-    const data = await getCoordinatorAssignments();
 
     return res.status(200).json({
       success: true,
-      message: "Coordinator assignments fetched successfully.",
-      data,
+      message: `Event ${decision} successfully.`,
+      data: result,
     });
   },
 );

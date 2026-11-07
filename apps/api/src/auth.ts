@@ -2,15 +2,19 @@
 import "dotenv/config";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "@better-auth/drizzle-adapter";
+import { eq } from "drizzle-orm";
+import { roles, userRoles } from "./db/schema/rbac-schema.js";
 import { admin } from "better-auth/plugins";
 import { db } from "./config/database.js";
 import { sendEmail } from "./utils/email.js";
 
 import {
   ac,
+  superAdmin,
   hod,
   teacher,
   clubCoordinator,
+  student,
 } from "./modules/auth/permissions.js";
 
 if (!process.env.BETTER_AUTH_SECRET) {
@@ -37,31 +41,59 @@ export const auth = betterAuth({
   minPasswordLength: 8,
 
     sendResetPassword: async ({ user, url }) => {
-    await sendEmail({
-      to: user.email,
-      subject: "Set up your EduNex account",
-      html: `
-        <h2>Welcome to EduNex!</h2>
-        <p>Your HOD account has been created.</p>
-        <p>Click the link below to choose your password.</p>
-        <a href="${url}">Set Your Password</a>
-        <p>If you did not expect this email, you can ignore it.</p>
-      `,
-    });
+  await sendEmail({
+    to: user.email,
+    subject: "Set Up or Reset Your EduNex Password",
+    html: `
+      <h2>EduNex Password Setup</h2>
+      <p>Use the link below to set or reset your EduNex password.</p>
+      <a href="${url}">Set Up or Reset Password</a>
+      <p>If you did not request this, you can ignore this email.</p>
+    `,
+  });
+},
   },
 
+  databaseHooks: {
+  user: {
+    create: {
+      after: async (createdUser) => {
+        const [studentRole] = await db
+          .select({ id: roles.id })
+          .from(roles)
+          .where(eq(roles.slug, "student"))
+          .limit(1);
+
+        if (!studentRole) {
+          console.error("Student role missing. Run the RBAC seed script.");
+          return;
+        }
+
+        await db
+          .insert(userRoles)
+          .values({
+            userId: createdUser.id,
+            roleId: studentRole.id,
+            assignedBy: createdUser.id, // drop this line if assignedBy is nullable
+          })
+          .onConflictDoNothing();
+      },
+    },
   },
+},
 
   plugins: [
     admin({
       ac,
       roles: {
+        "super-admin": superAdmin,
         hod,
-        teacher,
-        club_coordinator: clubCoordinator,
+        faculty: teacher,
+        student,
+        "club-coordinator": clubCoordinator,
       },
-      defaultRole: "teacher",
-      adminRoles: ["hod"],
+      defaultRole: "student",
+      adminRoles: [],
     }),
   ],
 });

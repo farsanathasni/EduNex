@@ -21,6 +21,6 @@
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true
   },
-  "include": ["src"],
+  "include": ["src", "rbac-check.js"],
   "exclude": ["node_modules", "dist"]
 }

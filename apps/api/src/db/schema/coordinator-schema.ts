@@ -6,6 +6,7 @@ import {
   unique,
   foreignKey,
   text,
+
 } from "drizzle-orm/pg-core";
 
 import { StudentProfile } from "./student-profile.js";
@@ -16,8 +17,8 @@ export const coordinatorAssignments = pgTable(
   "coordinator_assignments",
   {
     id: bigint("id", { mode: "number" })
-      .primaryKey()
-      .generatedAlwaysAsIdentity(),
+  .generatedAlwaysAsIdentity()
+  .primaryKey(),
 
     studentId: bigint("student_id", { mode: "number" })
       .notNull(),

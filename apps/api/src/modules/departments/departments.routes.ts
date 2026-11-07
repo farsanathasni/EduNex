@@ -1,20 +1,50 @@
 
 import { Router } from "express";
 import {
-  getDepartments,
-  getDepartment,
   createDepartments,
-  removeDepartment,
   editDepartment,
+  getDepartment,
+  getDepartments,
+  removeDepartment,
 } from "./departments.controller.js";
 import { requireAuth } from "../../middleware/auth.middleware.js";
+import { rbac } from "../../middleware/rbac.middleware.js";
 
 const router = Router();
 
-router.get("/", requireAuth, getDepartments);
-router.get("/:id", requireAuth, getDepartment);
-router.post("/add", createDepartments);
-router.patch("/:id", requireAuth, editDepartment);
-router.delete("/:id", requireAuth, removeDepartment);
+router.get(
+  "/",
+  requireAuth,
+  rbac("department", "view"),
+  getDepartments,
+);
+
+router.get(
+  "/:id",
+  requireAuth,
+  rbac("department", "view"),
+  getDepartment,
+);
+
+router.post(
+  "/add",
+  requireAuth,
+  rbac("department", "create"),
+  createDepartments,
+);
+
+router.patch(
+  "/:id",
+  requireAuth,
+  rbac("department", "update"),
+  editDepartment,
+);
+
+router.delete(
+  "/:id",
+  requireAuth,
+  rbac("department", "delete"),
+  removeDepartment,
+);
 
 export default router;
