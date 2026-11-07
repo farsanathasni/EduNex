@@ -116,10 +116,12 @@ export const teacherKeys = {
 
 // Queries
 
+
 export function useTeacherDashboardQuery() {
   return useQuery({
     queryKey: teacherKeys.dashboard(),
     queryFn: teacherApi.getDashboard,
+    retry: false,
   });
 }
 
@@ -127,6 +129,7 @@ export function useTeacherClassesQuery() {
   return useQuery({
     queryKey: teacherKeys.classes(),
     queryFn: teacherApi.getClasses,
+    retry: false,
   });
 }
 
@@ -134,6 +137,7 @@ export function useTeacherStudentsQuery(semester?: number) {
   return useQuery({
     queryKey: teacherKeys.students(semester),
     queryFn: () => teacherApi.getStudents(semester),
+    retry: false,
   });
 }
 

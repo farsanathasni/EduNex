@@ -120,14 +120,34 @@ export const NAV: NavItem[] = [
   },
 
   // Faculty
+  
+  // Faculty / Teacher
   {
-    label: "Clubs",
-    href: "/clubs",
-    icon: "\u25c8",
+    label: "Dashboard",
+    href: "/teacher",
+    icon: "⌂",
     roles: FACULTY,
-    permission: ["club", "view"],
-    description: "Browse existing college clubs.",
   },
+  {
+    label: "My Class",
+    href: "/teacher/classes",
+    icon: "▤",
+    roles: FACULTY,
+  },
+  {
+    label: "My Students",
+    href: "/teacher/students",
+    icon: "♙",
+    roles: FACULTY,
+    permission: ["student", "view"],
+  },
+  
+{
+  label: "Study Materials",
+  href: "/teacher/study-materials",
+  icon: "▤",
+  roles: FACULTY,
+},
 
   // Student view
   {
