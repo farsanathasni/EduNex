@@ -2,9 +2,46 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import {
+  AlertCircle,
+  ArrowLeft,
+  ArrowRight,
+  CalendarDays,
+  CalendarOff,
+} from "lucide-react";
+
 import { useStudentClubEventsQuery } from "@/features/clubs/api/club-query";
-import PageHeader from "@/components/ui/page-header";
 import Card from "@/components/ui/card";
+import Button from "@/components/ui/button";
+
+type EventDate = {
+  day: string;
+  month: string;
+  full: string;
+};
+
+/** Returns null when the value is missing or not a valid date. */
+function formatEventDate(value?: string): EventDate | null {
+  if (!value) return null;
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return null;
+
+  return {
+    day: date.toLocaleDateString("en-IN", { day: "2-digit" }),
+    month: date.toLocaleDateString("en-IN", { month: "short" }),
+    full: date.toLocaleDateString("en-IN", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    }),
+  };
+}
+
+const focusRing =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30";
 
 export default function ClubEventsPage() {
   const params = useParams<{ clubId: string }>();
@@ -19,252 +56,228 @@ export default function ClubEventsPage() {
 
   if (!Number.isInteger(clubId) || clubId <= 0) {
     return (
-      <main className="min-h-screen bg-background p-6 text-text">
-        Invalid club ID.
+      <main className="min-h-screen bg-background px-4 py-10">
+        <Card
+          role="alert"
+          padding="lg"
+          className="mx-auto flex max-w-xl flex-col items-center border-dashed px-6 py-14 text-center shadow-none"
+        >
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-subtle text-accent">
+            <AlertCircle className="h-6 w-6" />
+          </div>
+          <h1 className="mt-5 text-subheading font-bold text-text">
+            Invalid club
+          </h1>
+          <p className="mt-2 text-label text-text-muted">
+            This club link isn&apos;t valid. Go back and choose a club from the
+            list.
+          </p>
+          <Link
+            href="/student"
+            className={`mt-6 inline-flex items-center justify-center rounded-lg bg-primary px-5 py-3 text-label font-semibold text-primary-foreground transition-colors hover:bg-primary-hover ${focusRing}`}
+          >
+            All clubs
+          </Link>
+        </Card>
       </main>
     );
   }
 
-  const formatEventDate = (value?: string) => {
-    if (!value) return null;
-
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) return value;
-
-    return {
-      day: date.toLocaleDateString("en-IN", { day: "2-digit" }),
-      month: date.toLocaleDateString("en-IN", { month: "short" }),
-      year: date.toLocaleDateString("en-IN", { year: "numeric" }),
-      full: date.toLocaleDateString("en-IN", {
-        weekday: "long",
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      }),
-    };
-  };
+  const showResults = !isLoading && !isError;
 
   return (
-    <main className="min-h-screen bg-background px-4 py-8 text-text sm:px-8 sm:py-10">
-      <div className="mx-auto max-w-6xl">
+    <main className="min-h-screen bg-background text-text">
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Back navigation */}
         <Link
           href={`/student/${clubId}`}
-          className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-2 text-sm font-semibold text-text-muted shadow-sm transition hover:border-primary hover:text-primary"
+          className={`group mb-6 inline-flex items-center gap-2 rounded-lg text-label font-semibold text-text-muted transition-colors hover:text-primary ${focusRing}`}
         >
-          <span aria-hidden="true">←</span>
+          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
           Back to club
         </Link>
 
-        {/* Hero banner */}
-        <section className="relative mt-6 overflow-hidden rounded-[2rem] bg-primary text-white shadow-lg">
+        {/* Banner */}
+        <header className="relative overflow-hidden rounded-3xl bg-brand px-6 py-10 text-text-on-primary shadow-lg sm:px-10 sm:py-12">
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -right-12 -top-20 h-64 w-64 rounded-full border-[35px] border-white/10"
+            className="pointer-events-none absolute inset-0 opacity-[0.12]"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)",
+              backgroundSize: "24px 24px",
+            }}
           />
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -bottom-24 right-1/3 h-48 w-48 rounded-full bg-white/5"
+            className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full border-[36px] border-white/10"
           />
 
-          <div className="relative flex flex-col justify-between gap-8 p-7 sm:p-10 md:flex-row md:items-center">
-            <div className="max-w-2xl">
-              <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-white/90">
-                <span className="h-2 w-2 rounded-full bg-emerald-300" />
-                Campus life
-              </span>
-
-              <h1 className="mt-5 text-3xl font-extrabold tracking-tight sm:text-4xl lg:text-5xl">
-                Make memories.
-                <span className="block text-blue-100">
-                  Be part of the action.
-                </span>
-              </h1>
-
-              <p className="mt-4 max-w-xl text-sm leading-7 text-white/80 sm:text-base">
-                Discover club activities, meet new people, and find exciting
-                opportunities happening on your campus.
+          <div className="relative z-10 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+            <div className="max-w-xl">
+              <p className="text-label font-semibold text-white/80">
+                What&apos;s happening
               </p>
-
-              <div className="mt-6 inline-flex items-center gap-2 rounded-xl bg-white/10 px-4 py-3 text-sm font-semibold text-white">
-                <span aria-hidden="true">✦</span>
-                Your next campus experience starts here
-              </div>
+              <h1 className="mt-2 text-display-sm font-extrabold tracking-tight">
+                Club events
+              </h1>
+              <p className="mt-3 text-body leading-relaxed text-white/80">
+                Activities, workshops and gatherings organized by your club.
+              </p>
             </div>
 
-            <div className="hidden shrink-0 items-center justify-center md:flex">
-              <div className="flex h-36 w-36 items-center justify-center rounded-[2rem] border border-white/20 bg-white/10 text-7xl shadow-xl backdrop-blur-sm lg:h-44 lg:w-44 lg:text-8xl">
-                🎉
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Events heading */}
-        <section className="mt-10">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <PageHeader
-              eyebrow="What's happening"
-              title="Club Events"
-              description="Explore activities and events organized by your club."
-            />
-
-            {!isLoading && !isError && (
-              <div className="w-fit rounded-xl border border-border bg-surface px-4 py-3 shadow-subtle">
-                <p className="text-2xl font-extrabold text-primary">
-                  {events.length.toString().padStart(2, "0")}
+            {showResults && (
+              <div className="w-fit shrink-0 rounded-2xl border border-white/20 bg-white/10 px-5 py-3 backdrop-blur-sm">
+                <p className="text-heading font-extrabold leading-none">
+                  {events.length}
                 </p>
-                <p className="text-xs font-medium text-text-muted">
-                  {events.length === 1 ? "Event listed" : "Events listed"}
+                <p className="mt-1 text-caption text-white/80">
+                  {events.length === 1 ? "Event" : "Events"}
                 </p>
               </div>
             )}
           </div>
-        </section>
+        </header>
 
-        {/* Loading */}
-        {isLoading && (
-          <div className="mt-6 grid gap-5 md:grid-cols-2">
-            {[1, 2, 3, 4].map((item) => (
-              <Card key={item} className="animate-pulse">
-                <div className="h-4 w-24 rounded bg-secondary" />
-                <div className="mt-5 h-6 w-3/4 rounded bg-secondary" />
-                <div className="mt-4 h-4 w-full rounded bg-secondary" />
-                <div className="mt-2 h-4 w-2/3 rounded bg-secondary" />
-                <div className="mt-6 h-10 w-28 rounded-xl bg-secondary" />
-              </Card>
-            ))}
-          </div>
-        )}
-
-        {/* Error */}
-        {isError && (
-          <Card className="mt-6 border-red-200 py-10 text-center">
-            <div className="text-4xl">😕</div>
-            <h2 className="mt-4 text-xl font-bold text-text">
-              Events couldn't be loaded
-            </h2>
-            <p className="mt-2 text-sm text-text-muted">
-              Please check your connection and try again.
-            </p>
-            <button
-              type="button"
-              onClick={() => refetch()}
-              className="mt-5 rounded-xl bg-primary px-5 py-3 font-semibold text-white transition hover:bg-primary-hover"
+        <div className="mx-auto mt-8 max-w-4xl">
+          {/* Loading */}
+          {isLoading && (
+            <div
+              role="status"
+              aria-label="Loading events"
+              className="space-y-4"
             >
-              Try again
-            </button>
-          </Card>
-        )}
-
-        {/* Empty state */}
-        {!isLoading && !isError && events.length === 0 && (
-          <div className="mt-6 overflow-hidden rounded-3xl border border-dashed border-border bg-surface px-6 py-14 text-center sm:py-20">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-primary-subtle text-4xl">
-              📅
-            </div>
-            <h2 className="mt-6 text-2xl font-extrabold text-text">
-              Something exciting is on the way!
-            </h2>
-            <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-text-muted">
-              There are no events scheduled right now. Check back soon for
-              workshops, activities, and club gatherings.
-            </p>
-            <Link
-              href={`/student/${clubId}`}
-              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 font-semibold text-white transition hover:bg-primary-hover"
-            >
-              Explore your club
-              <span aria-hidden="true">→</span>
-            </Link>
-          </div>
-        )}
-
-        {/* Event cards */}
-        {!isLoading && !isError && events.length > 0 && (
-          <div className="mt-6 grid gap-5 md:grid-cols-2">
-            {events.map((event, index) => {
-              const rawDate = event.startDate || event.date;
-              const formattedDate = formatEventDate(rawDate);
-              const colors = [
-                "bg-blue-100 text-blue-700",
-                "bg-orange-100 text-orange-700",
-                "bg-emerald-100 text-emerald-700",
-                "bg-violet-100 text-violet-700",
-              ];
-              const color = colors[index % colors.length];
-
-              return (
-                <article
-                  key={event.id}
-                  className="group relative overflow-hidden rounded-2xl border border-border bg-surface shadow-subtle transition duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg"
+              {[1, 2, 3].map((item) => (
+                <Card
+                  key={item}
+                  aria-hidden="true"
+                  padding="lg"
+                  className="animate-pulse"
                 >
-                  <div className="h-1.5 bg-primary/80 transition-colors group-hover:bg-accent" />
-
-                  <div className="p-5 sm:p-6">
-                    <div className="flex items-start gap-4">
-                      <div
-                        className={`flex h-[4.5rem] w-[4.5rem] shrink-0 flex-col items-center justify-center rounded-2xl ${color}`}
-                      >
-                        {formattedDate && typeof formattedDate !== "string" ? (
-                          <>
-                            <span className="text-2xl font-extrabold leading-none">
-                              {formattedDate.day}
-                            </span>
-                            <span className="mt-1 text-xs font-bold uppercase">
-                              {formattedDate.month}
-                            </span>
-                          </>
-                        ) : (
-                          <span className="text-2xl">📅</span>
-                        )}
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <span className="text-xs font-bold uppercase tracking-wider text-primary">
-                          Club activity
-                        </span>
-                        <h2 className="mt-2 break-words text-lg font-extrabold leading-snug text-text transition group-hover:text-primary sm:text-xl">
-                          {event.title}
-                        </h2>
-                        {formattedDate && typeof formattedDate !== "string" && (
-                          <p className="mt-2 text-xs font-medium text-text-muted">
-                            {formattedDate.year}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-
-                    <p className="mt-5 whitespace-pre-wrap break-words text-sm leading-7 text-text-muted">
-                      {event.description || "More details about this event will be available soon."}
-                    </p>
-
-                    <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-border-subtle pt-4">
-                      <div className="flex items-center gap-2 text-xs font-medium text-text-muted">
-                        <span aria-hidden="true">🗓️</span>
-                        {formattedDate && typeof formattedDate !== "string"
-                          ? formattedDate.full
-                          : rawDate || "Date to be announced"}
-                      </div>
-                      <span className="inline-flex items-center gap-1 text-sm font-bold text-primary">
-                        Club event
-                        <span aria-hidden="true">✦</span>
-                      </span>
+                  <div className="flex gap-4">
+                    <div className="h-16 w-16 shrink-0 rounded-xl bg-secondary-hover" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 w-3/5 rounded bg-secondary-hover" />
+                      <div className="h-3 w-1/3 rounded bg-secondary-hover" />
                     </div>
                   </div>
-                </article>
-              );
-            })}
-          </div>
-        )}
+                  <div className="mt-5 space-y-2">
+                    <div className="h-3 w-full rounded bg-secondary-hover" />
+                    <div className="h-3 w-4/5 rounded bg-secondary-hover" />
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
 
-        <footer className="mt-10 border-t border-border-subtle py-6 text-center">
-          <p className="text-sm text-text-muted">
-            Made for your campus community
-            <span className="mx-2 text-primary">✦</span>
-            EduNex
-          </p>
-        </footer>
+          {/* Error */}
+          {isError && (
+            <Card
+              role="alert"
+              padding="lg"
+              className="flex flex-col items-center border-dashed px-6 py-14 text-center shadow-none"
+            >
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-subtle text-accent">
+                <AlertCircle className="h-6 w-6" />
+              </div>
+              <h2 className="mt-5 text-subheading font-bold text-text">
+                Unable to load events
+              </h2>
+              <p className="mt-2 text-label text-text-muted">
+                Check your connection and try again.
+              </p>
+              <Button className="mt-6" onClick={() => refetch()}>
+                Try again
+              </Button>
+            </Card>
+          )}
+
+          {/* Empty */}
+          {showResults && events.length === 0 && (
+            <Card
+              role="status"
+              padding="lg"
+              className="flex flex-col items-center border-dashed px-6 py-14 text-center shadow-none"
+            >
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-subtle text-primary">
+                <CalendarOff className="h-6 w-6" />
+              </div>
+              <h2 className="mt-5 text-subheading font-bold text-text">
+                No events scheduled
+              </h2>
+              <p className="mt-2 max-w-md text-label text-text-muted">
+                Check back soon for workshops, activities and club gatherings.
+              </p>
+              <Link
+                href={`/student/${clubId}`}
+                className={`mt-6 inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-label font-semibold text-primary-foreground transition-colors hover:bg-primary-hover ${focusRing}`}
+              >
+                Back to club
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Card>
+          )}
+
+          {/* Events */}
+          {showResults && events.length > 0 && (
+            <ul className="space-y-4">
+              {events.map((event) => {
+                const rawDate = event.startDate || event.date;
+                const eventDate = formatEventDate(rawDate);
+
+                return (
+                  <li key={event.id}>
+                    <Card
+                      padding="lg"
+                      className="group transition-all duration-200 hover:border-primary/30 hover:shadow-lg"
+                    >
+                      <div className="flex items-start gap-4">
+                        {/* Date tile */}
+                        <div
+                          aria-hidden="true"
+                          className="flex h-16 w-16 shrink-0 flex-col items-center justify-center rounded-xl bg-primary-subtle text-primary transition-colors duration-200 group-hover:bg-primary group-hover:text-primary-foreground"
+                        >
+                          {eventDate ? (
+                            <>
+                              <span className="text-subheading font-extrabold leading-none">
+                                {eventDate.day}
+                              </span>
+                              <span className="mt-1 text-caption font-semibold uppercase">
+                                {eventDate.month}
+                              </span>
+                            </>
+                          ) : (
+                            <CalendarDays className="h-6 w-6" />
+                          )}
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <h2 className="break-words text-body-lg font-bold leading-snug text-text">
+                            {event.title}
+                          </h2>
+                          <p className="mt-1 inline-flex items-center gap-1.5 text-caption text-text-muted">
+                            <CalendarDays
+                              aria-hidden="true"
+                              className="h-3.5 w-3.5"
+                            />
+                            {eventDate
+                              ? eventDate.full
+                              : rawDate || "Date to be announced"}
+                          </p>
+                        </div>
+                      </div>
+
+                      <p className="mt-4 whitespace-pre-wrap break-words text-label leading-7 text-text-muted sm:pl-20">
+                        {event.description ||
+                          "More details about this event will be available soon."}
+                      </p>
+                    </Card>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
       </div>
     </main>
   );
