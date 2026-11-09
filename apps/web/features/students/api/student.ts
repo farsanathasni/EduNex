@@ -14,9 +14,11 @@ export interface StudentProfile {
   id: number;
   name: string;
   userId: string;
+  email: string;
   admissionNumber: string;
-  departmentId: number | null;
-  semester: number | null;
+  departmentId: number;
+  departmentName: string;
+  semester: number;
   phone: string | null;
 }
 
@@ -169,7 +171,7 @@ export const createManagedStudent = async (
 };
 
 export const getStudentProfile = async () => {
-  const { data } = await api.get("/students/profile");
+   const { data } = await api.get<StudentResponse<StudentProfile>>("/students/profile");
   return data;
 };
 

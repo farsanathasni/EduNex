@@ -2,9 +2,35 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import {
+  AlertCircle,
+  ArrowLeft,
+  ArrowRight,
+  BellOff,
+  CalendarDays,
+  Megaphone,
+} from "lucide-react";
+
 import { useStudentClubAnnouncementsQuery } from "@/features/clubs/api/club-query";
-import PageHeader from "@/components/ui/page-header";
 import Card from "@/components/ui/card";
+import Button from "@/components/ui/button";
+
+function formatDate(value?: string) {
+  if (!value) return null;
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+const focusRing =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30";
 
 export default function ClubAnnouncementsPage() {
   const params = useParams<{ clubId: string }>();
@@ -19,96 +45,83 @@ export default function ClubAnnouncementsPage() {
 
   if (!Number.isInteger(clubId) || clubId <= 0) {
     return (
-      <main className="min-h-screen bg-background p-6 text-text">
-        Invalid club ID.
+      <main className="min-h-screen bg-background px-4 py-10">
+        <Card
+          role="alert"
+          padding="lg"
+          className="mx-auto flex max-w-xl flex-col items-center border-dashed px-6 py-14 text-center shadow-none"
+        >
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-subtle text-accent">
+            <AlertCircle className="h-6 w-6" />
+          </div>
+          <h1 className="mt-5 text-subheading font-bold text-text">
+            Invalid club
+          </h1>
+          <p className="mt-2 text-label text-text-muted">
+            This club link isn&apos;t valid. Go back and choose a club from the
+            list.
+          </p>
+          <Link
+            href="/student"
+            className={`mt-6 inline-flex items-center justify-center rounded-lg bg-primary px-5 py-3 text-label font-semibold text-primary-foreground transition-colors hover:bg-primary-hover ${focusRing}`}
+          >
+            All clubs
+          </Link>
+        </Card>
       </main>
     );
   }
 
-  const formatDate = (value?: string) => {
-    if (!value) return null;
-
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) return value;
-
-    return date.toLocaleDateString("en-IN", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  };
+  const showResults = !isLoading && !isError;
 
   return (
-    <main className="min-h-screen bg-background px-4 py-8 text-text sm:px-8 sm:py-10">
-      <div className="mx-auto max-w-6xl">
+    <main className="min-h-screen bg-background text-text">
+      <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Back navigation */}
         <Link
           href={`/student/${clubId}`}
-          className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-2 text-sm font-semibold text-text-muted shadow-sm transition hover:border-primary hover:text-primary"
+          className={`group mb-6 inline-flex items-center gap-2 rounded-lg text-label font-semibold text-text-muted transition-colors hover:text-primary ${focusRing}`}
         >
-          <span aria-hidden="true">←</span>
+          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
           Back to club
         </Link>
 
-        {/* Hero banner */}
-        <section className="relative mt-6 overflow-hidden rounded-[2rem] bg-primary text-white shadow-lg">
+        {/* Banner */}
+        <header className="relative overflow-hidden rounded-3xl bg-brand px-6 py-10 text-text-on-primary shadow-lg sm:px-10 sm:py-12">
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full border-[38px] border-white/10"
+            className="pointer-events-none absolute inset-0 opacity-[0.12]"
+            style={{
+              backgroundImage:
+                "radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)",
+              backgroundSize: "24px 24px",
+            }}
           />
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute -bottom-24 right-1/4 h-48 w-48 rounded-full bg-white/5"
+            className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full border-[36px] border-white/10"
           />
 
-          <div className="relative flex flex-col justify-between gap-8 p-7 sm:p-10 md:flex-row md:items-center lg:p-12">
-            <div className="max-w-2xl">
-              <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-bold uppercase tracking-wider text-white/90">
-                <span className="h-2 w-2 rounded-full bg-orange-300" />
-                Stay informed
-              </span>
-
-              <h1 className="mt-5 text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl lg:text-5xl">
-                Every update.
-                <span className="block text-blue-100">
-                  All in one place.
-                </span>
-              </h1>
-
-              <p className="mt-4 max-w-xl text-sm leading-7 text-white/80 sm:text-base">
-                Stay connected with your club through important notices,
-                exciting updates, and the latest campus news.
+          <div className="relative z-10 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+            <div className="max-w-xl">
+              <p className="text-label font-semibold text-white/80">
+                Club communication
               </p>
-
-              <div className="mt-6 inline-flex items-center gap-2 rounded-xl bg-white/10 px-4 py-3 text-sm font-semibold text-white">
-                <span aria-hidden="true">📣</span>
-                Never miss an important update
-              </div>
+              <h1 className="mt-2 text-display-sm font-extrabold tracking-tight">
+                Announcements
+              </h1>
+              <p className="mt-3 text-body leading-relaxed text-white/80">
+                Notices and updates shared by your club, so you never miss
+                something important.
+              </p>
             </div>
 
-            <div className="hidden shrink-0 items-center justify-center md:flex">
-              <div className="flex h-36 w-36 items-center justify-center rounded-[2rem] border border-white/20 bg-white/10 text-7xl shadow-xl backdrop-blur-sm lg:h-44 lg:w-44 lg:text-8xl">
-                📢
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Page heading */}
-        <section className="mt-10">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <PageHeader
-              eyebrow="Club communication"
-              title="Latest Announcements"
-              description="Important information and updates shared by your club."
-            />
-
-            {!isLoading && !isError && (
-              <div className="w-fit rounded-xl border border-border bg-surface px-4 py-3 shadow-subtle">
-                <p className="text-2xl font-extrabold text-primary">
-                  {String(announcements.length).padStart(2, "0")}
+            {showResults && (
+              <div className="w-fit shrink-0 rounded-2xl border border-white/20 bg-white/10 px-5 py-3 backdrop-blur-sm">
+                <p className="text-heading font-extrabold leading-none">
+                  {announcements.length}
                 </p>
-                <p className="text-xs font-medium text-text-muted">
+                <p className="mt-1 text-caption text-white/80">
                   {announcements.length === 1
                     ? "Announcement"
                     : "Announcements"}
@@ -116,151 +129,139 @@ export default function ClubAnnouncementsPage() {
               </div>
             )}
           </div>
-        </section>
+        </header>
 
-        {/* Loading skeleton */}
-        {isLoading && (
-          <div className="mt-6 grid gap-5 md:grid-cols-2">
-            {[1, 2, 3, 4].map((item) => (
-              <Card key={item} className="animate-pulse">
-                <div className="flex gap-4">
-                  <div className="h-12 w-12 shrink-0 rounded-2xl bg-secondary" />
-                  <div className="flex-1">
-                    <div className="h-5 w-3/4 rounded bg-secondary" />
-                    <div className="mt-3 h-4 w-1/3 rounded bg-secondary" />
-                  </div>
-                </div>
-                <div className="mt-5 h-4 w-full rounded bg-secondary" />
-                <div className="mt-2 h-4 w-4/5 rounded bg-secondary" />
-              </Card>
-            ))}
-          </div>
-        )}
-
-        {/* Error state */}
-        {isError && (
-          <Card className="mt-6 py-10 text-center">
-            <div className="text-4xl">📡</div>
-            <h2 className="mt-4 text-xl font-bold text-text">
-              Updates are temporarily unavailable
-            </h2>
-            <p className="mt-2 text-sm text-text-muted">
-              Please check your connection and try again.
-            </p>
-            <button
-              type="button"
-              onClick={() => refetch()}
-              className="mt-5 rounded-xl bg-primary px-5 py-3 font-semibold text-white transition hover:bg-primary-hover"
+        <div className="mx-auto mt-8 max-w-4xl">
+          {/* Loading */}
+          {isLoading && (
+            <div
+              role="status"
+              aria-label="Loading announcements"
+              className="space-y-4"
             >
-              Try again
-            </button>
-          </Card>
-        )}
-
-        {/* Empty state */}
-        {!isLoading && !isError && announcements.length === 0 && (
-          <div className="mt-6 rounded-3xl border border-dashed border-border bg-surface px-6 py-14 text-center sm:py-20">
-            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-3xl bg-accent-subtle text-4xl">
-              📭
-            </div>
-
-            <h2 className="mt-6 text-2xl font-extrabold text-text">
-              You're all caught up!
-            </h2>
-
-            <p className="mx-auto mt-3 max-w-md text-sm leading-7 text-text-muted">
-              There are no announcements yet. New club notices and updates
-              will appear here when they are published.
-            </p>
-
-            <Link
-              href={`/student/${clubId}`}
-              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-3 font-semibold text-white transition hover:bg-primary-hover"
-            >
-              Back to club
-              <span aria-hidden="true">→</span>
-            </Link>
-          </div>
-        )}
-
-        {/* Announcement cards */}
-        {!isLoading && !isError && announcements.length > 0 && (
-          <div className="mt-6 grid gap-5 md:grid-cols-2">
-            {announcements.map((announcement, index) => {
-              const publishedDate = formatDate(announcement.createdAt);
-              const content =
-                announcement.content ||
-                announcement.message ||
-                "No additional details are available.";
-
-              return (
-                <article
-                  key={announcement.id}
-                  className="group relative overflow-hidden rounded-2xl border border-border bg-surface shadow-subtle transition duration-300 hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg"
+              {[1, 2, 3].map((item) => (
+                <Card
+                  key={item}
+                  aria-hidden="true"
+                  padding="lg"
+                  className="animate-pulse"
                 >
-                  <div className="h-1.5 bg-accent transition-colors group-hover:bg-primary" />
-
-                  <div className="p-5 sm:p-6">
-                    <div className="flex items-start gap-4">
-                      <div
-                        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-xl ${
-                          index % 3 === 0
-                            ? "bg-blue-100"
-                            : index % 3 === 1
-                              ? "bg-orange-100"
-                              : "bg-emerald-100"
-                        }`}
-                      >
-                        {index % 3 === 0
-                          ? "📢"
-                          : index % 3 === 1
-                            ? "📌"
-                            : "✦"}
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <span className="text-xs font-bold uppercase tracking-wider text-primary">
-                          Club update
-                        </span>
-
-                        <h2 className="mt-2 break-words text-lg font-extrabold leading-snug text-text transition group-hover:text-primary sm:text-xl">
-                          {announcement.title}
-                        </h2>
-                      </div>
-                    </div>
-
-                    <p className="mt-5 whitespace-pre-wrap break-words text-sm leading-7 text-text-muted">
-                      {content}
-                    </p>
-
-                    <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-border-subtle pt-4">
-                      <div className="flex items-center gap-2 text-xs font-medium text-text-muted">
-                        <span aria-hidden="true">🗓️</span>
-                        <span>
-                          {publishedDate
-                            ? `Published ${publishedDate}`
-                            : "Club announcement"}
-                        </span>
-                      </div>
-
-                      <span className="rounded-full bg-accent-subtle px-3 py-1 text-xs font-bold text-accent-hover">
-                        Official update
-                      </span>
+                  <div className="flex gap-4">
+                    <div className="h-12 w-12 shrink-0 rounded-xl bg-secondary-hover" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 w-3/5 rounded bg-secondary-hover" />
+                      <div className="h-3 w-1/4 rounded bg-secondary-hover" />
                     </div>
                   </div>
-                </article>
-              );
-            })}
-          </div>
-        )}
+                  <div className="mt-5 space-y-2">
+                    <div className="h-3 w-full rounded bg-secondary-hover" />
+                    <div className="h-3 w-4/5 rounded bg-secondary-hover" />
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
 
-        <footer className="mt-10 border-t border-border-subtle py-6 text-center">
-          <p className="text-sm text-text-muted">
-            Stay connected with your campus community
-            <span className="mx-2 text-primary">✦</span>
-            EduNex
-          </p>
-        </footer>
+          {/* Error */}
+          {isError && (
+            <Card
+              role="alert"
+              padding="lg"
+              className="flex flex-col items-center border-dashed px-6 py-14 text-center shadow-none"
+            >
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-subtle text-accent">
+                <AlertCircle className="h-6 w-6" />
+              </div>
+              <h2 className="mt-5 text-subheading font-bold text-text">
+                Unable to load announcements
+              </h2>
+              <p className="mt-2 text-label text-text-muted">
+                Check your connection and try again.
+              </p>
+              <Button className="mt-6" onClick={() => refetch()}>
+                Try again
+              </Button>
+            </Card>
+          )}
+
+          {/* Empty */}
+          {showResults && announcements.length === 0 && (
+            <Card
+              role="status"
+              padding="lg"
+              className="flex flex-col items-center border-dashed px-6 py-14 text-center shadow-none"
+            >
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-subtle text-primary">
+                <BellOff className="h-6 w-6" />
+              </div>
+              <h2 className="mt-5 text-subheading font-bold text-text">
+                No announcements yet
+              </h2>
+              <p className="mt-2 max-w-md text-label text-text-muted">
+                New club notices and updates will appear here once they are
+                published.
+              </p>
+              <Link
+                href={`/student/${clubId}`}
+                className={`mt-6 inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-label font-semibold text-primary-foreground transition-colors hover:bg-primary-hover ${focusRing}`}
+              >
+                Back to club
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Card>
+          )}
+
+          {/* Announcements */}
+          {showResults && announcements.length > 0 && (
+            <ul className="space-y-4">
+              {announcements.map((announcement) => {
+                const publishedDate = formatDate(announcement.createdAt);
+                const content =
+                  announcement.content ||
+                  announcement.message ||
+                  "No additional details are available.";
+
+                return (
+                  <li key={announcement.id}>
+                    <Card
+                      padding="lg"
+                      className="transition-shadow duration-200 hover:border-primary/30 hover:shadow-lg"
+                    >
+                      <div className="flex items-start gap-4">
+                        <div
+                          aria-hidden="true"
+                          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-accent-subtle text-accent"
+                        >
+                          <Megaphone className="h-5 w-5" />
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <h2 className="break-words text-body-lg font-bold leading-snug text-text">
+                            {announcement.title}
+                          </h2>
+
+                          {publishedDate && (
+                            <p className="mt-1 inline-flex items-center gap-1.5 text-caption text-text-muted">
+                              <CalendarDays
+                                aria-hidden="true"
+                                className="h-3.5 w-3.5"
+                              />
+                              Published {publishedDate}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <p className="mt-4 whitespace-pre-wrap break-words text-label leading-7 text-text-muted sm:pl-16">
+                        {content}
+                      </p>
+                    </Card>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
       </div>
     </main>
   );

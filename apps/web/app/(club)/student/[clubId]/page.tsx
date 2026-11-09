@@ -112,17 +112,24 @@ export default function ClubDetailsPage() {
         </Link>
 
         {/* Hero section */}
-        <section className="relative mt-6 overflow-hidden rounded-[2rem] bg-primary text-white shadow-lg">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -right-16 -top-20 h-72 w-72 rounded-full border-[40px] border-white/10"
-          />
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -bottom-28 right-1/4 h-56 w-56 rounded-full bg-white/5"
-          />
+        {/* Hero section */}
+<section className="relative mt-6 overflow-hidden rounded-[2rem] bg-primary text-white shadow-lg">
+  <div
+    aria-hidden="true"
+    className="pointer-events-none absolute inset-0 opacity-[0.12]"
+    style={{
+      backgroundImage:
+        "radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)",
+      backgroundSize: "24px 24px",
+    }}
+  />
+  <div
+    aria-hidden="true"
+    className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full border-[36px] border-white/10"
+  />
 
-          <div className="relative grid gap-8 p-7 sm:p-10 lg:grid-cols-[1fr_auto] lg:items-center lg:p-14">
+  <div className="relative grid gap-8 p-7 sm:p-10 lg:grid-cols-[1fr_auto] lg:items-center lg:p-14">
+    {/* ...rest unchanged */}
             <div className="max-w-2xl">
               <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold tracking-wide text-white/90">
                 <span className="h-2 w-2 rounded-full bg-emerald-300" />

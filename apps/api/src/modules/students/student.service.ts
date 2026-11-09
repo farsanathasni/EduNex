@@ -134,20 +134,36 @@ export const studentService = {
   },
 
   // Get the logged-in student's profile.
-  getProfile: async (userId: string) => {
-    const [student] = await db
-      .select()
-      .from(StudentProfile)
-      .where(
-        and(
-          eq(StudentProfile.userId, userId),
-          eq(StudentProfile.isDeleted, false),
-        ),
-      )
-      .limit(1);
+  // Get the logged-in student's complete profile.
+getProfile: async (userId: string) => {
+  const [student] = await db
+    .select({
+      id: StudentProfile.id,
+      userId: StudentProfile.userId,
+      name: StudentProfile.name,
+      email: user.email,
+      admissionNumber: StudentProfile.admissionNumber,
+      departmentId: StudentProfile.departmentId,
+      departmentName: departments.name,
+      semester: StudentProfile.semester,
+      phone: StudentProfile.phone,
+    })
+    .from(StudentProfile)
+    .innerJoin(user, eq(StudentProfile.userId, user.id))
+    .innerJoin(
+      departments,
+      eq(StudentProfile.departmentId, departments.id),
+    )
+    .where(
+      and(
+        eq(StudentProfile.userId, userId),
+        eq(StudentProfile.isDeleted, false),
+      ),
+    )
+    .limit(1);
 
-    return student ?? null;
-  },
+  return student ?? null;
+},
 
   // Get one active student record within the caller's allowed department scope.
   getStudentById: async (studentId: number, departmentId?: number) => {
