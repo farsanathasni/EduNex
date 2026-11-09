@@ -12,11 +12,38 @@ import {
 import { createHodSchema } from "../hod/hod.validation.js";
 import { createStaffSchema } from "../staff/staff.validation.js";
 import { createManagedStudentSchema } from "../students/student.validation.js";
-import type { Access } from "../rbac/rbac.access.js";
+import { getPendingEvents } from "../hod/hod.service.js";
+import { getPrincipalAllEvents,publishApprovedEvent } from "../events/events.service.js";
+
+import {
+  resolveDepartmentScope,
+  type Access,
+} from "../rbac/rbac.access.js";
 
 // Access is decided by the rbac() middleware on the router
 // (admin:view, staff:create, department:view), so these handlers
 // no longer check for a Principal staff record.
+
+const getPaginationParams = (req: Request) => {
+  const page =
+    req.query.page === undefined ? 1 : Number(req.query.page);
+
+  const limit =
+    req.query.limit === undefined ? 50 : Number(req.query.limit);
+
+  if (
+    !Number.isSafeInteger(page) ||
+    page < 1 ||
+    !Number.isSafeInteger(limit) ||
+    limit < 1 ||
+    limit > 100
+  ) {
+    return null;
+  }
+
+  return { page, limit };
+};
+
 
 export const GetPrincipalDashboard = asyncHandler(
   async (_req: Request, res: Response) => {
@@ -191,6 +218,156 @@ export const GetDepartments = asyncHandler(
     return res.status(200).json({
       success: true,
       data: departmentsList,
+    });
+  },
+);
+
+
+
+export const GetPrincipalEvents = asyncHandler(
+  async (req: Request, res: Response) => {
+    const access = res.locals.access as Access;
+
+    
+    if (!access?.isSuperAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Only the Principal can view all event requests.",
+      });
+    }
+
+    // Resolve the Principal's global department scope.
+    const scope = await resolveDepartmentScope(access);
+
+    if (!scope) {
+      return res.status(403).json({
+        success: false,
+        message: "Unable to resolve department access.",
+      });
+    }
+
+    const pagination = getPaginationParams(req);
+
+    if (!pagination) {
+      return res.status(400).json({
+        success: false,
+        message: "Page must be positive and limit must be between 1 and 100.",
+      });
+    }
+
+    const search =
+      typeof req.query.search === "string"
+        ? req.query.search.trim()
+        : "";
+
+    const departmentId =
+      scope.kind === "department" ? scope.departmentId : undefined;
+
+    const result = await getPendingEvents(
+      departmentId,
+      search,
+      pagination.page,
+      pagination.limit,
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Pending events fetched successfully.",
+      data: result.events,
+      pagination: result.pagination,
+    });
+  },
+);
+
+
+export const GetPrincipalAllEvents = asyncHandler(
+  async (req: Request, res: Response) => {
+    const access = res.locals.access as Access;
+
+    if (!access?.isSuperAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Only the Principal can view all college events.",
+      });
+    }
+
+    const scope = await resolveDepartmentScope(access);
+
+    if (!scope) {
+      return res.status(403).json({
+        success: false,
+        message: "Unable to resolve department access.",
+      });
+    }
+
+    const pagination = getPaginationParams(req);
+
+    if (!pagination) {
+      return res.status(400).json({
+        success: false,
+        message: "Page must be positive and limit must be between 1 and 100.",
+      });
+    }
+
+    const search =
+      typeof req.query.search === "string"
+        ? req.query.search.trim()
+        : "";
+
+    const departmentId =
+      scope.kind === "department" ? scope.departmentId : undefined;
+
+    const result = await getPrincipalAllEvents(
+      search,
+      pagination.page,
+      pagination.limit,
+      departmentId,
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "College events fetched successfully.",
+      data: result.events,
+      pagination: result.pagination,
+    });
+  },
+);
+
+
+export const PublishPrincipalEvent = asyncHandler(
+  async (req: Request, res: Response) => {
+    const access = res.locals.access as Access;
+
+    if (!access?.isSuperAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Only the Principal can publish events.",
+      });
+    }
+
+    const eventId = Number(req.params.eventId);
+
+    if (!Number.isSafeInteger(eventId) || eventId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid event ID.",
+      });
+    }
+
+    const publishedEvent = await publishApprovedEvent(eventId);
+
+    if (!publishedEvent) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "This event cannot be published. Only approved events can be published.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Event published successfully.",
+      data: publishedEvent,
     });
   },
 );

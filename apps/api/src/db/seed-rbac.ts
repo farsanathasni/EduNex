@@ -248,7 +248,7 @@ const roleData = [
 const CRUD = ["view", "create", "update", "delete"];
 
 // Every permission that exists. Resources can have their own extra actions,
-// e.g. only events can be approved.
+// e.g. only events can be approved or published.
 const permissionCatalog: Record<string, string[]> = {
   role: CRUD,
   admin: CRUD,
@@ -258,7 +258,7 @@ const permissionCatalog: Record<string, string[]> = {
   club: CRUD,
   coordinator: CRUD,
   attendance: ["view", "mark"],
-  event: [...CRUD, "approve"],
+  event: [...CRUD, "approve", "publish"],
   membership: ["view", "approve", "reject"],
   member: ["view"],
   certificate: CRUD,
@@ -281,9 +281,6 @@ const rolePermissionMap: Record<string, string[]> = {
     "club:update",
     "club:delete",
     "event:view",
-    // Approving or rejecting event requests. Coordinators and faculty
-    // have event:update but must NOT be able to approve.
-    "event:approve",
     "certificate:view",
   ],
 

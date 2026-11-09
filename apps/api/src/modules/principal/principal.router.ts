@@ -1,5 +1,3 @@
-
-
 import { Router } from "express";
 import {
   GetPrincipalDashboard,
@@ -7,15 +5,17 @@ import {
   CreateStaff,
   CreateStudent,
   GetDepartments,
+  GetPrincipalEvents,
+  GetPrincipalAllEvents,
+  PublishPrincipalEvent,
 } from "./principal.controller.js";
+import { ReviewEvent } from "../hod/hod.controller.js";
 import { requireAuth } from "../../middleware/auth.middleware.js";
 import { rbac } from "../../middleware/rbac.middleware.js";
 
+
 const principalRouter = Router();
 
-// Access is decided by RBAC permissions; Principal accounts use Super Admin.
-
-// Principal dashboard
 principalRouter.get(
   "/dashboard",
   requireAuth,
@@ -23,7 +23,15 @@ principalRouter.get(
   GetPrincipalDashboard,
 );
 
-// Create HOD
+
+principalRouter.get(
+  "/events/all",
+  requireAuth,
+  rbac("event", "view"),
+  GetPrincipalAllEvents,
+);
+
+
 principalRouter.post(
   "/hods",
   requireAuth,
@@ -31,7 +39,7 @@ principalRouter.post(
   CreateHod,
 );
 
-// Principal (Super Admin) creates either an HOD or Faculty account.
+
 principalRouter.post(
   "/staff",
   requireAuth,
@@ -46,12 +54,35 @@ principalRouter.post(
   CreateStudent,
 );
 
-// Get departments
+
 principalRouter.get(
   "/departments",
   requireAuth,
   rbac("department", "view"),
   GetDepartments,
+);
+
+principalRouter.get(
+  "/events",
+  requireAuth,
+  rbac("event", "view"),
+  GetPrincipalEvents,
+);
+
+
+principalRouter.patch(
+  "/events/:eventId/review",
+  requireAuth,
+  rbac("event", "approve"),
+  ReviewEvent,
+);
+
+
+principalRouter.patch(
+  "/events/:eventId/publish",
+  requireAuth,
+  rbac("event", "publish"),
+  PublishPrincipalEvent,
 );
 
 export default principalRouter;

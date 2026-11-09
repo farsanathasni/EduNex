@@ -208,8 +208,7 @@ export const createEventRequest = async (
     return null;
   }
 
-  // Verify that this student is assigned as coordinator
-  // of the requested club.
+
   const [assignment] = await db
     .select({ id: coordinatorAssignments.id })
     .from(coordinatorAssignments)
@@ -225,7 +224,6 @@ export const createEventRequest = async (
     return null;
   }
 
-  // Create the event request.
   const [newEvent] = await db
     .insert(events)
     .values({
@@ -289,4 +287,76 @@ export const getMyEventRequests = async (
     events: eventList,
     pagination: getPagination(page, limit, total),
   };
+};
+
+export const getPrincipalAllEvents = async (
+  search = "",
+  page = 1,
+  limit = 10,
+  departmentId?: number,
+) => {
+  const whereCondition = and(
+    getEventSearchCondition(search),
+    departmentId !== undefined
+      ? eq(clubs.departmentId, departmentId)
+      : undefined,
+  );
+
+  const [eventList, totalResult] = await Promise.all([
+    db
+      .select({
+        id: events.id,
+        clubId: events.clubId,
+        clubName: clubs.name,
+        title: events.title,
+        description: events.description,
+        location: events.location,
+        startTime: events.startTime,
+        endTime: events.endTime,
+        status: events.status,
+        createdAt: events.createdAt,
+      })
+      .from(events)
+      .innerJoin(clubs, eq(events.clubId, clubs.id))
+      .where(whereCondition)
+      .orderBy(desc(events.createdAt))
+      .limit(limit)
+      .offset((page - 1) * limit),
+
+    db
+      .select({ total: count() })
+      .from(events)
+      .innerJoin(clubs, eq(events.clubId, clubs.id))
+      .where(whereCondition),
+  ]);
+
+  const total = totalResult[0]?.total ?? 0;
+
+  return {
+    events: eventList,
+    pagination: getPagination(page, limit, total),
+  };
+};
+
+
+export const publishApprovedEvent = async (eventId: number) => {
+  const [publishedEvent] = await db
+    .update(events)
+    .set({
+      status: "published",
+      updatedAt: new Date().toISOString(),
+    })
+    .where(
+      and(
+        eq(events.id, eventId),
+        eq(events.status, "approved"),
+      ),
+    )
+    .returning({
+      id: events.id,
+      title: events.title,
+      status: events.status,
+    });
+
+  return publishedEvent ?? null;
 };

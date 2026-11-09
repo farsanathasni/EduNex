@@ -5,7 +5,6 @@
 //   GetHodDashboard,
 //   GetStudentsByDepartment,
 //   GetPendingEvents,
-//   ReviewEvent,
 //   GetHodClubs
 // } from "./hod.controller.js";
 
@@ -67,24 +66,6 @@
 //   UpdateCoordinator,
 // );
 
-// // Event approvals
-// hodRouter.get(
-//   "/events/pending",
-//   requireAuth,
-//   rbac("event", "view"),
-//   GetPendingEvents,
-// );
-
-// hodRouter.get("/events/pending", rbac("event", "approve"), /* your handler */);
-// hodRouter.patch("/events/:eventId/review", rbac("event", "approve"), /* your handler */);
-
-// hodRouter.patch(
-//   "/events/:eventId/review",
-//   requireAuth,
-//   rbac("event", "update"),
-//   ReviewEvent,
-// );
-
 // export default hodRouter;
 
 import { Router, type RequestHandler } from "express";
@@ -94,7 +75,6 @@ import {
   GetHodDashboard,
   GetStudentsByDepartment,
   GetPendingEvents,
-  ReviewEvent,
   GetHodClubs,
 } from "./hod.controller.js";
 
@@ -146,19 +126,13 @@ hodRouter.post(
 hodRouter.all("/coordinators", requireAuth, coordinatorManagementMoved);
 hodRouter.all("/coordinators/:assignmentId", requireAuth, coordinatorManagementMoved);
 
-// Event approvals: only roles with event:approve (HOD, Super Admin).
+// Pending event requests are read-only for HODs. Approval is handled by the
+// Principal-only route in principal.router.ts.
 hodRouter.get(
   "/events/pending",
   requireAuth,
-  rbac("event", "approve"),
+  rbac("event", "view"),
   GetPendingEvents,
-);
-
-hodRouter.patch(
-  "/events/:eventId/review",
-  requireAuth,
-  rbac("event", "approve"),
-  ReviewEvent,
 );
 
 export default hodRouter;

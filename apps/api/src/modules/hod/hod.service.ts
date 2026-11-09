@@ -307,7 +307,7 @@ export const getPendingEvents = async (
   };
 };
 
-// Approve or reject a pending event.
+// Approve or reject a pending event as the Principal.
 // departmentId undefined = Super Admin (any department).
 
 export const reviewEvent = async (
@@ -316,7 +316,6 @@ export const reviewEvent = async (
   departmentId: number | undefined,
   decision: "approved" | "rejected",
   comments?: string,
-  reviewerRole: "hod" | "admin" = "hod",
 ) => {
   return db.transaction(async (tx) => {
     const updatedEvents = await tx
@@ -351,7 +350,7 @@ export const reviewEvent = async (
     await tx.insert(eventApprovals).values({
       eventId,
       reviewerId,
-      reviewerRole,
+      reviewerRole: "principal",
       decision,
       comments: comments || null,
       reviewedAt: new Date().toISOString(),
