@@ -5,8 +5,9 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 
-import { assignClubDepartment, createClub, createStudentMembershipRequest, getClubs, getMyStudentMembershipRequests, getStudentClubAnnouncements, getStudentClubById, getStudentClubCoordinators, getStudentClubEvents, getStudentClubs } from "@/features/clubs/api/clubs";
-import type { CreateClubInput } from "@/features/clubs/validation/club-schema";
+import { assignClubDepartment, createClub, createStudentMembershipRequest, deleteClub, getClubs, getMyStudentMembershipRequests, getStudentClubAnnouncements, getStudentClubById, getStudentClubCoordinators, getStudentClubEvents, getStudentClubs, updateClub } from "@/features/clubs/api/clubs";
+import type { ClubListParams } from "@/features/clubs/api/clubs";
+import type { CreateClubInput, UpdateClubInput } from "@/features/clubs/validation/club-schema";
 
 
 type QueryRetry =
@@ -17,9 +18,21 @@ type QueryRetry =
 export const useClubsQuery = (retry?: QueryRetry, enabled = true) => {
   return useQuery({
     queryKey: ["clubs"],
-    queryFn: getClubs,
+    queryFn: () => getClubs(),
     enabled,
     ...(retry !== undefined ? { retry } : {}),
+  });
+};
+
+export const useClubListQuery = (
+  params: ClubListParams,
+  enabled = true,
+) => {
+  return useQuery({
+    queryKey: ["clubs", "list", params],
+    queryFn: () => getClubs(params),
+    enabled,
+    retry: false,
   });
 };
 
@@ -49,6 +62,37 @@ export const useAssignClubDepartmentMutation = () => {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ["clubs"] });
       await queryClient.invalidateQueries({ queryKey: ["hod", "clubs"] });
+    },
+  });
+};
+
+export const useUpdateClubMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: { clubId: number; data: UpdateClubInput }) =>
+      updateClub(input.clubId, input.data),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["clubs"] }),
+        queryClient.invalidateQueries({ queryKey: ["hod", "clubs"] }),
+        queryClient.invalidateQueries({ queryKey: ["student-clubs"] }),
+      ]);
+    },
+  });
+};
+
+export const useDeleteClubMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (clubId: number) => deleteClub(clubId),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["clubs"] }),
+        queryClient.invalidateQueries({ queryKey: ["hod", "clubs"] }),
+        queryClient.invalidateQueries({ queryKey: ["student-clubs"] }),
+      ]);
     },
   });
 };

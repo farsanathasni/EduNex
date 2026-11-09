@@ -190,48 +190,54 @@ export const NAV: NavItem[] = [
   mode: "student",
 },
 
-    // Coordinator view
-  
   // Coordinator view
-{
-  label: "My Club Events",
-  href: "/club-coordinator/events",
-  icon: "▣",
-  roles: ["student"],
-  permission: ["event", "view"],
-  mode: "coordinator",
-},
-{
-  label: "Membership Requests",
-  href: "/club-coordinator/membership-requests",
-  icon: "♧",
-  roles: ["student"],
-  // permission: ["club", "update"],
-  mode: "coordinator",
-},
-{
-  label: "Club Members",
-  href: "/club-coordinator/members",
-  icon: "♙",
-  roles: ["student"],
-  // permission: ["club", "update"],
-  mode: "coordinator",
-},
-{
-  label: "Request Event",
-  href: "/club-coordinator/request-event",
-  icon: "+",
-  roles: ["student"],
-  permission: ["event", "create"],
-  mode: "coordinator",
-},
-{
-  label: "My Profile",
-  href: "/club-coordinator/profile",
-  icon: "☺",
-  roles: ["student"],
-  mode: "coordinator",
-},
+  {
+    label: "My Clubs",
+    href: "/club-coordinator/clubs",
+    icon: "◈",
+    roles: ["student"],
+    permission: ["club", "view"],
+    mode: "coordinator",
+  },
+  {
+    label: "My Club Events",
+    href: "/club-coordinator/events",
+    icon: "▣",
+    roles: ["student"],
+    permission: ["event", "view"],
+    mode: "coordinator",
+  },
+  {
+    label: "Membership Requests",
+    href: "/club-coordinator/membership-requests",
+    icon: "♧",
+    roles: ["student"],
+    // permission: ["club", "update"],
+    mode: "coordinator",
+  },
+  {
+    label: "Club Members",
+    href: "/club-coordinator/members",
+    icon: "♙",
+    roles: ["student"],
+    // permission: ["club", "update"],
+    mode: "coordinator",
+  },
+  {
+    label: "Request Event",
+    href: "/club-coordinator/request-event",
+    icon: "+",
+    roles: ["student"],
+    permission: ["event", "create"],
+    mode: "coordinator",
+  },
+  {
+    label: "My Profile",
+    href: "/club-coordinator/profile",
+    icon: "☺",
+    roles: ["student"],
+    mode: "coordinator",
+  },
 ];
 
 export const isNavVisible = (

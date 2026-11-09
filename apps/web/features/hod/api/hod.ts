@@ -1,5 +1,9 @@
 import { api } from "@/lib/axios";
-import type { Club } from "@/features/clubs/api/clubs";
+import type {
+  Club,
+  ClubListParams,
+  ClubListResult,
+} from "@/features/clubs/api/clubs";
 import type { CreateHodClubInput } from "@/features/clubs/validation/club-schema";
 
 export interface HodDashboard {
@@ -42,6 +46,18 @@ export interface ApiResponse<T> {
   data: T;
 }
 
+interface ClubListResponse {
+  success: boolean;
+  message?: string;
+  data: Club[];
+  pagination?: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
 export const getHodDashboard = async (): Promise<HodDashboard> => {
   const response = await api.get<HodDashboardResponse>(
     "/hod/dashboard",
@@ -50,17 +66,50 @@ export const getHodDashboard = async (): Promise<HodDashboard> => {
   return response.data.data;
 };
 
-export const getHodClubs = async (): Promise<Club[]> => {
+export function getHodClubs(): Promise<Club[]>;
+export function getHodClubs(params: ClubListParams): Promise<ClubListResult>;
+export async function getHodClubs(
+  params?: ClubListParams,
+): Promise<Club[] | ClubListResult> {
+  if (params) {
+    const response = await api.get<ClubListResponse>("/hod/clubs", {
+      params,
+    });
+
+    if (!response.data.success || !Array.isArray(response.data.data)) {
+      throw new Error(
+        response.data.message || "Invalid clubs API response.",
+      );
+    }
+
+    if (!response.data.pagination) {
+      throw new Error("Club pagination information is missing.");
+    }
+
+    return {
+      clubs: response.data.data,
+      pagination: response.data.pagination,
+    };
+  }
+
   const limit = 100;
   const clubs: Club[] = [];
   let page = 1;
   let totalPages = 1;
 
   do {
-    const response = await api.get<{
-      data: Club[];
-      pagination?: { totalPages: number };
-    }>("/hod/clubs", { params: { page, limit } });
+    const response = await api.get<ClubListResponse>("/hod/clubs", {
+      params: { page, limit },
+    });
+
+    if (
+      !response.data.success ||
+      !Array.isArray(response.data.data)
+    ) {
+      throw new Error(
+        response.data.message || "Invalid clubs API response.",
+      );
+    }
 
     clubs.push(...response.data.data);
     totalPages =
@@ -70,7 +119,7 @@ export const getHodClubs = async (): Promise<Club[]> => {
   } while (page <= totalPages);
 
   return clubs;
-};
+}
 
 export const createHodClub = async (
   data: CreateHodClubInput,

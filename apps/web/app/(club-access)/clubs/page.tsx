@@ -1,5 +1,5 @@
-import ClubManagementView from "@/features/clubs/components/club-management-view";
+import FacultyClubDirectory from "@/features/clubs/components/faculty-club-directory";
 
 export default function ClubsPage() {
-  return <ClubManagementView />;
+  return <FacultyClubDirectory />;
 }

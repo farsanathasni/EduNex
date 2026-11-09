@@ -6,14 +6,16 @@ import {
   getPendingEvents,
   reviewEvent,
   getHodStudents,
-  getHodClubs,
   getStaffByUserId,
 } from "./hod.service.js";
 import {
   resolveDepartmentScope,
   type Access,
 } from "../rbac/rbac.access.js";
-import { createClub } from "../clubs/clubs.service.js";
+import {
+  createClub,
+  getAllClubs,
+} from "../clubs/clubs.service.js";
 import { createHodClubSchema } from "../clubs/clubs.validation.js";
 
 // Validate pagination parameters.
@@ -186,12 +188,10 @@ export const GetStudentsByDepartment = asyncHandler(
   },
 );
 
-// Get clubs with search and pagination.
+// Get clubs with search and pagination. Club viewing is campus-wide for
+// HODs; department scope only applies to club management operations.
 export const GetHodClubs = asyncHandler(
   async (req: Request, res: Response) => {
-    const resolved = await getScope(res);
-    if (!resolved) return;
-
     const pagination = getPaginationParams(req);
 
     if (!pagination) {
@@ -206,8 +206,7 @@ export const GetHodClubs = asyncHandler(
         ? req.query.search.trim()
         : "";
 
-    const result = await getHodClubs(
-      resolved.departmentId,
+    const result = await getAllClubs(
       search,
       pagination.page,
       pagination.limit,

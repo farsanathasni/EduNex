@@ -1,45 +1,59 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+
+import Button from "@/components/ui/button";
+import Input from "@/components/ui/input";
 import { authClient } from "@/lib/auth-client";
-import {
-  useAssignClubDepartmentMutation,
-  useClubsQuery,
-  useCreateClubMutation,
-} from "@/features/clubs/api/club-query";
-import type { Club } from "@/features/clubs/api/clubs";
-import {
-  createClubSchema,
-  createHodClubSchema,
-  type CreateClubInput,
-  type CreateHodClubInput,
-} from "@/features/clubs/validation/club-schema";
-import { useDepartment } from "@/features/departments/api/department-query";
-import type { Department } from "@/features/departments/api/department";
-import { useCreateHodClub, useHodClubs } from "@/features/hod/api/hod-query";
 import { useAccess } from "@/lib/navigation/access";
+import type { Club } from "@/features/clubs/api/clubs";
+import { useClubListQuery } from "@/features/clubs/api/club-query";
+import AssignClubDepartmentDialog from "@/features/clubs/components/assign-club-department-dialog";
+import ClubCreateModal from "@/features/clubs/components/club-create-modal";
+import DeleteClubDialog from "@/features/clubs/components/delete-club-dialog";
+import EditClubDialog from "@/features/clubs/components/edit-club-dialog";
+import { useDepartment } from "@/features/departments/api/department-query";
+import { useHodClubListQuery } from "@/features/hod/api/hod-query";
 
 type ClubManagementScope = "default" | "hod";
+
+const PAGE_SIZE_OPTIONS = [10, 20, 50];
 
 export default function ClubManagementView({
   scope = "default",
 }: {
   scope?: ClubManagementScope;
 }) {
-  const { can, isSuperAdmin } = useAccess();
+  const { can, isSuperAdmin, me } = useAccess();
   const canCreateClub = can("club", "create");
+  const canEditClub = can("club", "update");
+  const canDeleteClub = can("club", "delete");
   const isHodScope = scope === "hod";
   const canAssignDepartment = !isHodScope && isSuperAdmin;
+  const hodDepartmentId = me?.staffProfile?.departmentId ?? null;
   const { data: session, isPending: sessionPending } =
     authClient.useSession();
 
-  const clubsQuery = useClubsQuery(undefined, !isHodScope);
-  const hodClubsQuery = useHodClubs(isHodScope);
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [editingClub, setEditingClub] = useState<Club | null>(null);
+  const [deletingClub, setDeletingClub] = useState<Club | null>(null);
+  const [assigningClub, setAssigningClub] = useState<Club | null>(null);
+  const [notice, setNotice] = useState("");
+
+  const params = { search: search.trim(), page, limit };
+  const clubsQuery = useClubListQuery(params, !isHodScope);
+  const hodClubsQuery = useHodClubListQuery(params, isHodScope);
   const activeClubsQuery = isHodScope ? hodClubsQuery : clubsQuery;
   const departmentsQuery = useDepartment();
   const departments = departmentsQuery.data ?? [];
+
+  const clubs = activeClubsQuery.data?.clubs ?? [];
+  const pagination = activeClubsQuery.data?.pagination;
+  const totalPages = pagination?.totalPages ?? 0;
+  const currentPage = pagination?.page ?? page;
 
   if (sessionPending) {
     return <main className="p-8">Checking your session...</main>;
@@ -56,426 +70,332 @@ export default function ClubManagementView({
     );
   }
 
+  const getDepartmentName = (club: Club) => {
+    if (club.departmentId === null) return "Unassigned";
+
+    return (
+      departments.find(
+        (department) => department.id === club.departmentId,
+      )?.name ?? `Department ${club.departmentId}`
+    );
+  };
+
+  const isWithinHodDepartment = (club: Club) =>
+    !isHodScope ||
+    (hodDepartmentId !== null && club.departmentId === hodDepartmentId);
+
+  const resetPage = () => {
+    setPage(1);
+    setNotice("");
+  };
+
   return (
-    <main className="min-h-screen bg-[#f5f7fc] px-4 py-8 sm:px-8">
-      <div className="mx-auto max-w-5xl space-y-8">
-        <header>
-          <p className="text-sm font-semibold text-[#234c96]">
-            EDUNEX / CLUB MANAGEMENT
-          </p>
-          <h1 className="mt-2 text-3xl font-bold text-gray-900">
-            Clubs
-          </h1>
-          <p className="mt-2 text-gray-600">
-            {isHodScope
-              ? "Create and view clubs in your department."
-              : "Create and view college clubs."}
-          </p>
+    <main className="min-h-screen bg-background px-4 py-8 sm:px-8">
+      <div className="mx-auto max-w-6xl space-y-6">
+        <header className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-primary">
+              EDUNEX / CLUB MANAGEMENT
+            </p>
+            <h1 className="mt-2 text-3xl font-bold text-text">Clubs</h1>
+            <p className="mt-2 text-sm text-text-muted">
+              {isHodScope
+                ? "Browse clubs across every department. Create, edit, and delete are limited to clubs in your department."
+                : "Create and manage college clubs across every department."}
+            </p>
+          </div>
+          {canCreateClub && (
+            <Button
+              onClick={() => {
+                setNotice("");
+                setIsCreateOpen(true);
+              }}
+            >
+              Add Club
+            </Button>
+          )}
         </header>
 
-        {canCreateClub &&
-          (isHodScope ? (
-            <HodClubCreateForm />
-          ) : (
-            <DefaultClubCreateForm />
-          ))}
+        <section className="rounded-xl border border-border bg-surface p-5">
+          <div className="max-w-xl">
+            <label
+              htmlFor="club-search"
+              className="mb-2 block text-sm font-medium text-text"
+            >
+              Search clubs
+            </label>
+            <Input
+              id="club-search"
+              type="search"
+              value={search}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                resetPage();
+              }}
+              placeholder="Search by club name"
+              maxLength={150}
+            />
+          </div>
+        </section>
 
-        <section>
-          <h2 className="mb-4 text-xl font-semibold text-gray-900">
-            Existing clubs
-          </h2>
+        {notice && (
+          <p
+            role="status"
+            className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800"
+          >
+            {notice}
+          </p>
+        )}
+
+        <section className="overflow-hidden rounded-xl border border-border bg-surface">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-5">
+            <h2 className="font-semibold text-text">Existing clubs</h2>
+            <p className="text-sm text-text-muted">
+              {pagination?.total ?? 0} club(s) found
+            </p>
+          </div>
 
           {activeClubsQuery.isPending ? (
-            <p className="text-gray-600">Loading clubs...</p>
+            <p className="p-8 text-center text-sm text-text-muted">
+              Loading clubs...
+            </p>
           ) : activeClubsQuery.isError ? (
-            <div>
-              <p role="alert" className="text-red-600">
+            <div className="p-8 text-center">
+              <p role="alert" className="text-sm text-red-600">
                 {activeClubsQuery.error.message}
               </p>
-              <button
-                type="button"
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => void activeClubsQuery.refetch()}
-                className="mt-2 text-sm font-medium text-[#234c96]"
+                className="mt-4"
               >
                 Try again
-              </button>
+              </Button>
             </div>
-          ) : activeClubsQuery.data.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-gray-300 bg-white p-8 text-center text-gray-600">
-              No clubs have been created yet.
+          ) : clubs.length === 0 ? (
+            <p className="p-8 text-center text-sm text-text-muted">
+              {search.trim()
+                ? "No clubs match your search."
+                : "No clubs have been created yet."}
             </p>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2">
-              {activeClubsQuery.data.map((club) => (
-                <article
-                  key={club.id}
-                  className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      {club.name}
-                    </h3>
-                    <span className="rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-[#234c96]">
-                      ID: {club.id}
-                    </span>
-                  </div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px] text-left text-sm">
+                <thead className="border-b border-border bg-background text-text-muted">
+                  <tr>
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      Club Name
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      Department
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      Description
+                    </th>
+                    <th scope="col" className="px-4 py-3 font-medium">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {clubs.map((club) => {
+                    const canAssignThisClub =
+                      canAssignDepartment && club.departmentId === null;
+                    const canEditThisClub =
+                      canEditClub && isWithinHodDepartment(club);
+                    const canDeleteThisClub =
+                      canDeleteClub && isWithinHodDepartment(club);
 
-                  <p className="mt-2 text-sm text-gray-600">
-                    {club.description || "No description provided."}
-                  </p>
-
-                  <p className="mt-3 text-sm text-gray-600">
-                    Department:{" "}
-                    <span className="font-medium text-gray-900">
-                      {club.departmentId === null
-                        ? "Unassigned"
-                        : departments.find(
-                            (department) =>
-                              department.id === club.departmentId,
-                          )?.name ?? `Department ${club.departmentId}`}
-                    </span>
-                  </p>
-
-                  {canAssignDepartment && club.departmentId === null && (
-                    <AssignDepartmentControl
-                      club={club}
-                      departments={departments}
-                      departmentsPending={departmentsQuery.isPending}
-                      departmentsError={departmentsQuery.isError}
-                      onRetryDepartments={() =>
-                        void departmentsQuery.refetch()
-                      }
-                    />
-                  )}
-                </article>
-              ))}
+                    return (
+                      <tr
+                        key={club.id}
+                        className="border-b border-border last:border-0"
+                      >
+                        <td className="px-4 py-3 font-medium text-text">
+                          {club.name}
+                        </td>
+                        <td className="px-4 py-3 text-text-muted">
+                          {getDepartmentName(club)}
+                        </td>
+                        <td className="max-w-md px-4 py-3 text-text-muted">
+                          <span className="line-clamp-2">
+                            {club.description || "No description provided."}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex flex-wrap gap-2">
+                            {canAssignThisClub && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setNotice("");
+                                  setAssigningClub(club);
+                                }}
+                              >
+                                Assign department
+                              </Button>
+                            )}
+                            {canEditThisClub && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setNotice("");
+                                  setEditingClub(club);
+                                }}
+                              >
+                                Edit
+                              </Button>
+                            )}
+                            {canDeleteThisClub && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setNotice("");
+                                  setDeletingClub(club);
+                                }}
+                                className="border-red-200 text-red-700 hover:bg-red-50"
+                              >
+                                Delete
+                              </Button>
+                            )}
+                            {!canAssignThisClub &&
+                              !canEditThisClub &&
+                              !canDeleteThisClub && (
+                                <span className="text-text-muted">—</span>
+                              )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
+
+          {!activeClubsQuery.isPending &&
+            !activeClubsQuery.isError && (
+              <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3 text-sm">
+                <p className="text-text-muted">
+                  {pagination?.total ?? 0} clubs · Page {currentPage} of{" "}
+                  {Math.max(totalPages, 1)}
+                </p>
+                <div className="flex flex-wrap items-center gap-3">
+                  <label
+                    htmlFor="club-page-size"
+                    className="flex items-center gap-2 text-text-muted"
+                  >
+                    Rows per page
+                    <select
+                      id="club-page-size"
+                      value={limit}
+                      onChange={(event) => {
+                        setLimit(Number(event.target.value));
+                        setPage(1);
+                        setNotice("");
+                      }}
+                      disabled={activeClubsQuery.isFetching}
+                      className="rounded-lg border border-border bg-surface px-2 py-1.5 text-text outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+                    >
+                      {PAGE_SIZE_OPTIONS.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={
+                        page <= 1 || activeClubsQuery.isFetching
+                      }
+                      onClick={() =>
+                        setPage((current) => Math.max(1, current - 1))
+                      }
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={
+                        page >= totalPages ||
+                        totalPages === 0 ||
+                        activeClubsQuery.isFetching
+                      }
+                      onClick={() =>
+                        setPage((current) => current + 1)
+                      }
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              </footer>
+            )}
         </section>
       </div>
-    </main>
-  );
-}
 
-function DefaultClubCreateForm() {
-  const departmentsQuery = useDepartment();
-  const createClubMutation = useCreateClubMutation();
-  const form = useForm<CreateClubInput>({
-    resolver: zodResolver(createClubSchema),
-    defaultValues: {
-      name: "",
-      description: "",
-      departmentId: "",
-    },
-  });
-
-  const onSubmit = (values: CreateClubInput) => {
-    createClubMutation.mutate(values, {
-      onSuccess: () => {
-        form.reset();
-      },
-    });
-  };
-
-  return (
-    <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-      <h2 className="text-xl font-semibold text-gray-900">
-        Create a club
-      </h2>
-
-      <form
-        onSubmit={form.handleSubmit(onSubmit)}
-        className="mt-5 space-y-4"
-      >
-        <div>
-          <label
-            htmlFor="name"
-            className="mb-1 block text-sm font-medium text-gray-700"
-          >
-            Club name
-          </label>
-          <input
-            id="name"
-            {...form.register("name")}
-            placeholder="e.g. Coding Club"
-            maxLength={150}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2.5 outline-none focus:border-[#234c96]"
-          />
-          {form.formState.errors.name && (
-            <p className="mt-1 text-sm text-red-600">
-              {form.formState.errors.name.message}
-            </p>
-          )}
-        </div>
-
-        <div>
-          <label
-            htmlFor="departmentId"
-            className="mb-1 block text-sm font-medium text-gray-700"
-          >
-            Department
-          </label>
-          <select
-            id="departmentId"
-            {...form.register("departmentId")}
-            disabled={
-              departmentsQuery.isPending ||
-              departmentsQuery.isError ||
-              createClubMutation.isPending
-            }
-            className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 outline-none focus:border-[#234c96] disabled:opacity-60"
-          >
-            <option value="">Select department</option>
-            {(departmentsQuery.data ?? []).map((department) => (
-              <option key={department.id} value={department.id}>
-                {department.name} ({department.code})
-              </option>
-            ))}
-          </select>
-          {departmentsQuery.isError && (
-            <p className="mt-1 text-sm text-red-600">
-              Unable to load departments.{" "}
-              <button
-                type="button"
-                onClick={() => void departmentsQuery.refetch()}
-                className="underline"
-              >
-                Try again
-              </button>
-            </p>
-          )}
-          {form.formState.errors.departmentId && (
-            <p className="mt-1 text-sm text-red-600">
-              {form.formState.errors.departmentId.message}
-            </p>
-          )}
-        </div>
-
-        <div>
-          <label
-            htmlFor="description"
-            className="mb-1 block text-sm font-medium text-gray-700"
-          >
-            Description
-          </label>
-          <textarea
-            id="description"
-            {...form.register("description")}
-            rows={3}
-            placeholder="Describe the club (optional)"
-            className="w-full rounded-lg border border-gray-300 px-3 py-2.5 outline-none focus:border-[#234c96]"
-          />
-          {form.formState.errors.description && (
-            <p className="mt-1 text-sm text-red-600">
-              {form.formState.errors.description.message}
-            </p>
-          )}
-        </div>
-
-        {createClubMutation.isError && (
-          <p role="alert" className="text-sm text-red-600">
-            {createClubMutation.error.message}
-          </p>
-        )}
-
-        {createClubMutation.isSuccess && (
-          <p role="status" className="text-sm text-green-700">
-            Club created successfully.
-          </p>
-        )}
-
-        <button
-          type="submit"
-          disabled={
-            createClubMutation.isPending ||
-            departmentsQuery.isPending ||
-            departmentsQuery.isError
-          }
-          className="rounded-lg bg-[#234c96] px-5 py-2.5 font-medium text-white hover:bg-blue-800 disabled:opacity-60"
-        >
-          {createClubMutation.isPending ? "Creating..." : "Create club"}
-        </button>
-      </form>
-    </section>
-  );
-}
-
-function HodClubCreateForm() {
-  const createClubMutation = useCreateHodClub();
-  const form = useForm<CreateHodClubInput>({
-    resolver: zodResolver(createHodClubSchema),
-    defaultValues: {
-      name: "",
-      description: "",
-    },
-  });
-
-  const onSubmit = (values: CreateHodClubInput) => {
-    createClubMutation.mutate(values, {
-      onSuccess: () => {
-        form.reset();
-      },
-    });
-  };
-
-  return (
-    <section className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-      <h2 className="text-xl font-semibold text-gray-900">
-        Create a club
-      </h2>
-      <p className="mt-1 text-sm text-gray-600">
-        The club will be assigned to your department.
-      </p>
-
-      <form
-        onSubmit={form.handleSubmit(onSubmit)}
-        className="mt-5 space-y-4"
-      >
-        <div>
-          <label
-            htmlFor="hod-name"
-            className="mb-1 block text-sm font-medium text-gray-700"
-          >
-            Club name
-          </label>
-          <input
-            id="hod-name"
-            {...form.register("name")}
-            placeholder="e.g. Coding Club"
-            maxLength={150}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2.5 outline-none focus:border-[#234c96]"
-          />
-          {form.formState.errors.name && (
-            <p className="mt-1 text-sm text-red-600">
-              {form.formState.errors.name.message}
-            </p>
-          )}
-        </div>
-
-        <div>
-          <label
-            htmlFor="hod-description"
-            className="mb-1 block text-sm font-medium text-gray-700"
-          >
-            Description
-          </label>
-          <textarea
-            id="hod-description"
-            {...form.register("description")}
-            rows={3}
-            placeholder="Describe the club (optional)"
-            className="w-full rounded-lg border border-gray-300 px-3 py-2.5 outline-none focus:border-[#234c96]"
-          />
-          {form.formState.errors.description && (
-            <p className="mt-1 text-sm text-red-600">
-              {form.formState.errors.description.message}
-            </p>
-          )}
-        </div>
-
-        {createClubMutation.isError && (
-          <p role="alert" className="text-sm text-red-600">
-            {createClubMutation.error.message}
-          </p>
-        )}
-
-        {createClubMutation.isSuccess && (
-          <p role="status" className="text-sm text-green-700">
-            Club created successfully.
-          </p>
-        )}
-
-        <button
-          type="submit"
-          disabled={createClubMutation.isPending}
-          className="rounded-lg bg-[#234c96] px-5 py-2.5 font-medium text-white hover:bg-blue-800 disabled:opacity-60"
-        >
-          {createClubMutation.isPending ? "Creating..." : "Create club"}
-        </button>
-      </form>
-    </section>
-  );
-}
-
-function AssignDepartmentControl({
-  club,
-  departments,
-  departmentsPending,
-  departmentsError,
-  onRetryDepartments,
-}: {
-  club: Club;
-  departments: Department[];
-  departmentsPending: boolean;
-  departmentsError: boolean;
-  onRetryDepartments: () => void;
-}) {
-  const [departmentId, setDepartmentId] = useState("");
-  const assignMutation = useAssignClubDepartmentMutation();
-
-  return (
-    <div className="mt-4 space-y-2 border-t border-gray-200 pt-4">
-      <label
-        htmlFor={`department-${club.id}`}
-        className="block text-sm font-medium text-gray-700"
-      >
-        Assign department
-      </label>
-      <div className="flex flex-wrap gap-2">
-        <select
-          id={`department-${club.id}`}
-          value={departmentId}
-          onChange={(event) => setDepartmentId(event.target.value)}
-          disabled={
-            departmentsPending ||
-            departmentsError ||
-            assignMutation.isPending
-          }
-          className="min-w-48 flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-[#234c96] disabled:opacity-60"
-        >
-          <option value="">Select department</option>
-          {departments.map((department) => (
-            <option key={department.id} value={department.id}>
-              {department.name} ({department.code})
-            </option>
-          ))}
-        </select>
-        <button
-          type="button"
-          disabled={!departmentId || assignMutation.isPending}
-          onClick={() => {
-            assignMutation.mutate(
-              {
-                clubId: club.id,
-                departmentId: Number(departmentId),
-              },
-              {
-                onSuccess: () => setDepartmentId(""),
-              },
-            );
+      {isCreateOpen && canCreateClub && (
+        <ClubCreateModal
+          scope={isHodScope ? "hod" : "default"}
+          onClose={() => setIsCreateOpen(false)}
+          onCreated={() => {
+            setIsCreateOpen(false);
+            setSearch("");
+            setPage(1);
+            setNotice("Club created successfully.");
           }}
-          className="rounded-lg border border-[#234c96] px-4 py-2 text-sm font-medium text-[#234c96] hover:bg-blue-50 disabled:opacity-60"
-        >
-          {assignMutation.isPending ? "Assigning..." : "Assign"}
-        </button>
-      </div>
-      {departmentsError && (
-        <p className="text-sm text-red-600">
-          Unable to load departments.{" "}
-          <button
-            type="button"
-            onClick={onRetryDepartments}
-            className="underline"
-          >
-            Try again
-          </button>
-        </p>
+        />
       )}
-      {assignMutation.isError && (
-        <p role="alert" className="text-sm text-red-600">
-          {assignMutation.error.message}
-        </p>
+
+      {editingClub && (
+        <EditClubDialog
+          club={editingClub}
+          departmentName={getDepartmentName(editingClub)}
+          onClose={() => setEditingClub(null)}
+          onUpdated={() => {
+            setEditingClub(null);
+            setNotice("Club updated successfully.");
+          }}
+        />
       )}
-    </div>
+
+      {deletingClub && (
+        <DeleteClubDialog
+          club={deletingClub}
+          onClose={() => setDeletingClub(null)}
+          onDeleted={() => {
+            setDeletingClub(null);
+            setNotice("Club deleted successfully.");
+
+            if (clubs.length === 1 && page > 1) {
+              setPage(page - 1);
+            }
+          }}
+        />
+      )}
+
+      {assigningClub && (
+        <AssignClubDepartmentDialog
+          club={assigningClub}
+          departments={departments}
+          departmentsPending={departmentsQuery.isPending}
+          departmentsError={departmentsQuery.isError}
+          onRetryDepartments={() => void departmentsQuery.refetch()}
+          onClose={() => setAssigningClub(null)}
+          onAssigned={() => {
+            setAssigningClub(null);
+            setNotice("Club department assigned successfully.");
+          }}
+        />
+      )}
+    </main>
   );
 }

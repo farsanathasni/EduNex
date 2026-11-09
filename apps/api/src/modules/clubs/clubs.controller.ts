@@ -5,6 +5,8 @@ import asyncHandler from "../../middleware/asyncHandler.js";
 import { db } from "../../config/database.js";
 import { departments } from "../../db/schema/others-schema.js";
 import {
+  getClubDepartmentFilter,
+  resolveClubManagerScope,
   resolveHodDepartmentScope,
   type Access,
 } from "../rbac/rbac.access.js";
@@ -12,6 +14,7 @@ import {
   assignClubDepartment,
   createClub,
   createMemberShipRequest,
+  deleteClub,
   getAllClubs,
   getClubAnnouncements,
   getClubById,
@@ -23,12 +26,14 @@ import {
   getMyMembershipRequests,
   getStudentProfileByUserId,
   reviewClubMembershipRequest,
+  updateClub,
 } from "./clubs.service.js"
 
 import {
   assignClubDepartmentSchema,
   clubListQuerySchema,
   createClubSchema,
+  updateClubSchema,
 } from "./clubs.validation.js";
 
 const getListQuery = (req: Request) =>
@@ -162,6 +167,114 @@ export const AssignClubDepartment = asyncHandler(
   },
 );
 
+export const UpdateClub = asyncHandler(
+  async (req: Request, res: Response) => {
+    const access = res.locals.access as Access;
+    const scope = await resolveClubManagerScope(access);
+
+    if (!scope) {
+      return res.status(403).json({
+        success: false,
+        message: "Only the Principal or an HOD can edit clubs.",
+      });
+    }
+
+    const clubId = Number(req.params.clubId);
+
+    if (!Number.isSafeInteger(clubId) || clubId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid club ID.",
+      });
+    }
+
+    const validation = updateClubSchema.safeParse(req.body);
+
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid club details.",
+        errors: validation.error.flatten(),
+      });
+    }
+
+    const club = await updateClub(
+      clubId,
+      validation.data,
+      getClubDepartmentFilter(scope),
+    );
+
+    if (!club) {
+      return res.status(404).json({
+        success: false,
+        message: "Club not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Club updated successfully.",
+      data: club,
+    });
+  },
+);
+
+export const DeleteClub = asyncHandler(
+  async (req: Request, res: Response) => {
+    const access = res.locals.access as Access;
+    const scope = await resolveClubManagerScope(access);
+
+    if (!scope) {
+      return res.status(403).json({
+        success: false,
+        message: "Only the Principal or an HOD can delete clubs.",
+      });
+    }
+
+    const clubId = Number(req.params.clubId);
+
+    if (!Number.isSafeInteger(clubId) || clubId <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid club ID.",
+      });
+    }
+
+    try {
+      const club = await deleteClub(
+        clubId,
+        getClubDepartmentFilter(scope),
+      );
+
+      if (!club) {
+        return res.status(404).json({
+          success: false,
+          message: "Club not found.",
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: "Club deleted successfully.",
+        data: club,
+      });
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        error.message === "CLUB_HAS_DEPENDENT_RECORDS"
+      ) {
+        return res.status(409).json({
+          success: false,
+          message:
+            "This club cannot be deleted while related events, memberships, coordinators, or announcements still reference it.",
+        });
+      }
+
+      throw error;
+    }
+  },
+);
+
 export const GetAllClubs = asyncHandler(
   async (req: Request, res: Response) => {
     const validation = getListQuery(req);
@@ -176,18 +289,9 @@ export const GetAllClubs = asyncHandler(
 
     const { page, limit, search } = validation.data;
 
-    const departmentId = await resolveHodDepartmentScope(
-      res.locals.access as Access,
-    );
-
-    if (departmentId === null) {
-      return res.status(403).json({
-        success: false,
-        message: "No department is assigned to your account.",
-      });
-    }
-
-    const result = await getAllClubs(search, page, limit, departmentId);
+    // Club viewing is campus-wide. Department scope is only applied to
+    // management operations (create, update, delete).
+    const result = await getAllClubs(search, page, limit);
 
     return res.status(200).json({
       success: true,

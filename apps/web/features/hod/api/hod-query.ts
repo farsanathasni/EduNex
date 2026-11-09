@@ -4,6 +4,7 @@ import {
   getHodDashboard,
   getHodStudents,
 } from "@/features/hod/api/hod";
+import type { ClubListParams } from "@/features/clubs/api/clubs";
 import type { CreateHodClubInput } from "@/features/clubs/validation/club-schema";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -36,7 +37,19 @@ export const useHodStudents = (
 export const useHodClubs = (enabled = true) => {
   return useQuery({
     queryKey: ["hod", "clubs"],
-    queryFn: getHodClubs,
+    queryFn: () => getHodClubs(),
+    enabled,
+    retry: false,
+  });
+};
+
+export const useHodClubListQuery = (
+  params: ClubListParams,
+  enabled = true,
+) => {
+  return useQuery({
+    queryKey: ["hod", "clubs", "list", params],
+    queryFn: () => getHodClubs(params),
     enabled,
     retry: false,
   });
