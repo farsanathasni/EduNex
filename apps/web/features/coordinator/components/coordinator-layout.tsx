@@ -56,7 +56,7 @@ export default function CoordinatorLayout({
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 md:flex">
       <aside className="flex w-full flex-col border-b border-slate-200 bg-white md:fixed md:inset-y-0 md:left-0 md:w-64 md:border-b-0 md:border-r">
-        <div className="flex items-center gap-3 border-b border-slate-100 px-6 py-5">
+        <div className="flex items-center gap-3 border-b border-slate-100 px-6 py-4">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-xl font-bold text-white">
             E
           </div>
@@ -68,7 +68,7 @@ export default function CoordinatorLayout({
           </div>
         </div>
 
-        <div className="px-4 py-5">
+        <div className="px-4 py-3">
           <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-wider text-slate-400">
             Workspace
           </p>
@@ -100,27 +100,31 @@ export default function CoordinatorLayout({
           </nav>
         </div>
 
-        <div className="mt-auto hidden p-4 md:block">
-          <div className="rounded-2xl bg-indigo-50 p-4">
-            <p className="text-sm font-semibold text-indigo-900">
-              Campus activities
-            </p>
-            <p className="mt-1 text-xs leading-5 text-indigo-700">
-              Manage events and keep your campus community connected.
-            </p>
-          </div>
-          <p className="mt-4 text-center text-xs text-slate-400">
-            EduNex © 2026
-          </p>
-        </div>
-        <div className="mt-auto border-t border-slate-100 p-4">
+       {/* Sidebar footer */}
+<div className="mt-auto hidden p-4 md:block">
+  <div className="rounded-2xl bg-indigo-50 p-3">
+    <p className="text-sm font-semibold text-indigo-900">
+      Campus activities
+    </p>
+    <p className="mt-1 text-xs leading-5 text-indigo-700">
+      Manage events and keep your campus community connected.
+    </p>
+  </div>
+
+  <p className="mt-4 text-center text-xs text-slate-400">
+    EduNex © 2026
+  </p>
+</div>
+
+{/* Logout */}
+<div className="border-t border-slate-100 p-4">
   <Button
     type="button"
     onClick={handleLogout}
-    className="flex w-full items-center gap-3 rounded-xl px-4 py-3 "
+    className="!flex !w-full !items-center !justify-center gap-3 rounded-xl px-4 py-3"
   >
-    <LogOut className="h-5 w-5" />
-    Logout
+    <LogOut className="h-5 w-5 shrink-0" />
+    <span>Logout</span>
   </Button>
 </div>
       </aside>

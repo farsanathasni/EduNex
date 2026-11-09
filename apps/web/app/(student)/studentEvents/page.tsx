@@ -138,9 +138,15 @@ function StatePanel({
 }
 
 function EventCard({ event }: { event: CampusEvent }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+
   const dateParts = getEventDateParts(getEventDate(event));
   const category = getEventCategory(event);
   const venue = getEventVenue(event);
+
+  const description =
+    event.description ||
+    "Join your campus community and be part of this experience.";
 
   return (
     <Card
@@ -175,10 +181,33 @@ function EventCard({ event }: { event: CampusEvent }) {
         {event.title || event.name || "Untitled event"}
       </h3>
 
-      <p className="mt-2 line-clamp-3 min-h-[4.5rem] flex-1 text-label leading-6 text-text-muted">
-        {event.description ||
-          "Join your campus community and be part of this experience."}
-      </p>
+      {/* Expandable description */}
+      <div className="mt-2 flex-1">
+        <p
+          className={`text-label leading-6 text-text-muted ${
+            isExpanded ? "whitespace-pre-line" : "line-clamp-3"
+          }`}
+        >
+          {description}
+        </p>
+
+        {description.length > 120 && (
+          <button
+            type="button"
+            aria-expanded={isExpanded}
+            onClick={() => setIsExpanded((previous) => !previous)}
+            className={`${focusRing} mt-2 inline-flex items-center gap-1 text-sm font-bold text-primary transition-colors hover:text-primary-hover`}
+          >
+            {isExpanded ? "See less" : "See more"}
+
+            <ArrowDown
+              className={`h-4 w-4 transition-transform duration-200 ${
+                isExpanded ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+        )}
+      </div>
 
       <dl className="mt-5 space-y-3 border-t border-border-subtle pt-4">
         <div className="flex items-start gap-3">
