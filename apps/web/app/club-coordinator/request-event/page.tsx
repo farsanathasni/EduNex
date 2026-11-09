@@ -2,162 +2,441 @@
 "use client";
 
 import { useState } from "react";
+
 import CoordinatorLayout from "@/features/coordinator/components/coordinator-layout";
+import Card from "@/components/ui/card";
 import { useAccess } from "@/lib/navigation/access";
+
+import {
+  useCreateEventRequest,
+  useMyEventRequestsQuery,
+} from "@/features/events/api/event-query";
+
+const getStatusLabel = (status: string) => {
+  switch (status.toLowerCase()) {
+    case "pending":
+      return "Pending";
+    case "published":
+    case "approved":
+      return "Approved";
+    case "rejected":
+      return "Rejected";
+    default:
+      return status;
+  }
+};
+
+const getStatusClass = (status: string) => {
+  switch (status.toLowerCase()) {
+    case "pending":
+      return "bg-amber-100 text-amber-700";
+    case "published":
+    case "approved":
+      return "bg-green-100 text-green-700";
+    case "rejected":
+      return "bg-red-100 text-red-700";
+    default:
+      return "bg-gray-100 text-gray-700";
+  }
+};
+
+const formatDateTime = (date: string) => {
+  return new Date(date).toLocaleString("en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+};
+
 export default function RequestEventPage() {
-  const [submitted, setSubmitted] = useState(false);
   const { me } = useAccess();
+
+  const createMutation = useCreateEventRequest();
+
+  const {
+    data: myRequests = [],
+    isLoading: requestsLoading,
+    isError: requestsError,
+    refetch: refetchRequests,
+  } = useMyEventRequestsQuery();
+
   const coordinatedClubs = me?.coordinatedClubs ?? [];
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setSubmitted(true);
-  }
+  const [clubId, setClubId] = useState("");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [location, setLocation] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
+
+  const resetForm = () => {
+    setClubId("");
+    setTitle("");
+    setDescription("");
+    setLocation("");
+    setStartTime("");
+    setEndTime("");
+    createMutation.reset();
+  };
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    if (!clubId) return;
+
+    if (
+      !startTime ||
+      !endTime ||
+      new Date(endTime) <= new Date(startTime)
+    ) {
+      return;
+    }
+
+    createMutation.mutate(
+      {
+        clubId: Number(clubId),
+        title: title.trim(),
+        description: description.trim() || undefined,
+        location: location.trim() || undefined,
+        startTime: new Date(startTime).toISOString(),
+        endTime: new Date(endTime).toISOString(),
+      },
+      {
+        onSuccess: () => {
+          resetForm();
+          refetchRequests();
+        },
+      },
+    );
+  };
 
   return (
     <CoordinatorLayout>
-      <div className="mb-7">
-        <p className="text-sm font-medium text-indigo-600">Plan something great</p>
-        <h1 className="mt-2 text-2xl font-bold text-slate-900 sm:text-3xl">
-          Request for Event
-        </h1>
-        <p className="mt-2 text-sm text-slate-500">
-          Share your proposal for an upcoming campus event.
-        </p>
+      <div className="mx-auto max-w-4xl space-y-7 pb-10">
+        {/* Header */}
+        <section className="rounded-3xl bg-gradient-to-br from-[#19396f] via-[#234c96] to-[#315eaa] p-8 text-white shadow-lg">
+          <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-xs font-semibold">
+            CLUB COORDINATOR · EVENTS
+          </span>
+
+          <h1 className="mt-5 text-3xl font-bold">
+            Request a New Event
+          </h1>
+
+          <p className="mt-3 max-w-xl text-sm leading-6 text-blue-100">
+            Submit your club event proposal for Principal approval.
+            Once approved, the event will be published for students.
+          </p>
+        </section>
+
+        {/* Event Request Form */}
+        <Card className="border-border-subtle p-6 shadow-subtle sm:p-8">
+          <div className="mb-7">
+            <h2 className="text-xl font-bold text-text">
+              Event Information
+            </h2>
+
+            <p className="mt-1 text-sm text-text-muted">
+              Provide the details of your proposed event.
+            </p>
+          </div>
+
+          {coordinatedClubs.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border p-8 text-center">
+              <h3 className="font-semibold text-text">
+                No assigned clubs
+              </h3>
+
+              <p className="mt-2 text-sm text-text-muted">
+                You need a club coordinator assignment before submitting
+                an event request.
+              </p>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Club */}
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-text">
+                  Select Club *
+                </label>
+
+                <select
+                  value={clubId}
+                  onChange={(e) => setClubId(e.target.value)}
+                  required
+                  className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-text outline-none focus:border-primary"
+                >
+                  <option value="">Choose your assigned club</option>
+
+                  {coordinatedClubs.map((club) => (
+                    <option key={club.id} value={club.id}>
+                      {club.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Event Title */}
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-text">
+                  Event Title *
+                </label>
+
+                <input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  required
+                  minLength={3}
+                  maxLength={200}
+                  placeholder="Enter event title"
+                  className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-text outline-none focus:border-primary"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-text">
+                  Description
+                </label>
+
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  maxLength={5000}
+                  rows={4}
+                  placeholder="Describe your event..."
+                  className="w-full resize-y rounded-xl border border-border bg-background px-4 py-3 text-sm text-text outline-none focus:border-primary"
+                />
+              </div>
+
+              {/* Location */}
+              <div>
+                <label className="mb-2 block text-sm font-semibold text-text">
+                  Venue
+                </label>
+
+                <input
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  maxLength={255}
+                  placeholder="Enter event venue"
+                  className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-text outline-none focus:border-primary"
+                />
+              </div>
+
+              {/* Date and Time */}
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-text">
+                    Start Date & Time *
+                  </label>
+
+                  <input
+                    type="datetime-local"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    required
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-text outline-none focus:border-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-text">
+                    End Date & Time *
+                  </label>
+
+                  <input
+                    type="datetime-local"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    required
+                    min={startTime || undefined}
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-text outline-none focus:border-primary"
+                  />
+                </div>
+              </div>
+
+              {/* Validation Message */}
+              {startTime &&
+                endTime &&
+                new Date(endTime) <= new Date(startTime) && (
+                  <p className="text-sm text-red-600">
+                    End date and time must be after the start date and time.
+                  </p>
+                )}
+
+              {/* Error */}
+              {createMutation.isError && (
+                <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                  {createMutation.error.message}
+                </div>
+              )}
+
+              {/* Success */}
+              {createMutation.isSuccess && (
+                <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-700">
+                  Event request submitted successfully.
+                  Waiting for Principal approval.
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex flex-wrap justify-end gap-3 border-t border-border-subtle pt-5">
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="rounded-xl border border-border px-5 py-3 text-sm font-semibold text-text transition hover:bg-background"
+                >
+                  Reset
+                </button>
+
+                <button
+                  type="submit"
+                  disabled={
+                    createMutation.isPending ||
+                    !clubId ||
+                    !title.trim() ||
+                    !startTime ||
+                    !endTime ||
+                    new Date(endTime) <= new Date(startTime)
+                  }
+                  className="rounded-xl bg-[#234c96] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#19396f] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {createMutation.isPending
+                    ? "Submitting..."
+                    : "Submit Event Request"}
+                </button>
+              </div>
+            </form>
+          )}
+        </Card>
+
+        {/* My Event Requests */}
+        <Card className="border-border-subtle p-6 shadow-subtle sm:p-8">
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 className="text-xl font-bold text-text">
+                My Event Requests
+              </h2>
+
+              <p className="mt-1 text-sm text-text-muted">
+                Track the approval status of your submitted event requests.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => refetchRequests()}
+              disabled={requestsLoading}
+              className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-text transition hover:bg-background disabled:opacity-50"
+            >
+              Refresh
+            </button>
+          </div>
+
+          {requestsLoading ? (
+            <div className="py-8 text-center text-sm text-text-muted">
+              Loading your event requests...
+            </div>
+          ) : requestsError ? (
+            <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              Failed to load event requests. Please try again.
+              <button
+                type="button"
+                onClick={() => refetchRequests()}
+                className="ml-2 font-semibold underline"
+              >
+                Retry
+              </button>
+            </div>
+          ) : myRequests.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border p-8 text-center">
+              <h3 className="font-semibold text-text">
+                No event requests yet
+              </h3>
+
+              <p className="mt-2 text-sm text-text-muted">
+                Your submitted event requests will appear here.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {myRequests.map((event) => (
+                <div
+                  key={event.id}
+                  className="rounded-xl border border-border p-5 transition hover:shadow-sm"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <h3 className="font-semibold text-text">
+                        {event.title}
+                      </h3>
+
+                      <p className="mt-1 text-sm text-text-muted">
+                        {event.clubName}
+                      </p>
+                    </div>
+
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusClass(
+                        event.status,
+                      )}`}
+                    >
+                      {getStatusLabel(event.status)}
+                    </span>
+                  </div>
+
+                  {event.description && (
+                    <p className="mt-3 text-sm leading-6 text-text-muted">
+                      {event.description}
+                    </p>
+                  )}
+
+                  <div className="mt-4 grid gap-3 border-t border-border-subtle pt-4 text-sm text-text-muted sm:grid-cols-2">
+                    <p>
+                      <span className="font-medium text-text">Venue:</span>{" "}
+                      {event.location || "Not specified"}
+                    </p>
+
+                    <p>
+                      <span className="font-medium text-text">Start:</span>{" "}
+                      {formatDateTime(event.startTime)}
+                    </p>
+
+                    <p>
+                      <span className="font-medium text-text">End:</span>{" "}
+                      {formatDateTime(event.endTime)}
+                    </p>
+
+                    <p>
+                      <span className="font-medium text-text">Submitted:</span>{" "}
+                      {new Date(event.createdAt).toLocaleDateString("en-IN")}
+                    </p>
+                  </div>
+
+                  {event.status.toLowerCase() === "pending" && (
+                    <p className="mt-3 text-xs font-medium text-amber-700">
+                      Your request is waiting for Principal approval.
+                    </p>
+                  )}
+
+                  {(event.status.toLowerCase() === "published" ||
+                    event.status.toLowerCase() === "approved") && (
+                    <p className="mt-3 text-xs font-medium text-green-700">
+                      Your event has been approved and published.
+                    </p>
+                  )}
+
+                  {event.status.toLowerCase() === "rejected" && (
+                    <p className="mt-3 text-xs font-medium text-red-700">
+                      Your event request was rejected.
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
       </div>
-
-      {coordinatedClubs.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
-          <h2 className="font-semibold text-slate-900">No clubs assigned</h2>
-          <p className="mt-2 text-sm text-slate-500">An assigned club is required before you can prepare an event request.</p>
-        </div>
-      ) : <>
-      {submitted && (
-        <div role="status" className="mb-6 flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-emerald-800">
-          <span className="text-xl">✓</span>
-          <div>
-            <p className="font-semibold">Demo submission successful!</p>
-            <p className="mt-1 text-sm">
-              This is a static UI. Your request has not been saved to the server.
-            </p>
-            <button onClick={() => setSubmitted(false)} className="mt-2 text-sm font-semibold underline">
-              Submit another request
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <form onSubmit={handleSubmit} className="space-y-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8 xl:col-span-2">
-          <div className="border-b border-slate-100 pb-5">
-            <h2 className="font-semibold text-slate-900">Event information</h2>
-            <p className="mt-1 text-sm text-slate-500">Fields marked with * are required.</p>
-          </div>
-
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <label htmlFor="clubId" className="mb-2 block text-sm font-medium text-slate-700">Assigned club *</label>
-              <select id="clubId" name="clubId" required defaultValue={coordinatedClubs.length === 1 ? String(coordinatedClubs[0].id) : ""} className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-indigo-500">
-                {coordinatedClubs.length > 1 && <option value="" disabled>Select an assigned club</option>}
-                {coordinatedClubs.map((club) => <option key={club.id} value={club.id}>{club.name}</option>)}
-              </select>
-            </div>
-            <div className="sm:col-span-2">
-              <label htmlFor="eventName" className="mb-2 block text-sm font-medium text-slate-700">
-                Event title *
-              </label>
-              <input id="eventName" name="eventName" required placeholder="e.g. Annual TechFest" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100" />
-            </div>
-
-            <div>
-              <label htmlFor="category" className="mb-2 block text-sm font-medium text-slate-700">
-                Event category *
-              </label>
-              <select id="category" name="category" required defaultValue="" className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm outline-none focus:border-indigo-500">
-                <option value="" disabled>Select category</option>
-                <option>Technology</option>
-                <option>Cultural</option>
-                <option>Sports</option>
-                <option>Workshop</option>
-                <option>Academic</option>
-                <option>Other</option>
-              </select>
-            </div>
-
-            <div>
-              <label htmlFor="attendees" className="mb-2 block text-sm font-medium text-slate-700">
-                Expected attendees *
-              </label>
-              <input id="attendees" name="attendees" type="number" min="1" required placeholder="e.g. 150" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-indigo-500" />
-            </div>
-
-            <div>
-              <label htmlFor="eventDate" className="mb-2 block text-sm font-medium text-slate-700">
-                Proposed date *
-              </label>
-              <input id="eventDate" name="eventDate" type="date" min={new Date().toLocaleDateString("en-CA")} required className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-indigo-500" />
-            </div>
-
-            <div>
-              <label htmlFor="eventTime" className="mb-2 block text-sm font-medium text-slate-700">
-                Proposed time *
-              </label>
-              <input id="eventTime" name="eventTime" type="time" required className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-indigo-500" />
-            </div>
-
-            <div className="sm:col-span-2">
-              <label htmlFor="venue" className="mb-2 block text-sm font-medium text-slate-700">
-                Preferred venue *
-              </label>
-              <input id="venue" name="venue" required placeholder="e.g. Main Auditorium" className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm outline-none focus:border-indigo-500" />
-            </div>
-
-            <div className="sm:col-span-2">
-              <label htmlFor="description" className="mb-2 block text-sm font-medium text-slate-700">
-                Event description *
-              </label>
-              <textarea id="description" name="description" required minLength={20} rows={5} placeholder="Describe the event, its purpose, activities, and expected outcomes..." className="w-full resize-y rounded-xl border border-slate-200 px-4 py-3 text-sm leading-6 outline-none focus:border-indigo-500" />
-            </div>
-          </div>
-
-          <div className="flex flex-col-reverse justify-end gap-3 border-t border-slate-100 pt-5 sm:flex-row">
-            <button type="reset" onClick={() => setSubmitted(false)} className="rounded-xl border border-slate-200 px-5 py-3 text-sm font-semibold text-slate-600 hover:bg-slate-50">
-              Clear form
-            </button>
-            <button type="submit" className="rounded-xl bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-700">
-              Submit Event Request →
-            </button>
-          </div>
-        </form>
-
-        <aside className="space-y-5">
-          <div className="rounded-2xl bg-indigo-600 p-6 text-white">
-            <div className="text-3xl">✦</div>
-            <h2 className="mt-4 text-lg font-bold">Bring your idea to life</h2>
-            <p className="mt-2 text-sm leading-6 text-indigo-100">
-              Share a clear proposal so the college can review your event requirements.
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-slate-200 bg-white p-6">
-            <h2 className="font-semibold text-slate-900">Before you submit</h2>
-            <ul className="mt-4 space-y-4 text-sm leading-5 text-slate-600">
-              <li className="flex gap-3"><span className="font-bold text-indigo-600">01</span><span>Choose a suitable date and venue.</span></li>
-              <li className="flex gap-3"><span className="font-bold text-indigo-600">02</span><span>Include a realistic attendee estimate.</span></li>
-              <li className="flex gap-3"><span className="font-bold text-indigo-600">03</span><span>Explain the purpose and activities clearly.</span></li>
-              <li className="flex gap-3"><span className="font-bold text-indigo-600">04</span><span>Wait for approval before treating the event as confirmed.</span></li>
-            </ul>
-          </div>
-
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5">
-            <p className="text-sm font-semibold text-amber-900">Demo mode</p>
-            <p className="mt-2 text-sm leading-5 text-amber-800">
-              Requests submitted here are not persisted. Backend integration will come later.
-            </p>
-          </div>
-        </aside>
-      </div>
-      </>}
     </CoordinatorLayout>
   );
 }

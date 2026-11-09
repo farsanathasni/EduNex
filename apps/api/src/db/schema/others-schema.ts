@@ -86,6 +86,9 @@ export const events = pgTable("events", {
     status: varchar({ length: 20 }).default('draft').notNull(),
     createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+    requestedBy: text("requested_by").references(() => user.id, {
+  onDelete: "restrict",
+}),
 }, (table) => [
     foreignKey({
             columns: [table.clubId],
@@ -114,7 +117,10 @@ export const eventApprovals = pgTable("event_approvals", {
             foreignColumns: [events.id],
             name: "event_approvals_event_id_fkey"
         }).onDelete("cascade"),
-    check("event_approvals_reviewer_role_check", sql`(reviewer_role)::text = ANY ((ARRAY['hod'::character varying, 'admin'::character varying])::text[])`),
+    check(
+  "event_approvals_reviewer_role_check",
+  sql`reviewer_role = 'principal'`,
+),
     check("event_approvals_decision_check", sql`(decision)::text = ANY ((ARRAY['pending'::character varying, 'approved'::character varying, 'rejected'::character varying])::text[])`),
 ]);
 

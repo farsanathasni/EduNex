@@ -47,10 +47,12 @@ const getApiError = (error: unknown, fallback: string) => {
 };
 
 export interface ClubMembershipRequest {
-  id:number,
-  clubId:number,
-  status:string,
-  club?:Club
+  id: number;
+  clubId: number;
+  clubName: string;
+  status: string;
+  requestedAt?: string;
+  reviewedAt?: string | null;
 }
 
 export interface ClubEvent{

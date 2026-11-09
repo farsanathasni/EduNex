@@ -150,44 +150,45 @@ export const NAV: NavItem[] = [
 },
 
   // Student view
-  {
-    label: "Overview",
-    href: "/studentDashboard",
-    icon: "\u2302",
-    roles: ["student"],
-    mode: "student",
-  },
-  {
-    label: "Clubs",
-    href: "/student",
-    icon: "\u25c8",
-    roles: ["student"],
-    permission: ["club", "view"],
-    mode: "student",
-  },
-  {
-    label: "My Profile",
-    href: "/studentprofile",
-    icon: "☺",
-    roles: ["student"],
-    mode: "student",
-  },
-  {
-    label: "Memberships",
-    href: "/student/my-memberships",
-    icon: "\u2667",
-    roles: ["student"],
-    permission: ["club", "view"],
-    mode: "student",
-  },
-  {
-    label: "Events",
-    href: "/studentEvents",
-    icon: "▣",
-    roles: ["student"],
-    permission: ["event", "view"],
-    mode: "student",
-  },
+  // Student view
+{
+  label: "Overview",
+  href: "/studentDashboard",
+  icon: "\u2302",
+  roles: ["student"],
+  mode: "student",
+},
+{
+  label: "Events",
+  href: "/studentEvents",
+  icon: "▣",
+  roles: ["student"],
+  permission: ["event", "view"],
+  mode: "student",
+},
+{
+  label: "Explore Clubs",
+  href: "/student",
+  icon: "\u25c8",
+  roles: ["student"],
+  permission: ["club", "view"],
+  mode: "student",
+},
+{
+  label: "My Memberships",
+  href: "/student/my-memberships",
+  icon: "\u2667",
+  roles: ["student"],
+  permission: ["club", "view"],
+  mode: "student",
+},
+{
+  label: "My Profile",
+  href: "/studentprofile",
+  icon: "☺",
+  roles: ["student"],
+  mode: "student",
+},
 
   // Coordinator view
   {
