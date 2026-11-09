@@ -33,7 +33,7 @@ app.use(express.json());
 
 app.get("/", (_req, res) => {
   res.send("running");
-});
+})
 
 app.use("/api/students", studentRoutes);
 app.use("/api/hod", hodRouter);

@@ -1,48 +1,12 @@
-"use client";
-
-import { useForm } from "react-hook-form";
 import type { PendingEvent } from "@/features/hod/api/hod-event-approvals";
-
-type ReviewFormData = {
-  comments: string;
-};
 
 type EventApprovalCardProps = {
   event: PendingEvent;
-  processing: boolean;
-  onReview: (
-    eventId: number,
-    decision: "approved" | "rejected",
-    comments?: string,
-  ) => Promise<void>;
 };
 
 export default function EventApprovalCard({
   event,
-  processing,
-  onReview,
 }: EventApprovalCardProps) {
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<ReviewFormData>({
-    defaultValues: {
-      comments: "",
-    },
-  });
-
-  const submitReview = async (
-    decision: "approved" | "rejected",
-    formData: ReviewFormData,
-  ) => {
-    await onReview(
-      event.id,
-      decision,
-      formData.comments.trim() || undefined,
-    );
-  };
-
   return (
     <article className="rounded-2xl border border-border bg-surface p-5 shadow-sm transition hover:shadow-md sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -55,7 +19,7 @@ export default function EventApprovalCard({
         </div>
 
         <span className="rounded-full bg-accent-subtle px-3 py-1 text-xs font-semibold text-accent">
-          Pending review
+          {event.status}
         </span>
       </div>
 
@@ -93,63 +57,12 @@ export default function EventApprovalCard({
         </div>
       </div>
 
-      <form className="mt-5 space-y-4">
-        <div>
-          <label
-            htmlFor={`comments-${event.id}`}
-            className="mb-2 block text-sm font-semibold"
-          >
-            Review comments
-            <span className="ml-1 font-normal text-text-muted">
-              (optional)
-            </span>
-          </label>
-
-          <textarea
-            id={`comments-${event.id}`}
-            rows={3}
-            placeholder="Add feedback for the club..."
-            aria-invalid={Boolean(errors.comments)}
-            {...register("comments", {
-              maxLength: {
-                value: 1000,
-                message: "Comments cannot exceed 1000 characters.",
-              },
-            })}
-            className="w-full resize-y rounded-xl border border-border bg-background px-4 py-3 text-sm outline-none transition placeholder:text-text-subtle focus:border-primary focus:ring-2 focus:ring-primary/20"
-          />
-
-          {errors.comments && (
-            <p className="mt-1 text-sm text-red-600">
-              {errors.comments.message}
-            </p>
-          )}
-        </div>
-
-        <div className="flex flex-wrap justify-end gap-3">
-          <button
-            type="button"
-            disabled={processing}
-            onClick={handleSubmit((data) =>
-              submitReview("rejected", data),
-            )}
-            className="rounded-xl border border-red-500 px-5 py-2.5 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {processing ? "Processing..." : "Reject event"}
-          </button>
-
-          <button
-            type="button"
-            disabled={processing}
-            onClick={handleSubmit((data) =>
-              submitReview("approved", data),
-            )}
-            className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {processing ? "Processing..." : "Approve event"}
-          </button>
-        </div>
-      </form>
+      <div className="mt-5 rounded-xl border border-border p-4">
+        <p className="text-sm font-semibold">Approval information</p>
+        <p className="mt-1 text-sm text-text-muted">
+          Event decisions and publishing are handled by the Principal.
+        </p>
+      </div>
     </article>
   );
 }

@@ -9,6 +9,7 @@ import {
   getStaffByUserId,
 } from "./hod.service.js";
 import {
+  isHod,
   resolveDepartmentScope,
   type Access,
 } from "../rbac/rbac.access.js";
@@ -264,6 +265,15 @@ export const CreateHodClub = asyncHandler(
 // Get pending events with search and pagination.
 export const GetPendingEvents = asyncHandler(
   async (req: Request, res: Response) => {
+    const access = res.locals.access as Access;
+
+    if (!access.isSuperAdmin && !isHod(access)) {
+      return res.status(403).json({
+        success: false,
+        message: "Only an HOD can view department event requests.",
+      });
+    }
+
     const resolved = await getScope(res);
     if (!resolved) return;
 
@@ -297,11 +307,29 @@ export const GetPendingEvents = asyncHandler(
   },
 );
 
-// Approve or reject a pending event.
+// Approve or reject a pending event as the Principal.
 export const ReviewEvent = asyncHandler(
   async (req: Request, res: Response) => {
+    const access = res.locals.access as Access;
+
+    if (!access.isSuperAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "Only the Principal can approve or reject events.",
+      });
+    }
+
     const resolved = await getScope(res);
     if (!resolved) return;
+
+    const reviewerId = res.locals.user?.id;
+
+    if (!reviewerId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required.",
+      });
+    }
 
     const eventId = Number(req.params.eventId);
 
@@ -331,20 +359,15 @@ export const ReviewEvent = asyncHandler(
       });
     }
 
-    const access = res.locals.access as Access;
-    const staffRow = await getStaffByUserId(res.locals.user.id);
-
     let result;
 
     try {
       result = await reviewEvent(
         eventId,
-        // Keep recording the staff id when there is one (as before).
-        staffRow?.id ?? res.locals.user.id,
+        reviewerId,
         resolved.departmentId,
         decision,
         comments,
-        access.isSuperAdmin ? "admin" : "hod",
       );
     } catch (error) {
       if (

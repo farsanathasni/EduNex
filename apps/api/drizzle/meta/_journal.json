@@ -92,6 +92,13 @@
       "when": 1794036837258,
       "tag": "0012_thick_shadow_king",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1794201440124,
+      "tag": "0013_principal_event_permissions",
+      "breakpoints": true
     }
   ]
 }
