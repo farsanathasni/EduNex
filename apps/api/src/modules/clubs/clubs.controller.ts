@@ -289,8 +289,7 @@ export const GetAllClubs = asyncHandler(
 
     const { page, limit, search } = validation.data;
 
-    // Club viewing is campus-wide. Department scope is only applied to
-    // management operations (create, update, delete).
+
     const result = await getAllClubs(search, page, limit);
 
     return res.status(200).json({

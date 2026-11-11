@@ -6,6 +6,7 @@ import EditStaffModal from "@/features/staff/components/edit-staff-modal";
 import DeactivateStaffDialog from "@/features/staff/components/deactivate-staff-dialog";
 import { useStaff } from "@/features/staff/api/staff-query";
 import type { StaffListItem, StaffType } from "@/features/staff/api/staff";
+import StaffDirectorySkeleton from "@/features/staff/components/staff-directory-skeleton";
 
 type Department = {
   id: number;
@@ -145,8 +146,8 @@ export default function StaffDirectory({
 
       <section className="overflow-hidden rounded-xl border border-border bg-surface">
         {staffQuery.isPending ? (
-          <p className="p-6 text-sm text-text-muted">Loading staff...</p>
-        ) : staffQuery.isError ? (
+  <StaffDirectorySkeleton />
+) : staffQuery.isError ? (
           <div className="p-6 text-sm text-red-600">
             <p>{staffQuery.error instanceof Error ? staffQuery.error.message : "Unable to load staff."}</p>
             <button type="button" onClick={() => void staffQuery.refetch()} className="mt-2 underline">

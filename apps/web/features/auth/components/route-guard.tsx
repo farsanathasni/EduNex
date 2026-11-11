@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 
 import { useAccess } from "@/lib/navigation/access";
 import { NAV } from "@/lib/navigation/nav";
+import { getDashboardPath } from "@/features/auth/api/me";
 
 type RouteGuardProps = {
   children: React.ReactNode;
@@ -68,10 +69,14 @@ export function RouteGuard({
   const isPrincipalAdmin =
     isSuperAdmin || hasAnyRole(["super-admin"]);
 
-  const deniedAccessDestination = isPrincipalAdmin
-    ? "/principal"
-    : coordinatorOnly
-      ? "/studentDashboard"
+const roleHome = me ? getDashboardPath(me) : null;
+
+const deniedAccessDestination = isPrincipalAdmin
+  ? "/principal"
+  : coordinatorOnly && hasAnyRole(["student"])
+    ? "/studentDashboard"
+    : roleHome && roleHome !== pathname
+      ? roleHome
       : "/dashboard";
 
   const redirectTo = loginRequired

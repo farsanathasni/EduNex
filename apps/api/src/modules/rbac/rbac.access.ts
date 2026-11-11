@@ -16,12 +16,9 @@ export type Access = {
   userId: string;
   roles: { id: number; slug: string; name: string }[];
   isSuperAdmin: boolean;
-  // "resource:action", e.g. "event:approve". Union of all the user's roles.
   permissions: Set<string>;
 };
 
-// Loads every role the user holds and the union of their permissions.
-// Returns null when the account is a deactivated staff member.
 export const loadAccess = async (userId: string): Promise<Access | null> => {
   const [staffRow] = await db
     .select({ isActive: staff.isActive })

@@ -16,7 +16,7 @@ meRouter.get("/", requireAuth, attachAccess, GetMe);
 
 const rolesRouter = Router();
 
-// "/permissions" must be registered before "/:id".
+
 rolesRouter.get("/permissions", requireAuth, rbac("role", "view"), GetPermissionCatalog);
 rolesRouter.get("/", requireAuth, rbac("role", "view"), GetRoles);
 rolesRouter.get("/:id", requireAuth, rbac("role", "view"), GetRole);

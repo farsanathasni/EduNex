@@ -20,7 +20,7 @@ import {
 } from "./rbac.service.js";
 import { createRoleSchema, roleIdSchema, updateRoleSchema } from "./rbac.validation.js";
 
-// GET /api/me - everything the frontend needs to build the right UI.
+
 export const GetMe = asyncHandler(async (_req: Request, res: Response) => {
   const access = res.locals.access as Access;
   const userId = res.locals.user.id as string;

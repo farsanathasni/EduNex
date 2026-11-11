@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { authClient } from "@/lib/auth-client";
 import { getPrincipalDashboard } from "@/features/principal/api/principal";
+import { PrincipalDashboardSkeleton } from "@/features/principal/components/principal-dashboard-skeleton";
 
 type DashboardResponse = {
   success: boolean;
@@ -41,17 +42,17 @@ export default function PrincipalDashboardPage() {
     retry: false,
   });
 
-  if (checkingSession || (!session && !isError)) {
-    return <p className="py-10 text-text-muted">Checking session...</p>;
-  }
+ if (checkingSession || (!session && !isError)) {
+  return <PrincipalDashboardSkeleton />;
+}
 
   if (!session) {
     return <p className="py-10 text-text-muted">Redirecting to login...</p>;
   }
 
-  if (isPending) {
-    return <p className="py-10 text-text-muted">Loading overview...</p>;
-  }
+if (isPending) {
+  return <PrincipalDashboardSkeleton />;
+}
 
   if (isError || !data?.data) {
     return (

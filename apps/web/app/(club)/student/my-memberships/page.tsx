@@ -7,7 +7,6 @@ import Link from "next/link";
 
 import {
   AlertCircle,
-  ArrowLeft,
   ArrowRight,
   CheckCircle2,
   Clock3,
@@ -19,6 +18,7 @@ import {
 import { useMyStudentMembershipRequestsQuery } from "@/features/clubs/api/club-query";
 import Card from "@/components/ui/card";
 import Button from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type StatusKey = "pending" | "approved" | "rejected";
 type FilterKey = "all" | StatusKey;
@@ -108,29 +108,67 @@ function SummaryCard({
 }
 
 /* -------------------------------------------------------------------------- */
-/* Membership Skeleton                                                        */
+/* My Memberships Loading Skeleton                                            */
 /* -------------------------------------------------------------------------- */
 
-function MembershipSkeleton() {
+function MyMembershipsPageSkeleton() {
   return (
-    <Card
-      aria-hidden="true"
-      padding="lg"
-      className="animate-pulse"
-    >
-      <div className="flex items-center gap-4">
-        <div className="h-12 w-12 rounded-xl bg-secondary-hover" />
+    <main className="min-h-screen bg-background">
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+        <Skeleton className="mb-6 h-5 w-40" />
 
-        <div className="flex-1 space-y-2">
-          <div className="h-4 w-1/3 rounded bg-secondary-hover" />
-          <div className="h-3 w-1/4 rounded bg-secondary-hover" />
+        {/* Header */}
+        <section className="rounded-3xl bg-brand px-6 py-10 sm:px-10 sm:py-12">
+          <Skeleton className="h-4 w-28 bg-white/20" />
+          <Skeleton className="mt-4 h-10 w-64 max-w-full bg-white/20" />
+          <Skeleton className="mt-4 h-4 w-full max-w-md bg-white/20" />
+          <Skeleton className="mt-3 h-4 w-3/4 max-w-sm bg-white/20" />
+          <Skeleton className="mt-8 h-11 w-36 rounded-lg bg-white/20" />
+        </section>
+
+        {/* Summary cards */}
+        <section className="relative z-10 -mt-8 grid gap-4 px-3 sm:grid-cols-3 sm:px-8">
+          {[1, 2, 3].map((item) => (
+            <Card
+              key={item}
+              padding="lg"
+              className="flex items-center gap-4"
+            >
+              <Skeleton className="h-12 w-12 shrink-0 rounded-xl" />
+
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-6 w-12" />
+              </div>
+            </Card>
+          ))}
+        </section>
+
+        {/* Membership list */}
+        <div
+          role="status"
+          aria-label="Loading membership requests"
+          className="mt-8 space-y-4"
+        >
+          {[1, 2, 3].map((item) => (
+            <Card key={item} aria-hidden="true" padding="lg">
+              <div className="flex items-center gap-4">
+                <Skeleton className="h-12 w-12 shrink-0 rounded-xl" />
+
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-1/3" />
+                  <Skeleton className="h-3 w-1/4" />
+                </div>
+
+                <Skeleton className="h-7 w-24 rounded-full" />
+              </div>
+
+              <Skeleton className="mt-5 h-10 w-full rounded-lg" />
+            </Card>
+          ))}
         </div>
-
-        <div className="h-7 w-24 rounded-full bg-secondary-hover" />
       </div>
-
-      <div className="mt-5 h-10 rounded-lg bg-secondary-hover" />
-    </Card>
+    </main>
   );
 }
 
@@ -236,44 +274,13 @@ export default function MyMembershipsPage() {
     { key: "rejected", label: "Rejected" },
   ];
 
-  /* ------------------------------------------------------------------------ */
-  /* Loading State                                                            */
-  /* ------------------------------------------------------------------------ */
+  /* Loading State */
 
   if (isLoading) {
-    return (
-      <main className="min-h-full bg-background text-text">
-        <div
-          role="status"
-          aria-label="Loading membership requests"
-          className="mx-auto max-w-7xl animate-pulse space-y-8 px-4 py-8 sm:px-6 lg:px-8"
-        >
-          <div className="h-5 w-40 rounded bg-secondary-hover" />
-
-          <div className="h-64 rounded-3xl bg-secondary-hover" />
-
-          <div className="grid gap-4 sm:grid-cols-3">
-            {[1, 2, 3].map((item) => (
-              <div
-                key={item}
-                className="h-24 rounded-xl bg-secondary-hover"
-              />
-            ))}
-          </div>
-
-          <div className="space-y-4">
-            {[1, 2, 3].map((item) => (
-              <MembershipSkeleton key={item} />
-            ))}
-          </div>
-        </div>
-      </main>
-    );
+    return <MyMembershipsPageSkeleton />;
   }
 
-  /* ------------------------------------------------------------------------ */
-  /* Error State                                                              */
-  /* ------------------------------------------------------------------------ */
+  /* Error State */
 
   if (isError) {
     return (
@@ -294,9 +301,7 @@ export default function MyMembershipsPage() {
     );
   }
 
-  /* ------------------------------------------------------------------------ */
-  /* Main Page                                                                */
-  /* ------------------------------------------------------------------------ */
+  /* Main Page */
 
   return (
     <main className="min-h-full bg-background text-text">

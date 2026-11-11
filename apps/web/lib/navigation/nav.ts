@@ -16,7 +16,13 @@ const HOD = ["hod", "super-admin"];
 const FACULTY = ["faculty", "super-admin"];
 
 export const NAV: NavItem[] = [
-  { label: "Overview", href: "/dashboard", icon: "⌂" },
+  
+  {
+  label: "Overview",
+  href: "/dashboard",
+  icon: "⌂",
+  roles: ["hod"],
+},
 
   // Administration
   {

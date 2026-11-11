@@ -24,6 +24,7 @@ import {
 import { studentProfileSchema } from "@/features/students/validation/student-profile-schema";
 import { Department } from "@/features/departments/api/department";
 import { useDepartment } from "@/features/departments/api/department-query";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import Card from "@/components/ui/card";
 import Button from "@/components/ui/button";
@@ -169,6 +170,65 @@ function Required() {
 }
 
 /* -------------------------------------------------------------------------- */
+/* Student Profile Skeleton                                                  */
+/* -------------------------------------------------------------------------- */
+
+function StudentProfileSkeleton() {
+  return (
+    <main className="min-h-screen bg-background px-4 py-8 font-roobert sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-4xl space-y-6">
+        {/* Profile banner */}
+        <section className="rounded-3xl bg-brand px-6 py-8 sm:px-10 sm:py-10">
+          <Skeleton className="h-4 w-28 bg-white/20" />
+
+          <div className="mt-6 flex flex-col gap-6 sm:flex-row sm:items-center">
+            <Skeleton className="h-20 w-20 shrink-0 rounded-2xl bg-white/20" />
+
+            <div className="flex-1 space-y-3">
+              <Skeleton className="h-9 w-56 max-w-full bg-white/20" />
+              <Skeleton className="h-4 w-64 max-w-full bg-white/20" />
+              <Skeleton className="h-3 w-40 bg-white/20" />
+            </div>
+
+            <Skeleton className="h-20 w-32 rounded-2xl bg-white/20" />
+          </div>
+        </section>
+
+        {/* Information cards */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          {[1, 2].map((item) => (
+            <Card key={item} padding="lg">
+              <div className="mb-5 flex items-center gap-3 border-b border-border-subtle pb-4">
+                <Skeleton className="h-10 w-10 rounded-xl" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-5 w-40" />
+                  <Skeleton className="h-3 w-48 max-w-full" />
+                </div>
+              </div>
+
+              <div className="grid gap-6 sm:grid-cols-2">
+                {[1, 2, 3, 4].map((field) => (
+                  <div key={field} className="space-y-2">
+                    <Skeleton className="h-3 w-24" />
+                    <Skeleton className="h-4 w-36 max-w-full" />
+                  </div>
+                ))}
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Action buttons */}
+        <div className="flex justify-end gap-3">
+          <Skeleton className="h-11 w-36 rounded-lg" />
+          <Skeleton className="h-11 w-40 rounded-lg" />
+        </div>
+      </div>
+    </main>
+  );
+}
+
+/* -------------------------------------------------------------------------- */
 /* Student Profile Page                                                       */
 /* -------------------------------------------------------------------------- */
 
@@ -302,17 +362,7 @@ export default function StudentProfile() {
   /* ------------------------------------------------------------------------ */
 
   if (profileQuery.isLoading) {
-    return (
-      <div className="flex min-h-[calc(100vh-76px)] items-center justify-center bg-background px-4 py-8 font-roobert">
-        <Card role="status" className="text-center" padding="lg">
-          <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-primary-subtle border-t-primary" />
-
-          <p className="text-label font-medium text-text-muted">
-            Loading your student profile...
-          </p>
-        </Card>
-      </div>
-    );
+    return <StudentProfileSkeleton />;
   }
 
   /* ------------------------------------------------------------------------ */

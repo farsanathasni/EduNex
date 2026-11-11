@@ -11,6 +11,7 @@ import type { Department } from "@/features/departments/api/department";
 import CreateDepartmentsModal from "@/features/departments/components/create-departments-modal";
 import DeleteDepartmentDialog from "@/features/departments/components/delete-department-dialog";
 import EditDepartmentModal from "@/features/departments/components/edit-department-modal";
+import DepartmentDirectorySkeleton from "@/features/departments/components/department-directory-skeleton";
 
 const PAGE_SIZE = 10;
 
@@ -62,8 +63,8 @@ export default function DepartmentDirectory() {
       )}
 
       <section className="overflow-hidden rounded-xl border border-border bg-surface">
-        {departmentQuery.isPending ? (
-          <p className="p-6 text-sm text-text-muted">Loading departments...</p>
+{departmentQuery.isPending ? (
+  <DepartmentDirectorySkeleton />
         ) : departmentQuery.isError ? (
           <div className="p-6 text-sm text-red-600">
             <p>{departmentQuery.error instanceof Error ? departmentQuery.error.message : "Unable to load departments."}</p>

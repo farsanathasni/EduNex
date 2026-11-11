@@ -17,6 +17,7 @@ import Button from "@/components/ui/button";
 import Card from "@/components/ui/card";
 import PageHeader from "@/components/ui/page-header";
 import { useHodDashboard } from "@/features/hod/api/hod-query";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function HodDashboardPage() {
   const router = useRouter();
@@ -43,14 +44,63 @@ export default function HodDashboardPage() {
     }
   }, [checkingSession, session, router]);
 
-  // Session loading
-  if (checkingSession) {
-    return (
-      <p className="py-10 text-text-muted">
-        Checking session...
-      </p>
-    );
-  }
+// Session loading
+if (checkingSession) {
+  return (
+    <div className="space-y-8">
+      <div className="space-y-3">
+        <Skeleton className="h-4 w-28" />
+        <Skeleton className="h-9 w-64" />
+        <Skeleton className="h-4 w-96 max-w-full" />
+      </div>
+
+      <Card padding="lg">
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-12 w-12 rounded-xl" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-6 w-56" />
+            <Skeleton className="h-4 w-32" />
+          </div>
+        </div>
+      </Card>
+
+      <Card padding="lg">
+        <Skeleton className="h-6 w-48" />
+        <Skeleton className="mt-2 h-4 w-72 max-w-full" />
+
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {[1, 2, 3, 4].map((item) => (
+            <div key={item} className="rounded-xl border border-border bg-secondary p-4">
+              <div className="flex justify-between">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-5 w-5 rounded-full" />
+              </div>
+              <Skeleton className="mt-4 h-8 w-16" />
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <section>
+        <Skeleton className="mb-4 h-7 w-36" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {[1, 2, 3, 4].map((item) => (
+            <Card key={item} padding="lg" className="space-y-4">
+              <Skeleton className="h-11 w-11 rounded-xl" />
+              <Skeleton className="h-5 w-40" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-4/5" />
+              </div>
+              <Skeleton className="h-9 w-28 rounded-lg" />
+            </Card>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
 
   if (!session?.user) {
     return (
@@ -60,14 +110,63 @@ export default function HodDashboardPage() {
     );
   }
 
-  // Dashboard loading
-  if (isPending) {
-    return (
-      <p className="py-10 text-text-muted">
-        Loading overview...
-      </p>
-    );
-  }
+// Dashboard loading
+if (isPending) {
+  return (
+    <div className="space-y-8">
+      <div className="space-y-3">
+        <Skeleton className="h-4 w-28" />
+        <Skeleton className="h-9 w-64" />
+        <Skeleton className="h-4 w-96 max-w-full" />
+      </div>
+
+      <Card padding="lg">
+        <div className="flex items-center gap-4">
+          <Skeleton className="h-12 w-12 rounded-xl" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-4 w-40" />
+            <Skeleton className="h-6 w-56" />
+            <Skeleton className="h-4 w-32" />
+          </div>
+        </div>
+      </Card>
+
+      <Card padding="lg">
+        <Skeleton className="h-6 w-48" />
+        <Skeleton className="mt-2 h-4 w-72 max-w-full" />
+
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {[1, 2, 3, 4].map((item) => (
+            <div key={item} className="rounded-xl border border-border bg-secondary p-4">
+              <div className="flex justify-between">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-5 w-5 rounded-full" />
+              </div>
+              <Skeleton className="mt-4 h-8 w-16" />
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      <section>
+        <Skeleton className="mb-4 h-7 w-36" />
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {[1, 2, 3, 4].map((item) => (
+            <Card key={item} padding="lg" className="space-y-4">
+              <Skeleton className="h-11 w-11 rounded-xl" />
+              <Skeleton className="h-5 w-40" />
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-4/5" />
+              </div>
+              <Skeleton className="h-9 w-28 rounded-lg" />
+            </Card>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
 
   // Dashboard error
   if (isError || !dashboard) {

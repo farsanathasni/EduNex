@@ -5,8 +5,8 @@ import { useMemo, useState } from "react";
 import { AlertTriangle, Search } from "lucide-react";
 
 import Button from "@/components/ui/button";
-import Input from "@/components/ui/input";
-import { useClubsQuery } from "@/features/clubs/api/club-query";
+import Input from "@/components/ui/input"
+import { useClubsQuery } from "@/features/clubs/api/club-query"
 import {
   ClubBrowseCard,
   ClubBrowseCardSkeleton,

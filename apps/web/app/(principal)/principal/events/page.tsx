@@ -8,6 +8,7 @@ import {
   type PrincipalEvent,
 } from "@/features/principal/api/principal";
 import { usePublishPrincipalEvent } from "@/features/principal/api/principal-event-query";
+import EventsTableSkeleton from "@/features/events/components/events-table-skeleton";
 
 const statusStyles: Record<string, string> = {
   pending: "bg-orange-100 text-orange-700",
@@ -110,15 +111,18 @@ export default function PrincipalEventsPage() {
 
             <tbody className="divide-y divide-border">
               {isLoading && (
-                <tr>
-                  <td
-                    colSpan={7}
-                    className="px-4 py-10 text-center text-text-muted"
-                  >
-                    Loading college events...
-                  </td>
-                </tr>
-              )}
+  <EventsTableSkeleton
+    columns={[
+      { width: "w-32", secondaryWidth: "w-44" },
+      { width: "w-24" },
+      { width: "w-28" },
+      { width: "w-32" },
+      { width: "w-32" },
+      { width: "w-20", shape: "badge" },
+      { width: "w-16", shape: "button" },
+    ]}
+  />
+)}
 
               {isError && !isLoading && (
                 <tr>

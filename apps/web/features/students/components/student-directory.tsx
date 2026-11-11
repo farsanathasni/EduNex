@@ -1,20 +1,19 @@
-"use client";
+"use client"
+import { useState } from "react"
+import Link from "next/link"
+import { usePathname, useRouter } from "next/navigation"
+import Button from "@/components/ui/button"
+import Input from "@/components/ui/input"
+import { useDepartment } from "@/features/departments/api/department-query"
+import { useStudents } from "@/features/students/api/student-query"
+import type { StudentListItem } from "@/features/students/api/student"
+import EditStudentModal from "@/features/students/components/edit-student-modal"
+import DeleteStudentDialog from "@/features/students/components/delete-student-dialog"
+import CreateStudentModal from "@/features/students/components/create-student-modal"
+import StudentDirectorySkeleton from "@/features/students/components/student-directory-skeleton"
 
-import { useState } from "react";
-import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-
-import Button from "@/components/ui/button";
-import Input from "@/components/ui/input";
-import { useDepartment } from "@/features/departments/api/department-query";
-import { useStudents } from "@/features/students/api/student-query";
-import type { StudentListItem } from "@/features/students/api/student";
-import EditStudentModal from "@/features/students/components/edit-student-modal";
-import DeleteStudentDialog from "@/features/students/components/delete-student-dialog";
-import CreateStudentModal from "@/features/students/components/create-student-modal";
-
-const PAGE_SIZE = 10;
-const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8];
+const PAGE_SIZE = 10
+const SEMESTERS = [1, 2, 3, 4, 5, 6, 7, 8]
 
 export default function StudentDirectory({
   showDepartmentFilter,
@@ -25,40 +24,42 @@ export default function StudentDirectory({
   canAssignCoordinator = false,
   canCreate = false,
 }: {
-  showDepartmentFilter: boolean;
-  title?: string;
-  canEdit?: boolean;
-  canDelete?: boolean;
-  canChangeDepartment?: boolean;
-  canAssignCoordinator?: boolean;
-  canCreate?: boolean;
-}) {
-  const pathname = usePathname();
-  const router = useRouter();
-  const [search, setSearch] = useState("");
-  const [departmentId, setDepartmentId] = useState("");
-  const [semester, setSemester] = useState("");
-  const [page, setPage] = useState(1);
-  const [editingStudent, setEditingStudent] = useState<StudentListItem | null>(null);
-  const [deletingStudent, setDeletingStudent] = useState<StudentListItem | null>(null);
-  const [successMessage, setSuccessMessage] = useState("");
-  const [creatingStudent, setCreatingStudent] = useState(false);
 
-  const departmentQuery = useDepartment(showDepartmentFilter);
+  showDepartmentFilter: boolean
+  title?: string
+  canEdit?: boolean
+  canDelete?: boolean
+  canChangeDepartment?: boolean
+  canAssignCoordinator?: boolean
+  canCreate?: boolean
+}) {
+
+  const pathname = usePathname()
+  const router = useRouter()
+  const [search, setSearch] = useState("")
+  const [departmentId, setDepartmentId] = useState("")
+  const [semester, setSemester] = useState("")
+  const [page, setPage] = useState(1)
+  const [editingStudent, setEditingStudent] = useState<StudentListItem | null>(null)
+  const [deletingStudent, setDeletingStudent] = useState<StudentListItem | null>(null)
+  const [successMessage, setSuccessMessage] = useState("")
+  const [creatingStudent, setCreatingStudent] = useState(false)
+
+  const departmentQuery = useDepartment(showDepartmentFilter)
   const studentsQuery = useStudents({
     search: search.trim(),
     ...(showDepartmentFilter && departmentId ? { departmentId: Number(departmentId) } : {}),
     ...(semester ? { semester: Number(semester) } : {}),
     page,
     limit: PAGE_SIZE,
-  });
+  })
 
-  const students = studentsQuery.data?.students ?? [];
-  const pagination = studentsQuery.data?.pagination;
-  const totalPages = pagination?.totalPages ?? 0;
+  const students = studentsQuery.data?.students ?? []
+  const pagination = studentsQuery.data?.pagination
+  const totalPages = pagination?.totalPages ?? 0
   const resetPage = () => {
-    setPage(1);
-  };
+    setPage(1)
+  }
 
   return (
     <section className="space-y-6">
@@ -162,7 +163,7 @@ export default function StudentDirectory({
         </div>
 
         {studentsQuery.isPending ? (
-          <p className="p-8 text-center text-sm text-text-muted">Loading students...</p>
+  <StudentDirectorySkeleton />
         ) : studentsQuery.isError ? (
           <div className="p-8 text-center">
             <p role="alert" className="text-sm text-red-600">

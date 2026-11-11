@@ -27,6 +27,7 @@ import {
 
 import CoordinatorLayout from "@/features/coordinator/components/coordinator-layout";
 import { useAccess } from "@/lib/navigation/access";
+import { Skeleton } from "@/components/ui/skeleton";
 
 /* -------------------------------------------------------------------------- */
 /* Helpers                                                                    */
@@ -105,35 +106,68 @@ function StudentDetail({
   );
 }
 
+
+
+
 function LoadingState() {
   return (
     <div className="mt-6 grid gap-5">
       {[1, 2].map((item) => (
-        <Card key={item} padding="lg" className="animate-pulse">
+        <Card
+          key={item}
+          padding="lg"
+          className="overflow-hidden border-border-subtle"
+        >
+          {/* Student heading */}
           <div className="flex items-center justify-between gap-4">
-            <div className="space-y-2">
-              <div className="h-5 w-40 rounded bg-secondary-hover" />
-              <div className="h-4 w-52 rounded bg-secondary-hover" />
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-14 w-14 shrink-0 rounded-2xl" />
+
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-40" />
+                <Skeleton className="h-4 w-52" />
+              </div>
             </div>
-            <div className="h-7 w-20 rounded-full bg-secondary-hover" />
+
+            <Skeleton className="h-7 w-28 rounded-full" />
           </div>
 
-          <div className="mt-7 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {[1, 2, 3, 4, 5, 6].map((field) => (
-              <div key={field} className="flex gap-3">
-                <div className="h-9 w-9 rounded-lg bg-secondary-hover" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-3 w-20 rounded bg-secondary-hover" />
-                  <div className="h-4 w-28 rounded bg-secondary-hover" />
+          {/* Student information */}
+          <div className="mt-6 rounded-2xl bg-background p-4 sm:p-5">
+            <div className="mb-5 flex items-center gap-2">
+              <Skeleton className="h-8 w-8 rounded-lg" />
+              <Skeleton className="h-4 w-36" />
+            </div>
+
+            <div className="grid gap-x-6 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3, 4, 5, 6].map((field) => (
+                <div key={field} className="flex items-start gap-3">
+                  <Skeleton className="h-9 w-9 shrink-0 rounded-lg" />
+
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <Skeleton className="h-3 w-24" />
+                    <Skeleton className="h-4 w-32" />
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="mt-6 flex flex-col-reverse gap-3 border-t border-border-subtle pt-5 sm:flex-row sm:items-center sm:justify-between">
+            <Skeleton className="h-4 w-64" />
+
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Skeleton className="h-10 w-full rounded-xl sm:w-24" />
+              <Skeleton className="h-10 w-full rounded-xl sm:w-36" />
+            </div>
           </div>
         </Card>
       ))}
     </div>
   );
 }
+
 
 function EmptyState({
   title,

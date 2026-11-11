@@ -1,6 +1,6 @@
 
-import type { Request, Response } from "express";
-import asyncHandler from "../../middleware/asyncHandler.js";
+import type { Request, Response } from "express"
+import asyncHandler from "../../middleware/asyncHandler.js"
 import {
   getStaffProfile,
   createHod,
@@ -8,28 +8,24 @@ import {
   createStudentAccount,
   StaffCreationError,
   getDepartments,
-} from "./principal.service.js";
-import { createHodSchema } from "../hod/hod.validation.js";
-import { createStaffSchema } from "../staff/staff.validation.js";
-import { createManagedStudentSchema } from "../students/student.validation.js";
-import { getPendingEvents } from "../hod/hod.service.js";
-import { getPrincipalAllEvents,publishApprovedEvent } from "../events/events.service.js";
-
+} from "./principal.service.js"
+import { createHodSchema } from "../hod/hod.validation.js"
+import { createStaffSchema } from "../staff/staff.validation.js"
+import { createManagedStudentSchema } from "../students/student.validation.js"
+import { getPendingEvents } from "../hod/hod.service.js"
+import { getPrincipalAllEvents,publishApprovedEvent } from "../events/events.service.js"
 import {
   resolveDepartmentScope,
   type Access,
-} from "../rbac/rbac.access.js";
+} from "../rbac/rbac.access.js"
 
-// Access is decided by the rbac() middleware on the router
-// (admin:view, staff:create, department:view), so these handlers
-// no longer check for a Principal staff record.
 
 const getPaginationParams = (req: Request) => {
   const page =
     req.query.page === undefined ? 1 : Number(req.query.page);
 
   const limit =
-    req.query.limit === undefined ? 50 : Number(req.query.limit);
+    req.query.limit === undefined ? 50 : Number(req.query.limit)
 
   if (
     !Number.isSafeInteger(page) ||
@@ -56,7 +52,7 @@ export const GetPrincipalDashboard = asyncHandler(
       });
     }
 
-    // Optional: a Super Admin may have no staff record.
+   
     const profile = await getStaffProfile(user.id);
 
     return res.status(200).json({
@@ -125,7 +121,8 @@ export const CreateHod = asyncHandler(
       throw error;
     }
   },
-);
+)
+
 
 export const CreateStaff = asyncHandler(
   async (req: Request, res: Response) => {
