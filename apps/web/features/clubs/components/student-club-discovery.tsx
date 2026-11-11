@@ -6,7 +6,6 @@ import type { ReactNode } from "react";
 import {
   AlertCircle,
   ArrowDown,
-  ArrowLeft,
   ArrowRight,
   BadgeCheck,
   Building2,
@@ -237,14 +236,7 @@ export default function StudentClubDiscovery() {
   return (
     <main className="min-h-screen bg-background text-text">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Back navigation */}
-        <Link
-          href="/studentDashboard"
-          className={`group mb-6 inline-flex items-center gap-2 rounded-lg text-label font-semibold text-text-muted transition-colors hover:text-primary ${focusRing}`}
-        >
-          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
-          Back to dashboard
-        </Link>
+        
 
         {/* Hero */}
         <section

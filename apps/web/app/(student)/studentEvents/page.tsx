@@ -1,12 +1,12 @@
+
 "use client";
 
 import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import Link from "next/link";
+
 import {
   AlertCircle,
   ArrowDown,
-  ArrowLeft,
   CalendarDays,
   GraduationCap,
   MapPin,
@@ -42,17 +42,22 @@ type EventDateParts = {
 
 const focusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30";
+
 const onBrandFocusRing =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60";
 
-/* The API may return either startDate/venue/category or startTime/location/clubName. */
 const getEventDate = (event: CampusEvent) =>
   event.startDate ?? event.startTime ?? null;
-const getEventVenue = (event: CampusEvent) => event.venue || event.location;
+
+const getEventVenue = (event: CampusEvent) =>
+  event.venue || event.location;
+
 const getEventCategory = (event: CampusEvent) =>
   event.category || event.clubName;
 
-function getEventDateParts(date?: string | Date | null): EventDateParts | null {
+function getEventDateParts(
+  date?: string | Date | null,
+): EventDateParts | null {
   if (!date) return null;
 
   const parsedDate = new Date(date);
@@ -60,8 +65,12 @@ function getEventDateParts(date?: string | Date | null): EventDateParts | null {
   if (Number.isNaN(parsedDate.getTime())) return null;
 
   return {
-    day: parsedDate.toLocaleDateString("en-IN", { day: "2-digit" }),
-    month: parsedDate.toLocaleDateString("en-IN", { month: "short" }),
+    day: parsedDate.toLocaleDateString("en-IN", {
+      day: "2-digit",
+    }),
+    month: parsedDate.toLocaleDateString("en-IN", {
+      month: "short",
+    }),
     full: parsedDate.toLocaleDateString("en-IN", {
       day: "numeric",
       month: "short",
@@ -70,7 +79,11 @@ function getEventDateParts(date?: string | Date | null): EventDateParts | null {
   };
 }
 
+/* -------------------------------------------------------------------------- */
+/* Reusable components                                                        */
+/* -------------------------------------------------------------------------- */
 
+// Statistics card
 function StatCard({
   icon,
   label,
@@ -88,8 +101,12 @@ function StatCard({
       <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary-subtle text-primary">
         {icon}
       </div>
+
       <div>
-        <p className="text-caption font-medium text-text-muted">{label}</p>
+        <p className="text-caption font-medium text-text-muted">
+          {label}
+        </p>
+
         <p className="mt-0.5 text-heading-sm font-extrabold leading-tight text-text">
           {value}
         </p>
@@ -98,6 +115,7 @@ function StatCard({
   );
 }
 
+// Empty and error states
 function StatePanel({
   icon,
   title,
@@ -128,13 +146,21 @@ function StatePanel({
       >
         {icon}
       </div>
-      <h2 className="mt-5 text-subheading font-bold text-text">{title}</h2>
-      <p className="mt-2 max-w-md text-label text-text-muted">{description}</p>
+
+      <h2 className="mt-5 text-subheading font-bold text-text">
+        {title}
+      </h2>
+
+      <p className="mt-2 max-w-md text-label text-text-muted">
+        {description}
+      </p>
+
       {action && <div className="mt-6">{action}</div>}
     </Card>
   );
 }
 
+// Individual event card
 function EventCard({ event }: { event: CampusEvent }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -161,6 +187,7 @@ function EventCard({ event }: { event: CampusEvent }) {
               <span className="text-subheading font-extrabold leading-none">
                 {dateParts.day}
               </span>
+
               <span className="mt-1 text-caption font-semibold uppercase">
                 {dateParts.month}
               </span>
@@ -179,7 +206,6 @@ function EventCard({ event }: { event: CampusEvent }) {
         {event.title || event.name || "Untitled event"}
       </h3>
 
-      {/* Expandable description */}
       <div className="mt-2 flex-1">
         <p
           className={`text-label leading-6 text-text-muted ${
@@ -193,7 +219,9 @@ function EventCard({ event }: { event: CampusEvent }) {
           <button
             type="button"
             aria-expanded={isExpanded}
-            onClick={() => setIsExpanded((previous) => !previous)}
+            onClick={() =>
+              setIsExpanded((previous) => !previous)
+            }
             className={`${focusRing} mt-2 inline-flex items-center gap-1 text-sm font-bold text-primary transition-colors hover:text-primary-hover`}
           >
             {isExpanded ? "See less" : "See more"}
@@ -210,9 +238,13 @@ function EventCard({ event }: { event: CampusEvent }) {
       <dl className="mt-5 space-y-3 border-t border-border-subtle pt-4">
         <div className="flex items-start gap-3">
           <dt className="mt-0.5 text-text-subtle">
-            <CalendarDays aria-hidden="true" className="h-4 w-4" />
+            <CalendarDays
+              aria-hidden="true"
+              className="h-4 w-4"
+            />
             <span className="sr-only">Event date</span>
           </dt>
+
           <dd className="text-label font-medium text-text">
             {dateParts?.full ?? "Date to be announced"}
           </dd>
@@ -220,9 +252,13 @@ function EventCard({ event }: { event: CampusEvent }) {
 
         <div className="flex items-start gap-3">
           <dt className="mt-0.5 text-text-subtle">
-            <MapPin aria-hidden="true" className="h-4 w-4" />
+            <MapPin
+              aria-hidden="true"
+              className="h-4 w-4"
+            />
             <span className="sr-only">Venue</span>
           </dt>
+
           <dd className="break-words text-label font-medium text-text">
             {venue || "Venue to be announced"}
           </dd>
@@ -232,10 +268,17 @@ function EventCard({ event }: { event: CampusEvent }) {
   );
 }
 
+/* -------------------------------------------------------------------------- */
+/* Event Loading Skeleton                                                     */
+/* -------------------------------------------------------------------------- */
 
 function EventSkeleton() {
   return (
-    <Card aria-hidden="true" padding="lg">
+    <Card
+      aria-hidden="true"
+      padding="lg"
+      className="animate-pulse"
+    >
       <div className="flex items-start justify-between">
         <Skeleton className="h-16 w-16 rounded-xl" />
         <Skeleton className="h-6 w-24 rounded-full" />
@@ -256,17 +299,25 @@ function EventSkeleton() {
   );
 }
 
-
-
+/* -------------------------------------------------------------------------- */
+/* Student Events Page                                                        */
+/* -------------------------------------------------------------------------- */
 
 export default function StudentEventsPage() {
-  const { data, isPending, isError, refetch } = useAllEventsQuery();
+  const { data, isPending, isError, refetch } =
+    useAllEventsQuery();
+
   const [search, setSearch] = useState("");
 
+  // Handle both array and object API responses
   const events: CampusEvent[] = Array.isArray(data)
     ? data
-    : ((data as { events?: CampusEvent[] } | undefined)?.events ?? []);
+    : (
+        (data as { events?: CampusEvent[] } | undefined)
+          ?.events ?? []
+      );
 
+  // Search events
   const filteredEvents = useMemo(() => {
     const query = search.trim().toLowerCase();
 
@@ -289,75 +340,85 @@ export default function StudentEventsPage() {
     );
   }, [events, search]);
 
+  // Upcoming events count
   const upcomingCount = events.filter((event) => {
     const date = getEventDate(event);
+
     if (!date) return false;
+
     const time = new Date(date).getTime();
+
     return Number.isFinite(time) && time >= Date.now();
   }).length;
 
+  // Unique category count
   const categoryCount = new Set(
-    events.map((event) => getEventCategory(event)).filter(Boolean),
+    events
+      .map((event) => getEventCategory(event))
+      .filter(Boolean),
   ).size;
 
   const hasSearch = search.trim().length > 0;
 
   /* ------------------------------ Loading ------------------------------ */
 
-if (isPending) {
-  return (
-    <main className="min-h-screen bg-background">
-      <div
-        role="status"
-        aria-label="Loading events"
-        className="mx-auto max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8"
-      >
-        <Skeleton className="h-5 w-32" />
+  if (isPending) {
+    return (
+      <main className="min-h-screen bg-background">
+        <div
+          role="status"
+          aria-label="Loading events"
+          className="mx-auto max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8"
+        >
+          <Skeleton className="h-5 w-32" />
 
-        {/* Hero skeleton */}
-        <div className="rounded-3xl bg-surface p-8 sm:p-10">
-          <Skeleton className="h-6 w-48" />
-          <Skeleton className="mt-6 h-10 w-80 max-w-full" />
-          <Skeleton className="mt-4 h-4 w-full max-w-xl" />
-          <Skeleton className="mt-3 h-4 w-2/3" />
-          <Skeleton className="mt-8 h-11 w-40 rounded-lg" />
-        </div>
-
-        {/* Statistics skeleton */}
-        <div className="relative z-10 -mt-12 grid gap-4 px-3 sm:grid-cols-3 sm:px-8">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <Card key={i} padding="lg" className="flex items-center gap-4">
-              <Skeleton className="h-12 w-12 shrink-0 rounded-xl" />
-              <div className="flex-1 space-y-2">
-                <Skeleton className="h-3 w-24" />
-                <Skeleton className="h-6 w-12" />
-              </div>
-            </Card>
-          ))}
-        </div>
-
-        {/* Events heading and search */}
-        <div className="mt-14 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-          <div className="space-y-2">
-            <Skeleton className="h-7 w-56" />
-            <Skeleton className="h-4 w-72 max-w-full" />
+          {/* Hero skeleton */}
+          <div className="rounded-3xl bg-surface p-8 sm:p-10">
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="mt-6 h-10 w-80 max-w-full" />
+            <Skeleton className="mt-4 h-4 w-full max-w-xl" />
+            <Skeleton className="mt-3 h-4 w-2/3" />
+            <Skeleton className="mt-8 h-11 w-40 rounded-lg" />
           </div>
-          <Skeleton className="h-12 w-full rounded-xl sm:max-w-md" />
+
+          {/* Statistics skeleton */}
+          <div className="relative z-10 -mt-12 grid gap-4 px-3 sm:grid-cols-3 sm:px-8">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Card
+                key={i}
+                padding="lg"
+                className="flex items-center gap-4"
+              >
+                <Skeleton className="h-12 w-12 shrink-0 rounded-xl" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-3 w-24" />
+                  <Skeleton className="h-6 w-12" />
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          {/* Events heading and search */}
+          <div className="mt-14 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+            <div className="space-y-2">
+              <Skeleton className="h-7 w-56" />
+              <Skeleton className="h-4 w-72 max-w-full" />
+            </div>
+            <Skeleton className="h-12 w-full rounded-xl sm:max-w-md" />
+          </div>
+
+          {/* Event cards */}
+          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, item) => (
+              <EventSkeleton key={item} />
+            ))}
+          </div>
         </div>
+      </main>
+    );
+  }
 
-        {/* Event cards */}
-        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-          {[1, 2, 3, 4, 5, 6].map((item) => (
-            <EventSkeleton key={item} />
-          ))}
-        </div>
-      </div>
-    </main>
-  );
-}
-
-  /* ------------------------------- Error ------------------------------- */
-
+  // Error state
   if (isError) {
     return (
       <main className="flex min-h-[70vh] items-center justify-center bg-background px-4">
@@ -367,27 +428,20 @@ if (isPending) {
           icon={<AlertCircle className="h-6 w-6" />}
           title="We couldn't load the events"
           description="Please check your connection and try again."
-          action={<Button onClick={() => void refetch()}>Try again</Button>}
+          action={
+            <Button onClick={() => void refetch()}>
+              Try again
+            </Button>
+          }
         />
       </main>
     );
   }
 
-  /* ------------------------------- Page ------------------------------- */
-
   return (
     <main className="min-h-screen bg-background text-text">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Back navigation */}
-        <Link
-          href="/studentDashboard"
-          className={`group mb-6 inline-flex items-center gap-2 rounded-lg text-label font-semibold text-text-muted transition-colors hover:text-primary ${focusRing}`}
-        >
-          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
-          Back to dashboard
-        </Link>
-
-        {/* Hero */}
+        {/* Hero section */}
         <section
           aria-labelledby="events-hero-title"
           className="relative overflow-hidden rounded-3xl bg-brand px-6 pb-24 pt-12 text-text-on-primary shadow-lg sm:px-10 sm:pb-28 sm:pt-16"
@@ -401,6 +455,7 @@ if (isPending) {
               backgroundSize: "24px 24px",
             }}
           />
+
           <div
             aria-hidden="true"
             className="pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full border-[40px] border-white/10"
@@ -420,17 +475,20 @@ if (isPending) {
             </h1>
 
             <p className="mt-4 max-w-xl text-body leading-relaxed text-white/80">
-              Discover workshops, cultural celebrations, competitions and
-              opportunities to connect with your campus community.
+              Discover workshops, cultural celebrations,
+              competitions and opportunities to connect with
+              your campus community.
             </p>
 
             <button
               type="button"
               onClick={() =>
-                document.getElementById("event-list")?.scrollIntoView({
-                  behavior: "smooth",
-                  block: "start",
-                })
+                document
+                  .getElementById("event-list")
+                  ?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start",
+                  })
               }
               className={`mt-8 inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-5 py-3 text-label font-semibold text-accent-foreground shadow-sm transition-colors hover:bg-accent-hover ${onBrandFocusRing}`}
             >
@@ -440,7 +498,7 @@ if (isPending) {
           </div>
         </section>
 
-        {/* Stats overlapping the hero edge */}
+        {/* Event statistics */}
         <section
           aria-label="Event overview"
           className="relative z-10 -mt-12 grid gap-4 px-3 sm:grid-cols-3 sm:px-8"
@@ -450,11 +508,13 @@ if (isPending) {
             label="Total events"
             value={events.length}
           />
+
           <StatCard
             icon={<CalendarDays className="h-6 w-6" />}
             label="Upcoming events"
             value={upcomingCount}
           />
+
           <StatCard
             icon={<Tag className="h-6 w-6" />}
             label="Categories"
@@ -462,7 +522,7 @@ if (isPending) {
           />
         </section>
 
-        {/* Heading and search */}
+        {/* Events listing */}
         <section
           id="event-list"
           aria-labelledby="events-heading"
@@ -476,36 +536,44 @@ if (isPending) {
               >
                 Explore campus events
               </h2>
+
               <p className="mt-1.5 text-label text-text-muted">
-                Something exciting is happening. Find your place in it.
+                Something exciting is happening. Find your place
+                in it.
               </p>
             </div>
 
+            {/* Search input */}
             <div className="w-full lg:max-w-md">
               <div className="relative">
                 <Search
                   aria-hidden="true"
                   className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-subtle"
                 />
+
                 <Input
                   type="search"
                   value={search}
-                  onChange={(event) => setSearch(event.target.value)}
+                  onChange={(event) =>
+                    setSearch(event.target.value)
+                  }
                   placeholder="Search events, categories, venues"
                   aria-label="Search campus events"
                   className="rounded-xl py-3 pl-10 pr-10 shadow-sm [&::-webkit-search-cancel-button]:hidden"
                 />
+
                 {hasSearch && (
                   <button
                     type="button"
                     onClick={() => setSearch("")}
                     aria-label="Clear search"
-                    className={`absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-text-subtle transition-colors hover:bg-secondary hover:text-text ${focusRing}`}
+                    className={`${focusRing} absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-text-subtle transition-colors hover:bg-secondary hover:text-text`}
                   >
                     <X className="h-4 w-4" />
                   </button>
                 )}
               </div>
+
               <p
                 className="mt-2 text-right text-caption text-text-muted"
                 aria-live="polite"
@@ -513,11 +581,15 @@ if (isPending) {
                 <span className="font-semibold text-text">
                   {filteredEvents.length}
                 </span>{" "}
-                {filteredEvents.length === 1 ? "event" : "events"} found
+                {filteredEvents.length === 1
+                  ? "event"
+                  : "events"}{" "}
+                found
               </p>
             </div>
           </div>
 
+          {/* Event cards or empty state */}
           <div className="mt-7">
             {filteredEvents.length === 0 ? (
               <StatePanel
@@ -528,7 +600,11 @@ if (isPending) {
                     <CalendarDays className="h-6 w-6" />
                   )
                 }
-                title={hasSearch ? "No matching events" : "No events available yet"}
+                title={
+                  hasSearch
+                    ? "No matching events"
+                    : "No events available yet"
+                }
                 description={
                   hasSearch
                     ? "Try another keyword or clear your search."
@@ -536,7 +612,10 @@ if (isPending) {
                 }
                 action={
                   hasSearch ? (
-                    <Button variant="outline" onClick={() => setSearch("")}>
+                    <Button
+                      variant="outline"
+                      onClick={() => setSearch("")}
+                    >
                       Clear search
                     </Button>
                   ) : undefined

@@ -29,6 +29,6 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
-  ],
+, "features/students/components/student-header.txs"  ],
   "exclude": ["node_modules"]
 }
