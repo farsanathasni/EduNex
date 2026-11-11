@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from "react";
@@ -36,16 +37,17 @@ const selectClass =
 const phoneClass =
   "mt-1.5 rounded-lg border border-border bg-surface px-3 py-0.5 text-label text-text transition hover:border-primary/50 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/20 [&_input]:bg-transparent [&_input]:py-2 [&_input]:text-text [&_input]:outline-none [&_input::placeholder]:text-text-subtle";
 
-const focusRing =
-  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30";
-
 type FormErrors = Partial<
   Record<"admissionNumber" | "departmentId" | "semester" | "phone", string>
 >;
 
-/** Shape of the HTTP error we read from the mutation / query (axios-like). */
 type ApiError = {
-  response?: { status?: number; data?: { message?: string } };
+  response?: {
+    status?: number;
+    data?: {
+      message?: string;
+    };
+  };
 };
 
 function toApiError(error: unknown): ApiError {
@@ -55,7 +57,7 @@ function toApiError(error: unknown): ApiError {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Small pieces                                                               */
+/* Reusable components                                                        */
 /* -------------------------------------------------------------------------- */
 
 function Banner({
@@ -78,10 +80,12 @@ function Banner({
           backgroundSize: "24px 24px",
         }}
       />
+
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -right-20 -top-24 h-72 w-72 rounded-full border-[36px] border-white/10"
       />
+
       <div className="relative z-10">{children}</div>
     </header>
   );
@@ -104,11 +108,13 @@ function SectionCard({
         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-subtle text-primary">
           {icon}
         </div>
+
         <div>
           <h2 className="text-subheading font-bold text-text">{title}</h2>
           <p className="text-caption text-text-muted">{description}</p>
         </div>
       </div>
+
       <dl className="grid gap-5 sm:grid-cols-2">{children}</dl>
     </Card>
   );
@@ -126,6 +132,7 @@ function ProfileDetail({
   return (
     <div className="min-w-0">
       <dt className="text-caption font-medium text-text-muted">{label}</dt>
+
       <dd
         className={`mt-1 break-words text-label ${
           hasValue ? "font-semibold text-text" : "text-text-subtle"
@@ -137,7 +144,13 @@ function ProfileDetail({
   );
 }
 
-function FieldError({ id, message }: { id: string; message?: string }) {
+function FieldError({
+  id,
+  message,
+}: {
+  id: string;
+  message?: string;
+}) {
   if (!message) return null;
 
   return (
@@ -156,14 +169,14 @@ function Required() {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Page                                                                       */
+/* Student Profile Page                                                       */
 /* -------------------------------------------------------------------------- */
 
 export default function StudentProfile() {
   const router = useRouter();
+
   const profileQuery = useStudentProfile();
   const createProfile = useCreateStudentProfile();
-
   const departmentQuery = useDepartment();
 
   const departments: Department[] = Array.isArray(departmentQuery.data)
@@ -261,6 +274,7 @@ export default function StudentProfile() {
         onSuccess: () => {
           router.push("/studentDashboard");
         },
+
         onError: (error: unknown) => {
           const { response } = toApiError(error);
           const status = response?.status;
@@ -283,29 +297,34 @@ export default function StudentProfile() {
     );
   };
 
-  /* ------------------------------ Loading ------------------------------ */
+  /* ------------------------------------------------------------------------ */
+  /* Loading                                                                  */
+  /* ------------------------------------------------------------------------ */
 
   if (profileQuery.isLoading) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-background px-4 font-roobert">
+      <div className="flex min-h-[calc(100vh-76px)] items-center justify-center bg-background px-4 py-8 font-roobert">
         <Card role="status" className="text-center" padding="lg">
           <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-4 border-primary-subtle border-t-primary" />
+
           <p className="text-label font-medium text-text-muted">
             Loading your student profile...
           </p>
         </Card>
-      </main>
+      </div>
     );
   }
 
-  /* ------------------------------- Error ------------------------------- */
+  /* ------------------------------------------------------------------------ */
+  /* Error                                                                    */
+  /* ------------------------------------------------------------------------ */
 
   if (profileQuery.isError) {
     const status = toApiError(profileQuery.error).response?.status;
 
     if (status !== 404) {
       return (
-        <main className="flex min-h-screen items-center justify-center bg-background px-4 font-roobert">
+        <div className="flex min-h-[calc(100vh-76px)] items-center justify-center bg-background px-4 py-8 font-roobert">
           <Card
             role="alert"
             padding="lg"
@@ -314,12 +333,15 @@ export default function StudentProfile() {
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-subtle text-accent">
               <AlertCircle className="h-6 w-6" />
             </div>
+
             <h1 className="mt-5 text-subheading font-bold text-text">
               Unable to load your student profile
             </h1>
+
             <p className="mt-2 text-label text-text-muted">
               Check your connection and try again.
             </p>
+
             <Button
               type="button"
               className="mt-6"
@@ -328,12 +350,14 @@ export default function StudentProfile() {
               Try again
             </Button>
           </Card>
-        </main>
+        </div>
       );
     }
   }
 
-  /* --------------------------- Existing profile --------------------------- */
+  /* ------------------------------------------------------------------------ */
+  /* Existing Profile                                                         */
+  /* ------------------------------------------------------------------------ */
 
   if (profileQuery.data?.success && profileQuery.data.data) {
     const profile = profileQuery.data.data;
@@ -347,9 +371,8 @@ export default function StudentProfile() {
       .toUpperCase();
 
     return (
-      <main className="min-h-screen bg-background px-4 py-8 font-roobert text-text sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-4xl space-y-6">
-          {/* Banner */}
+      <div className="min-h-full bg-background px-4 py-8 font-roobert text-text sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-5xl space-y-6">
           <Banner className="px-6 py-8 sm:px-10 sm:py-10">
             <p className="mb-5 text-label font-semibold text-white/80">
               Student portal
@@ -368,6 +391,7 @@ export default function StudentProfile() {
                   <h1 className="break-words text-display-sm font-extrabold tracking-tight">
                     {profile.name}
                   </h1>
+
                   <span className="rounded-full border border-white/25 bg-white/10 px-3 py-1 text-caption font-semibold text-white">
                     Active student
                   </span>
@@ -376,13 +400,17 @@ export default function StudentProfile() {
                 <p className="mt-1.5 break-all text-label text-white/80">
                   {profile.email}
                 </p>
+
                 <p className="mt-1 text-caption text-white/70">
                   Admission no. {profile.admissionNumber}
                 </p>
               </div>
 
               <div className="w-fit shrink-0 rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-center backdrop-blur-sm">
-                <p className="text-caption text-white/80">Current semester</p>
+                <p className="text-caption text-white/80">
+                  Current semester
+                </p>
+
                 <p className="mt-1 text-heading font-extrabold leading-none">
                   {profile.semester ?? "—"}
                 </p>
@@ -397,8 +425,16 @@ export default function StudentProfile() {
               description="Your registered contact details"
             >
               <ProfileDetail label="Full name" value={profile.name} />
-              <ProfileDetail label="Email address" value={profile.email} />
-              <ProfileDetail label="Phone number" value={profile.phone} />
+
+              <ProfileDetail
+                label="Email address"
+                value={profile.email}
+              />
+
+              <ProfileDetail
+                label="Phone number"
+                value={profile.phone}
+              />
             </SectionCard>
 
             <SectionCard
@@ -410,10 +446,16 @@ export default function StudentProfile() {
                 label="Department"
                 value={profile.departmentName}
               />
+
               <ProfileDetail
                 label="Current semester"
-                value={profile.semester ? `Semester ${profile.semester}` : null}
+                value={
+                  profile.semester
+                    ? `Semester ${profile.semester}`
+                    : null
+                }
               />
+
               <ProfileDetail
                 label="Admission number"
                 value={profile.admissionNumber}
@@ -421,7 +463,6 @@ export default function StudentProfile() {
             </SectionCard>
           </div>
 
-          {/* Actions */}
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <Button
               type="button"
@@ -445,23 +486,27 @@ export default function StudentProfile() {
             EduNex · Connecting students, faculty and campus life.
           </p>
         </div>
-      </main>
+      </div>
     );
   }
 
-  /* --------------------------- Create profile form --------------------------- */
+  /* ------------------------------------------------------------------------ */
+  /* Create Profile Form                                                      */
+  /* ------------------------------------------------------------------------ */
 
   return (
-    <main className="min-h-screen bg-background px-4 py-8 font-roobert text-text sm:px-6">
-      <div className="mx-auto w-full max-w-xl">
+    <div className="min-h-full bg-background px-4 py-8 font-roobert text-text sm:px-6">
+      <div className="mx-auto w-full max-w-2xl">
         <Banner className="px-6 pb-20 pt-8 sm:px-10 sm:pt-10">
           <p className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-caption font-semibold text-white/90">
             <GraduationCap className="h-4 w-4" />
             EduNex · Student profile
           </p>
+
           <h1 className="mt-4 text-display-sm font-extrabold tracking-tight">
             Complete your student profile
           </h1>
+
           <p className="mt-3 text-body leading-relaxed text-white/80">
             Just a few more details to get your campus journey started.
           </p>
@@ -475,14 +520,20 @@ export default function StudentProfile() {
             <h2 className="text-subheading font-bold text-text">
               Academic details
             </h2>
+
             <p className="mt-1 text-label text-text-muted">
               Enter your official college details below. All fields are
               required.
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+          <form
+            onSubmit={handleSubmit}
+            className="space-y-5"
+            noValidate
+          >
             {/* Admission number */}
+
             <div>
               <label
                 htmlFor="admissionNumber"
@@ -502,7 +553,9 @@ export default function StudentProfile() {
                 required
                 aria-invalid={!!errors.admissionNumber}
                 aria-describedby={
-                  errors.admissionNumber ? "admissionNumber-error" : undefined
+                  errors.admissionNumber
+                    ? "admissionNumber-error"
+                    : undefined
                 }
                 className="mt-1.5 aria-[invalid=true]:border-red-500"
               />
@@ -520,6 +573,7 @@ export default function StudentProfile() {
             </div>
 
             {/* Department */}
+
             <div>
               <label
                 htmlFor="departmentId"
@@ -538,18 +592,24 @@ export default function StudentProfile() {
                   required
                   aria-invalid={!!errors.departmentId}
                   aria-describedby={
-                    errors.departmentId ? "departmentId-error" : undefined
+                    errors.departmentId
+                      ? "departmentId-error"
+                      : undefined
                   }
                   className={selectClass}
                 >
                   <option value="">Choose your department</option>
 
                   {departments.map((department: Department) => (
-                    <option key={department.id} value={String(department.id)}>
+                    <option
+                      key={department.id}
+                      value={String(department.id)}
+                    >
                       {department.name}
                     </option>
                   ))}
                 </select>
+
                 <ChevronDown
                   aria-hidden="true"
                   className="pointer-events-none absolute right-3 top-1/2 mt-[3px] h-4 w-4 -translate-y-1/2 text-text-subtle"
@@ -568,10 +628,14 @@ export default function StudentProfile() {
                 </p>
               )}
 
-              <FieldError id="departmentId-error" message={errors.departmentId} />
+              <FieldError
+                id="departmentId-error"
+                message={errors.departmentId}
+              />
             </div>
 
             {/* Semester */}
+
             <div>
               <label
                 htmlFor="semester"
@@ -595,22 +659,28 @@ export default function StudentProfile() {
                   className={selectClass}
                 >
                   <option value="">Choose your semester</option>
+
                   {semesters.map((semester) => (
                     <option key={semester} value={semester}>
                       Semester {semester}
                     </option>
                   ))}
                 </select>
+
                 <ChevronDown
                   aria-hidden="true"
                   className="pointer-events-none absolute right-3 top-1/2 mt-[3px] h-4 w-4 -translate-y-1/2 text-text-subtle"
                 />
               </div>
 
-              <FieldError id="semester-error" message={errors.semester} />
+              <FieldError
+                id="semester-error"
+                message={errors.semester}
+              />
             </div>
 
-            {/* Phone */}
+            {/* Phone number */}
+
             <div>
               <label
                 htmlFor="phone"
@@ -631,8 +701,13 @@ export default function StudentProfile() {
                 className={phoneClass}
               />
 
-              <FieldError id="phone-error" message={errors.phone} />
+              <FieldError
+                id="phone-error"
+                message={errors.phone}
+              />
             </div>
+
+            {/* Server error */}
 
             {(serverError || createProfile.isError) && (
               <div
@@ -640,14 +715,21 @@ export default function StudentProfile() {
                 className="flex items-start gap-3 rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-label text-red-700"
               >
                 <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+
                 <div>
-                  <p className="font-semibold">Unable to save your profile</p>
+                  <p className="font-semibold">
+                    Unable to save your profile
+                  </p>
+
                   <p className="mt-0.5">
-                    {serverError || "Please check your details and try again."}
+                    {serverError ||
+                      "Please check your details and try again."}
                   </p>
                 </div>
               </div>
             )}
+
+            {/* Submit */}
 
             <Button
               type="submit"
@@ -678,6 +760,6 @@ export default function StudentProfile() {
           EduNex · Connecting students, faculty and campus life.
         </p>
       </div>
-    </main>
+    </div>
   );
 }

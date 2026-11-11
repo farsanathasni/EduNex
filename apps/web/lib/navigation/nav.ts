@@ -152,7 +152,7 @@ export const NAV: NavItem[] = [
   // Student view
   // Student view
 {
-  label: "Overview",
+  label: "Dashboard",
   href: "/studentDashboard",
   icon: "\u2302",
   roles: ["student"],

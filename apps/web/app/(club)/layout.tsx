@@ -1,9 +1,10 @@
-import { RouteGuard } from "@/features/auth/components/route-guard";
+import StudentRouteLayout from "../(student)/layout";
+
 
 export default function StudentClubRouteLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return <RouteGuard roles={["student"]}>{children}</RouteGuard>;
+  return <StudentRouteLayout>{children}</StudentRouteLayout>;
 }
