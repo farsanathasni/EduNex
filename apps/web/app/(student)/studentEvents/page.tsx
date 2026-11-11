@@ -19,6 +19,7 @@ import { useAllEventsQuery } from "@/features/events/api/event-query";
 import Card from "@/components/ui/card";
 import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type CampusEvent = {
   id: string | number;
@@ -69,9 +70,6 @@ function getEventDateParts(date?: string | Date | null): EventDateParts | null {
   };
 }
 
-/* -------------------------------------------------------------------------- */
-/* Presentational pieces                                                      */
-/* -------------------------------------------------------------------------- */
 
 function StatCard({
   icon,
@@ -234,29 +232,32 @@ function EventCard({ event }: { event: CampusEvent }) {
   );
 }
 
+
 function EventSkeleton() {
   return (
-    <Card aria-hidden="true" padding="lg" className="animate-pulse">
+    <Card aria-hidden="true" padding="lg">
       <div className="flex items-start justify-between">
-        <div className="h-16 w-16 rounded-xl bg-secondary-hover" />
-        <div className="h-6 w-24 rounded-full bg-secondary-hover" />
+        <Skeleton className="h-16 w-16 rounded-xl" />
+        <Skeleton className="h-6 w-24 rounded-full" />
       </div>
-      <div className="mt-5 h-5 w-3/4 rounded bg-secondary-hover" />
+
+      <Skeleton className="mt-5 h-5 w-3/4" />
+
       <div className="mt-4 space-y-2">
-        <div className="h-3 w-full rounded bg-secondary-hover" />
-        <div className="h-3 w-5/6 rounded bg-secondary-hover" />
+        <Skeleton className="h-3 w-full" />
+        <Skeleton className="h-3 w-5/6" />
       </div>
+
       <div className="mt-6 space-y-3 border-t border-border-subtle pt-4">
-        <div className="h-4 w-1/2 rounded bg-secondary-hover" />
-        <div className="h-4 w-2/3 rounded bg-secondary-hover" />
+        <Skeleton className="h-4 w-1/2" />
+        <Skeleton className="h-4 w-2/3" />
       </div>
     </Card>
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/* Page                                                                       */
-/* -------------------------------------------------------------------------- */
+
+
 
 export default function StudentEventsPage() {
   const { data, isPending, isError, refetch } = useAllEventsQuery();
@@ -303,25 +304,57 @@ export default function StudentEventsPage() {
 
   /* ------------------------------ Loading ------------------------------ */
 
-  if (isPending) {
-    return (
-      <main className="min-h-screen bg-background">
-        <div
-          role="status"
-          aria-label="Loading events"
-          className="mx-auto max-w-7xl animate-pulse space-y-8 px-4 py-8 sm:px-6 lg:px-8"
-        >
-          <div className="h-5 w-32 rounded bg-secondary-hover" />
-          <div className="h-72 rounded-3xl bg-secondary-hover" />
-          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-            {[1, 2, 3].map((item) => (
-              <EventSkeleton key={item} />
-            ))}
-          </div>
+if (isPending) {
+  return (
+    <main className="min-h-screen bg-background">
+      <div
+        role="status"
+        aria-label="Loading events"
+        className="mx-auto max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8"
+      >
+        <Skeleton className="h-5 w-32" />
+
+        {/* Hero skeleton */}
+        <div className="rounded-3xl bg-surface p-8 sm:p-10">
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="mt-6 h-10 w-80 max-w-full" />
+          <Skeleton className="mt-4 h-4 w-full max-w-xl" />
+          <Skeleton className="mt-3 h-4 w-2/3" />
+          <Skeleton className="mt-8 h-11 w-40 rounded-lg" />
         </div>
-      </main>
-    );
-  }
+
+        {/* Statistics skeleton */}
+        <div className="relative z-10 -mt-12 grid gap-4 px-3 sm:grid-cols-3 sm:px-8">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i} padding="lg" className="flex items-center gap-4">
+              <Skeleton className="h-12 w-12 shrink-0 rounded-xl" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-6 w-12" />
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Events heading and search */}
+        <div className="mt-14 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-7 w-56" />
+            <Skeleton className="h-4 w-72 max-w-full" />
+          </div>
+          <Skeleton className="h-12 w-full rounded-xl sm:max-w-md" />
+        </div>
+
+        {/* Event cards */}
+        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+          {[1, 2, 3, 4, 5, 6].map((item) => (
+            <EventSkeleton key={item} />
+          ))}
+        </div>
+      </div>
+    </main>
+  );
+}
 
   /* ------------------------------- Error ------------------------------- */
 

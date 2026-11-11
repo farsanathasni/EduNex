@@ -12,6 +12,8 @@ import {
   useMyEventRequestsQuery,
 } from "@/features/events/api/event-query";
 
+import { Skeleton } from "@/components/ui/skeleton";
+
 const getStatusLabel = (status: string) => {
   switch (status.toLowerCase()) {
     case "pending":
@@ -333,11 +335,49 @@ export default function RequestEventPage() {
             </button>
           </div>
 
-          {requestsLoading ? (
-            <div className="py-8 text-center text-sm text-text-muted">
-              Loading your event requests...
+
+{requestsLoading ? (
+  <div className="space-y-4">
+    {[1, 2].map((item) => (
+      <div
+        key={item}
+        className="rounded-xl border border-border p-5"
+      >
+        {/* Event heading and status */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-5 w-48" />
+            <Skeleton className="h-4 w-32" />
+          </div>
+
+          <Skeleton className="h-6 w-20 rounded-full" />
+        </div>
+
+        {/* Description */}
+        <div className="mt-4 space-y-2">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-4/5" />
+        </div>
+
+        {/* Event information */}
+        <div className="mt-4 grid gap-4 border-t border-border-subtle pt-4 sm:grid-cols-2">
+          {[1, 2, 3, 4].map((field) => (
+            <div key={field} className="space-y-2">
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="h-4 w-36" />
             </div>
-          ) : requestsError ? (
+          ))}
+        </div>
+
+        {/* Status message */}
+        <div className="mt-4">
+          <Skeleton className="h-3 w-64" />
+        </div>
+      </div>
+    ))}
+  </div>
+) : requestsError ? (
+
             <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
               Failed to load event requests. Please try again.
               <button

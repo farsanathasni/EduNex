@@ -31,12 +31,11 @@ export function getDashboardPath(me: Me): string | null {
     return "/hod/dashboard";
   }
 
-  if (roleSlugs.has("faculty")) {
-    return "/teacher/dashboard";
-  }
+ if (roleSlugs.has("faculty")) {
+  return "/teacher";
+}
 
-  // Students keep their normal dashboard, including students who are also
-  // club coordinators. The existing mode switch handles their club workspace.
+
   if (roleSlugs.has("student")) {
     return "/studentDashboard";
   }

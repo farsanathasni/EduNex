@@ -8,6 +8,7 @@ import {
   type PrincipalEvent,
 } from "@/features/principal/api/principal";
 import { useReviewPrincipalEvent } from "@/features/principal/api/principal-event-query";
+import EventsTableSkeleton from "@/features/events/components/events-table-skeleton";
 
 export default function PrincipalApprovalsPage() {
   const [search, setSearch] = useState("");
@@ -103,12 +104,18 @@ export default function PrincipalApprovalsPage() {
 
             <tbody className="divide-y divide-border">
               {isLoading && (
-                <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-text-muted">
-                    Loading event requests...
-                  </td>
-                </tr>
-              )}
+  <EventsTableSkeleton
+    columns={[
+      { width: "w-32", secondaryWidth: "w-44" },
+      { width: "w-24" },
+      { width: "w-28" },
+      { width: "w-32" },
+      { width: "w-32" },
+      { width: "w-20", shape: "badge" },
+      { width: "w-16", shape: "button" },
+    ]}
+  />
+)}
 
               {isError && !isLoading && (
                 <tr>

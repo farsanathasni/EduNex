@@ -19,7 +19,7 @@ import {
 } from "../clubs/clubs.service.js";
 import { createHodClubSchema } from "../clubs/clubs.validation.js";
 
-// Validate pagination parameters.
+
 const getPaginationParams = (req: Request) => {
   const page =
     req.query.page === undefined ? 1 : Number(req.query.page);
@@ -40,11 +40,7 @@ const getPaginationParams = (req: Request) => {
   return { page, limit };
 };
 
-// Permission middleware (rbac) already decided WHAT the caller may do.
-// This decides WHICH department's data they may touch:
-//   Super Admin -> every department (departmentId undefined)
-//   HOD / staff -> their own department only
-// Sends the 403 itself and returns null when no scope applies.
+
 const getScope = async (res: Response) => {
   const scope = await resolveDepartmentScope(
     res.locals.access as Access,
@@ -65,7 +61,7 @@ const getScope = async (res: Response) => {
   };
 };
 
-// HOD dashboard (also used by the Super Admin, across all departments).
+
 
 export const GetHodDashboard = asyncHandler(
   async (_req: Request, res: Response) => {
@@ -222,8 +218,7 @@ export const GetHodClubs = asyncHandler(
   },
 );
 
-// Create a club in the authenticated HOD's department. Any departmentId in
-// the request body is ignored; only the server-resolved scope is used.
+
 export const CreateHodClub = asyncHandler(
   async (req: Request, res: Response) => {
     const resolved = await getScope(res);
@@ -262,7 +257,7 @@ export const CreateHodClub = asyncHandler(
   },
 );
 
-// Get pending events with search and pagination.
+
 export const GetPendingEvents = asyncHandler(
   async (req: Request, res: Response) => {
     const access = res.locals.access as Access;

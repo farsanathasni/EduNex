@@ -3,12 +3,40 @@
 
 import { useTeacherClassesQuery } from "@/features/teacher/api/teacher-query";
 
+function TeacherClassesSkeleton() {
+  return (
+    <div className="animate-pulse space-y-6">
+      {/* Page heading */}
+      <div>
+        <div className="h-8 w-40 rounded bg-border" />
+        <div className="mt-3 h-4 w-72 max-w-full rounded bg-border" />
+      </div>
+
+      {/* Semester cards */}
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <div
+            key={index}
+            className="rounded-xl border border-border bg-surface p-6"
+          >
+            <div className="h-11 w-11 rounded-lg bg-border" />
+
+            <div className="mt-5 h-6 w-36 rounded bg-border" />
+
+            <div className="mt-3 h-4 w-40 rounded bg-border" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function TeacherClassesPage() {
   const { data, isLoading, isError, refetch } =
     useTeacherClassesQuery();
 
   if (isLoading) {
-    return <p className="text-muted">Loading classes...</p>;
+    return <TeacherClassesSkeleton />;
   }
 
   if (isError) {

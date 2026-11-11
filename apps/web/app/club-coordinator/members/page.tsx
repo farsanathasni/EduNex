@@ -22,6 +22,7 @@ import Button from "@/components/ui/button";
 
 import { useCoordinatorClubMembers } from "@/features/coordinator/api/coordinator-query";
 import { useAccess } from "@/lib/navigation/access";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type MembershipStatus = "approved" | "rejected";
 
@@ -367,32 +368,63 @@ export default function ClubMembersPage() {
             />
           )}
 
-          {/* Loading */}
-          {hasAssignedClubs && isPending && (
-            <div className="grid gap-5 lg:grid-cols-2">
-              {[1, 2, 3, 4].map((item) => (
-                <Card
-                  key={item}
-                  padding="lg"
-                  className="animate-pulse space-y-5"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-xl bg-secondary-hover" />
-                    <div className="flex-1 space-y-2">
-                      <div className="h-4 w-1/2 rounded bg-secondary-hover" />
-                      <div className="h-3 w-1/3 rounded bg-secondary-hover" />
-                    </div>
-                  </div>
+          
+{/* Loading */}
+{hasAssignedClubs && isPending && (
+  <div
+    role="status"
+    aria-label="Loading club members"
+    className="grid gap-5 lg:grid-cols-2"
+  >
+    <span className="sr-only">Loading club members...</span>
 
-                  <div className="space-y-3 border-t border-border-subtle pt-5">
-                    <div className="h-4 w-3/4 rounded bg-secondary-hover" />
-                    <div className="h-4 w-1/2 rounded bg-secondary-hover" />
-                    <div className="h-4 w-2/3 rounded bg-secondary-hover" />
-                  </div>
-                </Card>
-              ))}
+    {[1, 2, 3, 4].map((item) => (
+      <Card
+        key={item}
+        padding="lg"
+        className="space-y-5 border-border-subtle shadow-subtle"
+      >
+        {/* Student Header */}
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
+            <Skeleton className="h-12 w-12 shrink-0 rounded-xl" />
+
+            <div className="flex-1 space-y-2">
+              <Skeleton className="h-4 w-1/2" />
+              <Skeleton className="h-3 w-1/3" />
             </div>
-          )}
+          </div>
+
+          <Skeleton className="h-7 w-20 rounded-full" />
+        </div>
+
+        {/* Club Information */}
+        <Skeleton className="h-11 w-full rounded-xl" />
+
+        {/* Student Details */}
+        <div className="grid gap-5 border-t border-border-subtle pt-5 sm:grid-cols-2">
+          {[1, 2, 3, 4].map((detail) => (
+            <div key={detail} className="flex items-start gap-3">
+              <Skeleton className="h-9 w-9 shrink-0 rounded-lg" />
+
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-3 w-20" />
+                <Skeleton className="h-4 w-32" />
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Review Date */}
+        <div className="flex items-center justify-between gap-3 border-t border-border-subtle pt-4">
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-4 w-24" />
+        </div>
+      </Card>
+    ))}
+  </div>
+)}
+
 
           {/* Error */}
           {hasAssignedClubs && isError && (

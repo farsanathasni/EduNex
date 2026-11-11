@@ -14,6 +14,7 @@ import DeleteClubDialog from "@/features/clubs/components/delete-club-dialog";
 import EditClubDialog from "@/features/clubs/components/edit-club-dialog";
 import { useDepartment } from "@/features/departments/api/department-query";
 import { useHodClubListQuery } from "@/features/hod/api/hod-query";
+import ClubManagementSkeleton from "@/features/clubs/components/club-management-skeleton";
 
 type ClubManagementScope = "default" | "hod";
 
@@ -156,10 +157,8 @@ export default function ClubManagementView({
           </div>
 
           {activeClubsQuery.isPending ? (
-            <p className="p-8 text-center text-sm text-text-muted">
-              Loading clubs...
-            </p>
-          ) : activeClubsQuery.isError ? (
+  <ClubManagementSkeleton />
+) : activeClubsQuery.isError ?  (
             <div className="p-8 text-center">
               <p role="alert" className="text-sm text-red-600">
                 {activeClubsQuery.error.message}

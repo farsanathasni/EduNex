@@ -13,9 +13,7 @@ import type { CreateStaffInput } from "../staff/staff.validation.js";
 import type { CreateManagedStudentInput } from "../students/student.validation.js";
 import { StudentProfile } from "../../db/schema/student-profile.js";
 
-// Optional staff record for display (employee ID, designation).
-// Permissions come from RBAC, not from this table, so a Super Admin
-// without a staff row is fine and gets null.
+
 export const getStaffProfile = async (userId: string) => {
   const [profile] = await db
     .select()
@@ -36,8 +34,7 @@ export class StaffCreationError extends Error {
   }
 }
 
-// Shared account/staff/RBAC creation used by both the Principal staff API
-// and the existing HOD creation endpoint.
+
 export const createStaffAccount = async (
   input: CreateStaffInput,
   createdBy: string,
@@ -73,8 +70,7 @@ export const createStaffAccount = async (
   let createdUser: { id: string; name: string; email: string } | undefined;
 
   try {
-    // Better Auth hashes this generated temporary password. It is never
-    // returned or sent to the new staff member.
+    
     const result = await auth.api.signUpEmail({
       body: {
         name: input.name,
@@ -140,8 +136,7 @@ export const createStaffAccount = async (
         .where(eq(user.id, createdUser!.id));
     });
 
-    // This uses Better Auth's existing sendResetPassword hook and EduNex
-    // email template to deliver the setup link.
+    
     await auth.api.requestPasswordReset({
       body: {
         email: createdUser.email,
@@ -150,12 +145,11 @@ export const createStaffAccount = async (
     });
   } catch (error) {
     if (createdUser) {
-      // The auth user, staff record, and RBAC rows should not remain partial
-      // if the transaction or password setup email fails.
+      
       try {
         await db.delete(user).where(eq(user.id, createdUser.id));
       } catch {
-        // Preserve the original creation failure for the controller.
+   
       }
     }
 
@@ -188,8 +182,7 @@ export const createStaffAccount = async (
   };
 };
 
-// Keep the existing HOD endpoint and request shape while sharing the
-// account creation and password setup implementation.
+
 export const createHod = async (
   input: CreateHodInput,
   createdBy: string,
@@ -203,7 +196,6 @@ export const createHod = async (
     createdBy,
   );
 
-  // Match the pre-existing HOD response field types and shape.
   return { ...created, departmentId: input.departmentId, role: "hod" as const };
 };
 
@@ -240,8 +232,7 @@ export const createStudentAccount = async (
   let createdUser: { id: string; name: string; email: string } | undefined;
   let createdProfileId: number | undefined;
   try {
-    // Better Auth creates a random temporary credential and its existing
-    // user hook assigns the Student role. The credential is never returned.
+  
     const result = await auth.api.signUpEmail({
       body: {
         name: input.name,
@@ -262,7 +253,7 @@ export const createStudentAccount = async (
     }).returning({ id: StudentProfile.id });
     createdProfileId = createdProfile?.id;
 
-    // Uses Better Auth's existing reset-password email template and setup link.
+    
     await auth.api.requestPasswordReset({
       body: {
         email: createdUser.email,
@@ -274,7 +265,7 @@ export const createStudentAccount = async (
       try {
         await db.delete(user).where(eq(user.id, createdUser.id));
       } catch {
-        // Preserve the original account/setup failure.
+        
       }
     }
 

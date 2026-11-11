@@ -26,6 +26,7 @@ import {
 } from "@/features/clubs/components/club-browse-card";
 import { useStudentClubsQuery } from "@/features/clubs/api/club-query";
 import { useDepartment } from "@/features/departments/api/department-query";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const INITIAL_VISIBLE_CLUBS = 6;
 const LOAD_MORE_COUNT = 6;
@@ -110,6 +111,71 @@ function StatePanel({
 /* Page                                                                       */
 /* -------------------------------------------------------------------------- */
 
+
+function StudentClubDiscoverySkeleton() {
+  return (
+    <main className="min-h-screen bg-background text-text">
+      <div className="mx-auto max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8">
+        {/* Back navigation */}
+        <Skeleton className="h-5 w-36" />
+
+        {/* Hero */}
+        <section className="rounded-3xl bg-surface px-6 py-12 sm:px-10 sm:py-16">
+          <Skeleton className="h-7 w-48 rounded-full" />
+          <Skeleton className="mt-6 h-10 w-64 max-w-full" />
+          <Skeleton className="mt-4 h-4 w-full max-w-xl" />
+          <Skeleton className="mt-3 h-4 w-4/5 max-w-lg" />
+
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Skeleton className="h-11 w-36 rounded-lg" />
+            <Skeleton className="h-11 w-40 rounded-lg" />
+          </div>
+        </section>
+
+        {/* Statistics */}
+        <div className="relative z-10 -mt-12 grid gap-4 px-3 sm:grid-cols-2 sm:px-8 lg:grid-cols-3">
+          {[1, 2, 3].map((item) => (
+            <Card key={item} padding="lg" className="flex items-center gap-4">
+              <Skeleton className="h-12 w-12 shrink-0 rounded-xl" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-3 w-28" />
+                <Skeleton className="h-6 w-36 max-w-full" />
+                <Skeleton className="h-3 w-24" />
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Search heading */}
+        <div className="mt-14 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-7 w-52" />
+            <Skeleton className="h-4 w-72 max-w-full" />
+          </div>
+          <Skeleton className="h-12 w-full rounded-xl lg:max-w-md" />
+        </div>
+
+        {/* Club cards */}
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: INITIAL_VISIBLE_CLUBS }, (_, index) => (
+            <ClubBrowseCardSkeleton key={index} />
+          ))}
+        </div>
+
+        {/* Closing banner */}
+        <div className="mt-16 flex flex-col gap-4 rounded-2xl border border-border bg-primary-subtle px-6 py-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-6 w-56 max-w-full" />
+            <Skeleton className="h-4 w-72 max-w-full" />
+          </div>
+          <Skeleton className="h-11 w-36 rounded-lg" />
+        </div>
+      </div>
+    </main>
+  );
+}
+
+
 export default function StudentClubDiscovery() {
   const [search, setSearch] = useState("");
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_CLUBS);
@@ -163,6 +229,10 @@ export default function StudentClubDiscovery() {
   const clearSearch = () => updateSearch("");
 
   const showResults = !clubsQuery.isLoading && !clubsQuery.isError;
+
+  if (clubsQuery.isLoading) {
+  return <StudentClubDiscoverySkeleton />;
+}
 
   return (
     <main className="min-h-screen bg-background text-text">
@@ -337,19 +407,7 @@ export default function StudentClubDiscovery() {
           </div>
 
           <div className="mt-7">
-            {/* Loading */}
-            {clubsQuery.isLoading && (
-              <div role="status" aria-label="Loading clubs">
-                <span className="sr-only">Loading clubs...</span>
-
-                <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                  {Array.from({ length: INITIAL_VISIBLE_CLUBS }, (_, index) => (
-                    <ClubBrowseCardSkeleton key={index} />
-                  ))}
-                </div>
-              </div>
-            )}
-
+            
             {/* Error */}
             {!clubsQuery.isLoading && clubsQuery.isError && (
               <StatePanel

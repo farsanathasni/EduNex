@@ -43,10 +43,8 @@ import {
   useMyStudentMembershipRequestsQuery,
   useStudentClubsQuery,
 } from "@/features/clubs/api/club-query";
+import { Skeleton } from "@/components/ui/skeleton";
 
-/* -------------------------------------------------------------------------- */
-/* Static data                                                                */
-/* -------------------------------------------------------------------------- */
 
 type IconType = ComponentType<{ className?: string }>;
 
@@ -92,7 +90,7 @@ const studentQuickActions: {
   },
 ];
 
-/* Placeholder content (not backed by an API), kept from the original page. */
+
 const activities: {
   title: string;
   description: string;
@@ -424,9 +422,125 @@ function Hero({
   );
 }
 
-/* -------------------------------------------------------------------------- */
-/* Page                                                                       */
-/* -------------------------------------------------------------------------- */
+function StudentDashboardSkeleton() {
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Sidebar skeleton */}
+      <aside className="fixed inset-y-0 left-0 hidden w-[270px] border-r border-border bg-surface p-5 lg:block">
+        <div className="flex items-center gap-3 border-b border-border pb-6">
+          <Skeleton className="h-10 w-10 rounded-xl" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-4 w-20" />
+            <Skeleton className="h-3 w-32" />
+          </div>
+        </div>
+
+        <div className="mt-8 space-y-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} className="h-10 w-full rounded-lg" />
+          ))}
+        </div>
+      </aside>
+
+      {/* Main content skeleton */}
+      <main className="lg:ml-[270px]">
+        {/* Header */}
+        <header className="flex min-h-[76px] items-center justify-between border-b border-border bg-surface px-6">
+          <div className="space-y-2">
+            <Skeleton className="h-5 w-40" />
+            <Skeleton className="h-3 w-48" />
+          </div>
+          <div className="flex gap-3">
+            <Skeleton className="h-10 w-28 rounded-lg" />
+            <Skeleton className="h-10 w-24 rounded-lg" />
+          </div>
+        </header>
+
+        <div className="mx-auto max-w-[1400px] space-y-10 px-4 py-8 sm:px-6 lg:px-9">
+          {/* Hero */}
+          <div>
+            <div className="rounded-3xl bg-surface p-8 sm:p-10">
+              <Skeleton className="h-6 w-36" />
+              <Skeleton className="mt-6 h-10 w-72 max-w-full" />
+              <Skeleton className="mt-4 h-4 w-full max-w-lg" />
+              <Skeleton className="mt-3 h-4 w-64 max-w-full" />
+              <div className="mt-7 flex gap-3">
+                <Skeleton className="h-11 w-36 rounded-lg" />
+                <Skeleton className="h-11 w-36 rounded-lg" />
+              </div>
+            </div>
+
+            {/* Stats */}
+            <div className="relative z-10 -mt-8 grid grid-cols-1 gap-4 px-3 sm:grid-cols-2 sm:px-8 xl:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="rounded-2xl border border-border bg-surface p-6">
+                  <Skeleton className="h-12 w-12 rounded-xl" />
+                  <Skeleton className="mt-5 h-3 w-24" />
+                  <Skeleton className="mt-3 h-7 w-16" />
+                  <Skeleton className="mt-2 h-3 w-36" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Events and memberships */}
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.5fr_1fr]">
+            {[0, 1].map((section) => (
+              <div key={section} className="rounded-2xl border border-border bg-surface p-6">
+                <Skeleton className="h-5 w-40" />
+                <Skeleton className="mt-2 h-3 w-56" />
+                <div className="mt-6 space-y-4">
+                  {Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-4">
+                      <Skeleton className="h-14 w-14 shrink-0 rounded-xl" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-2/3" />
+                        <Skeleton className="h-3 w-full" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Clubs */}
+          <section>
+            <Skeleton className="h-6 w-52" />
+            <Skeleton className="mt-2 h-3 w-64" />
+            <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="rounded-2xl border border-border bg-surface p-6">
+                  <Skeleton className="h-14 w-14 rounded-xl" />
+                  <Skeleton className="mt-5 h-4 w-2/3" />
+                  <Skeleton className="mt-3 h-3 w-full" />
+                  <Skeleton className="mt-2 h-3 w-4/5" />
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Quick actions */}
+          <section>
+            <Skeleton className="h-6 w-36" />
+            <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-4 rounded-2xl border border-border bg-surface p-5">
+                  <Skeleton className="h-12 w-12 shrink-0 rounded-xl" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-3 w-32" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  );
+}
+
 
 export default function StudentDashboard() {
   const pathname = usePathname();
@@ -638,18 +752,9 @@ export default function StudentDashboard() {
     }
   }
 
-  if (isPending) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div role="status" className="text-center">
-          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-primary/20 border-t-primary" />
-          <p className="mt-4 text-label font-medium text-text-muted">
-            Preparing your campus...
-          </p>
-        </div>
-      </div>
-    );
-  }
+if (isPending) {
+  return <StudentDashboardSkeleton />;
+}
 
   return (
     <div className="min-h-screen bg-background text-text">

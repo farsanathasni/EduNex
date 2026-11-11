@@ -15,6 +15,7 @@ import {
 import type { Club } from "@/features/clubs/api/clubs";
 import { useDepartment } from "@/features/departments/api/department-query";
 import { useAccess } from "@/lib/navigation/access";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const SKELETON_COUNT = 3;
 
@@ -55,6 +56,49 @@ function StatePanel({
       <p className="mt-2 max-w-md text-label text-text-muted">{description}</p>
       {action && <div className="mt-6">{action}</div>}
     </Card>
+  );
+}
+
+function CoordinatorClubsSkeleton() {
+  return (
+    <div className="space-y-8 pb-8">
+      {/* Banner */}
+      <section className="rounded-3xl bg-brand px-6 py-9 sm:px-10 sm:py-11">
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+          <div className="max-w-2xl flex-1 space-y-4">
+            <Skeleton className="h-7 w-36 rounded-full bg-white/20" />
+            <Skeleton className="h-10 w-48 bg-white/20" />
+            <Skeleton className="h-4 w-full max-w-xl bg-white/20" />
+            <Skeleton className="h-4 w-4/5 max-w-lg bg-white/20" />
+          </div>
+
+          <div className="space-y-2 rounded-2xl border border-white/20 bg-white/10 px-5 py-3">
+            <Skeleton className="h-8 w-12 bg-white/20" />
+            <Skeleton className="h-3 w-24 bg-white/20" />
+          </div>
+        </div>
+      </section>
+
+      {/* Search heading */}
+      <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-2">
+          <Skeleton className="h-7 w-40" />
+          <Skeleton className="h-4 w-56" />
+        </div>
+        <Skeleton className="h-12 w-full rounded-xl sm:max-w-sm" />
+      </section>
+
+      {/* Club cards */}
+      <div
+        role="status"
+        aria-label="Loading assigned clubs"
+        className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3"
+      >
+        {Array.from({ length: SKELETON_COUNT }, (_, index) => (
+          <ClubBrowseCardSkeleton key={index} />
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -107,6 +151,10 @@ export default function CoordinatorClubsView() {
   const trimmedSearch = search.trim();
   const hasSearch = trimmedSearch.length > 0;
   const totalClubs = coordinatedClubs.length;
+
+  if (hasAssignedClubs && clubsQuery.isPending) {
+  return <CoordinatorClubsSkeleton />;
+}
 
   return (
     <div className="space-y-8 pb-8">
@@ -209,17 +257,6 @@ export default function CoordinatorClubsView() {
         </div>
       </section>
 
-      {/* Loading */}
-      {hasAssignedClubs && clubsQuery.isPending && (
-        <div role="status" aria-label="Loading assigned clubs">
-          <span className="sr-only">Loading assigned clubs...</span>
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
-            {Array.from({ length: SKELETON_COUNT }, (_, index) => (
-              <ClubBrowseCardSkeleton key={index} />
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Error */}
       {hasAssignedClubs && !clubsQuery.isPending && clubsQuery.isError && (

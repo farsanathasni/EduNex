@@ -4,6 +4,51 @@
 import Link from "next/link";
 import { useTeacherDashboardQuery } from "@/features/teacher/api/teacher-query";
 
+function TeacherDashboardSkeleton() {
+  return (
+    <div className="animate-pulse space-y-8">
+      {/* Dashboard heading */}
+      <section>
+        <div className="h-4 w-28 rounded bg-border" />
+        <div className="mt-3 h-8 w-56 rounded bg-border" />
+        <div className="mt-3 h-4 w-40 rounded bg-border" />
+      </section>
+
+      {/* Statistics cards */}
+      <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <div
+            key={index}
+            className="rounded-xl border border-border bg-surface p-6"
+          >
+            <div className="h-4 w-32 rounded bg-border" />
+            <div className="mt-4 h-9 w-20 rounded bg-border" />
+            <div className="mt-3 h-4 w-44 rounded bg-border" />
+          </div>
+        ))}
+      </section>
+
+      {/* Quick actions */}
+      <section>
+        <div className="h-6 w-32 rounded bg-border" />
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div
+              key={index}
+              className="rounded-xl border border-border bg-surface p-5"
+            >
+              <div className="h-5 w-28 rounded bg-border" />
+              <div className="mt-3 h-4 w-full rounded bg-border" />
+              <div className="mt-2 h-4 w-3/4 rounded bg-border" />
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function StatCard({
   title,
   value,
@@ -27,7 +72,7 @@ export default function TeacherDashboardPage() {
     useTeacherDashboardQuery();
 
   if (isLoading) {
-    return <p className="text-muted">Loading dashboard...</p>;
+    return <TeacherDashboardSkeleton />;
   }
 
   if (isError || !data) {

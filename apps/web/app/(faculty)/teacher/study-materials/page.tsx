@@ -17,6 +17,36 @@ const initialForm: CreateMaterialInput = {
   visibility: "department",
 };
 
+
+function TeacherMaterialsSkeleton() {
+  return (
+    <div className="animate-pulse space-y-3">
+      {Array.from({ length: 4 }).map((_, index) => (
+        <div
+          key={index}
+          className="flex flex-col gap-4 rounded-xl border border-border bg-surface p-5 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div className="min-w-0 flex-1">
+            <div className="h-5 w-48 max-w-full rounded bg-border" />
+
+            <div className="mt-3 h-4 w-64 max-w-full rounded bg-border" />
+
+            <div className="mt-4 flex gap-2">
+              <div className="h-6 w-14 rounded-md bg-border" />
+              <div className="h-6 w-24 rounded-md bg-border" />
+            </div>
+
+            <div className="mt-4 h-4 w-28 rounded bg-border" />
+          </div>
+
+          <div className="h-9 w-20 shrink-0 rounded-lg bg-border" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+
 export default function TeacherMaterialsPage() {
   const [form, setForm] = useState<CreateMaterialInput>(initialForm);
 
@@ -179,8 +209,8 @@ export default function TeacherMaterialsPage() {
           </p>
         </div>
 
-        {isLoading ? (
-          <p className="text-muted">Loading materials...</p>
+{isLoading ? (
+  <TeacherMaterialsSkeleton />
         ) : isError ? (
           <div>
             <p className="text-red-500">Unable to load materials.</p>
