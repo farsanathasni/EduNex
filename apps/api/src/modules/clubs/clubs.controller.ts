@@ -35,6 +35,7 @@ import {
   createClubSchema,
   updateClubSchema,
 } from "./clubs.validation.js";
+import { coordinatorQuerySchema } from "../coordinator/coordintaor.validation.js";
 
 const getListQuery = (req: Request) =>
   clubListQuerySchema.safeParse(req.query);
@@ -572,6 +573,7 @@ export const GetMyStudentMembershipRequests = asyncHandler(
 
 
 
+
 export const GetCoordinatorMembershipRequests = asyncHandler(
   async (req: Request, res: Response) => {
     const currentUser = res.locals.user;
@@ -580,6 +582,16 @@ export const GetCoordinatorMembershipRequests = asyncHandler(
       return res.status(401).json({
         success: false,
         message: "Please log in.",
+      });
+    }
+
+    const validation = coordinatorQuerySchema.safeParse(req.query);
+
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid search or pagination parameters.",
+        errors: validation.error.flatten(),
       });
     }
 
@@ -594,14 +606,20 @@ export const GetCoordinatorMembershipRequests = asyncHandler(
       });
     }
 
-    const requests = await getCoordinatorMembershipRequests(
+    const { search, page, limit } = validation.data;
+
+    const result = await getCoordinatorMembershipRequests(
       coordinator.id,
+      search,
+      page,
+      limit,
     );
 
     return res.status(200).json({
       success: true,
       message: "Membership requests fetched successfully.",
-      data: requests,
+      data: result.requests,
+      pagination: result.pagination,
     });
   },
 );
@@ -686,32 +704,53 @@ export const ReviewClubMembershipRequest = asyncHandler(
 
 
 
+
 export const GetCoordinatorClubMembers = asyncHandler(
   async (req: Request, res: Response) => {
-    if (!res.locals.user) {
+    const currentUser = res.locals.user;
+
+    if (!currentUser) {
       return res.status(401).json({
         success: false,
-        message: "Unauthorized",
+        message: "Unauthorized.",
+      });
+    }
+
+    const validation = coordinatorQuerySchema.safeParse(req.query);
+
+    if (!validation.success) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid search or pagination parameters.",
+        errors: validation.error.flatten(),
       });
     }
 
     const coordinator = await getCoordinatorProfileByUserId(
-      res.locals.user.id,
+      currentUser.id,
     );
 
     if (!coordinator) {
       return res.status(403).json({
         success: false,
-        message: "Coordinator profile not found",
+        message: "Coordinator profile not found.",
       });
     }
 
-    const members = await getCoordinatorClubMembers(coordinator.id);
+    const { search, page, limit } = validation.data;
+
+    const result = await getCoordinatorClubMembers(
+      coordinator.id,
+      search,
+      page,
+      limit,
+    );
 
     return res.status(200).json({
       success: true,
-      message: "Club members fetched successfully",
-      data: members,
+      message: "Club members fetched successfully.",
+      data: result.members,
+      pagination: result.pagination,
     });
   },
 );

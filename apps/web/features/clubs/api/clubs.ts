@@ -6,6 +6,7 @@ import {
   CreateClubInput,
   UpdateClubInput,
 } from "../validation/club-schema";
+import { CoordinatorClubMembersResult, CoordinatorMembershipRequestsResult, ListParams } from "@/features/coordinator/api/coordinators";
 
 export interface Club {
   id: number;
@@ -304,10 +305,28 @@ export const getMyStudentMembershipRequests = async (): Promise<
 
 
 
-export const getCoordinatorMembershipRequests =async():Promise<CoordinatorMembershipRequest[]>=>{
-  const  response=await api.get("/clubs/coordinator/membership-requests",)
-  return response.data.data
- }
+export const getCoordinatorMembershipRequests = async (
+  params?: ListParams,
+): Promise<CoordinatorMembershipRequestsResult> => {
+  const response = await api.get("/clubs/coordinator/membership-requests", {
+    params,
+  });
+
+  return {
+    requests: response.data.data as CoordinatorMembershipRequest[],
+    pagination: response.data.pagination as ClubPagination,
+  };
+};
+
+
+export const getCoordinatorClubMembers = async (params?: ListParams) => {
+  const response = await api.get("/clubs/coordinator/members", { params });
+
+  return {
+    members: response.data.data as CoordinatorClubMember[],
+    pagination: response.data.pagination as ClubPagination,
+  };
+};
 
 
  export const reviewClubMembershipRequest =async(requestId:number,decision:"approved"|"rejected"):Promise<CoordinatorMembershipRequest>=>{
@@ -316,9 +335,4 @@ export const getCoordinatorMembershipRequests =async():Promise<CoordinatorMember
  }
 
 
- export const getCoordinatorClubMembers = async (): Promise<
-  CoordinatorClubMember[]
-> => {
-  const response = await api.get("/clubs/coordinator/members");
-  return response.data.data;
-};
+

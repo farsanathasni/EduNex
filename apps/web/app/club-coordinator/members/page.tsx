@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   UsersRound,
   RefreshCw,
+  Search,
 } from "lucide-react";
 
 import CoordinatorLayout from "@/features/coordinator/components/coordinator-layout";
@@ -23,8 +24,24 @@ import Button from "@/components/ui/button";
 import { useCoordinatorClubMembers } from "@/features/coordinator/api/coordinator-query";
 import { useAccess } from "@/lib/navigation/access";
 import { Skeleton } from "@/components/ui/skeleton";
+import Pagination from "@/features/coordinator/components/pagination";
 
 type MembershipStatus = "approved" | "rejected";
+
+type CoordinatorClubMember = {
+  clubId: number;
+  studentId: number;
+  studentName: string;
+  admissionNumber: string;
+  email: string;
+  phone: string | null;
+  semester: number;
+  departmentName: string | null;
+  departmentCode: string | null;
+  clubName: string;
+  status: MembershipStatus;
+  joinedAt: string | null;
+};
 
 function StatCard({
   icon,
@@ -112,39 +129,72 @@ export default function ClubMembersPage() {
 
   const [selectedClubId, setSelectedClubId] = useState<number | "all">("all");
 
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+
+  const limit = 6;
+
   const { me } = useAccess();
 
   const coordinatedClubs = me?.coordinatedClubs ?? [];
 
   const assignedClubIds = useMemo(
-    () => new Set(coordinatedClubs.map((club) => club.id)),
+    () =>
+      new Set(
+        coordinatedClubs.map((club) => Number(club.id)),
+      ),
     [coordinatedClubs],
   );
 
   const hasAssignedClubs = coordinatedClubs.length > 0;
 
   const {
-    data: members = [],
+    data,
     isPending,
     isError,
     refetch,
-  } = useCoordinatorClubMembers(hasAssignedClubs);
-
-  // Only show members from the coordinator's assigned clubs.
-  const assignedMembers = members.filter((member) =>
-    assignedClubIds.has(member.clubId),
+  } = useCoordinatorClubMembers(
+    {
+      search: search.trim(),
+      page,
+      limit,
+    },
+    hasAssignedClubs,
   );
 
-  // Apply the selected club filter.
-  const selectedMembers = assignedMembers.filter(
-    (member) =>
-      selectedClubId === "all" || member.clubId === selectedClubId,
+  const members: CoordinatorClubMember[] = data?.members ?? [];
+  const pagination = data?.pagination;
+
+  // Show only members from the coordinator's assigned clubs.
+  const assignedMembers = useMemo(
+    () =>
+      members.filter((member) =>
+        assignedClubIds.has(Number(member.clubId)),
+      ),
+    [members, assignedClubIds],
   );
 
-  const filteredMembers = selectedMembers.filter(
-    (member) => member.status === activeFilter,
+  // Apply selected club filter.
+  const selectedMembers = useMemo(
+    () =>
+      assignedMembers.filter(
+        (member) =>
+          selectedClubId === "all" ||
+          Number(member.clubId) === Number(selectedClubId),
+      ),
+    [assignedMembers, selectedClubId],
   );
 
+  // Apply membership status filter.
+  const filteredMembers = useMemo(
+    () =>
+      selectedMembers.filter(
+        (member) => member.status === activeFilter,
+      ),
+    [selectedMembers, activeFilter],
+  );
+
+  // Statistics for the currently returned API page.
   const approvedCount = selectedMembers.filter(
     (member) => member.status === "approved",
   ).length;
@@ -158,8 +208,24 @@ export default function ClubMembersPage() {
       ? coordinatedClubs.length === 1
         ? coordinatedClubs[0].name
         : "Your Assigned Clubs"
-      : coordinatedClubs.find((club) => club.id === selectedClubId)?.name ??
-        "Club Members";
+      : coordinatedClubs.find(
+          (club) => Number(club.id) === Number(selectedClubId),
+        )?.name ?? "Club Members";
+
+  const handleSearch = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
+
+  const handleClubChange = (value: string) => {
+    setSelectedClubId(value === "all" ? "all" : Number(value));
+    setPage(1);
+  };
+
+  const handleStatusChange = (status: MembershipStatus) => {
+    setActiveFilter(status);
+    setPage(1);
+  };
 
   return (
     <CoordinatorLayout>
@@ -167,8 +233,6 @@ export default function ClubMembersPage() {
 
         {/* Hero Section */}
         <section className="relative overflow-hidden rounded-3xl bg-brand px-6 py-8 text-text-on-primary shadow-lg sm:px-9 sm:py-10">
-
-          {/* Background decoration */}
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 opacity-[0.12]"
@@ -190,7 +254,6 @@ export default function ClubMembersPage() {
           />
 
           <div className="relative z-10 max-w-3xl">
-
             <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-caption font-semibold text-white/90">
               <UsersRound className="h-4 w-4" />
               CLUB MANAGEMENT · MEMBERS
@@ -206,13 +269,12 @@ export default function ClubMembersPage() {
             </p>
 
             <div className="mt-7 flex flex-wrap gap-3">
-
               <div className="rounded-2xl border border-white/20 bg-white/10 px-5 py-3 backdrop-blur-sm">
                 <p className="text-2xl font-extrabold">
-                  {selectedMembers.length}
+                  {pagination?.total ?? 0}
                 </p>
                 <p className="mt-1 text-caption text-white/75">
-                  Total applications
+                  Total members
                 </p>
               </div>
 
@@ -224,7 +286,6 @@ export default function ClubMembersPage() {
                   Assigned clubs
                 </p>
               </div>
-
             </div>
           </div>
         </section>
@@ -236,20 +297,19 @@ export default function ClubMembersPage() {
         >
           <StatCard
             icon={<CheckCircle2 className="h-6 w-6" />}
-            label="Approved Members"
+            label="Approved Members (current page)"
             value={approvedCount}
           />
 
           <StatCard
             icon={<XCircle className="h-6 w-6" />}
-            label="Rejected Requests"
+            label="Rejected Requests (current page)"
             value={rejectedCount}
           />
         </section>
 
         {/* Members Section */}
         <section className="space-y-5">
-
           <div>
             <p className="text-caption font-semibold uppercase tracking-wider text-primary">
               Membership overview
@@ -265,6 +325,29 @@ export default function ClubMembersPage() {
             </p>
           </div>
 
+          {/* Search */}
+          <Card padding="md" className="border-border-subtle shadow-subtle">
+            <label
+              htmlFor="member-search"
+              className="mb-2 block text-label font-semibold text-text"
+            >
+              Search members
+            </label>
+
+            <div className="relative max-w-md">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+
+              <input
+                id="member-search"
+                type="search"
+                value={search}
+                onChange={(event) => handleSearch(event.target.value)}
+                placeholder="Search by name, admission number or email..."
+                className="w-full rounded-xl border border-border bg-background py-3 pl-10 pr-4 text-label text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"
+              />
+            </div>
+          </Card>
+
           {/* Club Selector */}
           {coordinatedClubs.length > 1 && (
             <Card padding="md" className="border-border-subtle shadow-subtle">
@@ -278,13 +361,7 @@ export default function ClubMembersPage() {
               <select
                 id="club-filter"
                 value={selectedClubId}
-                onChange={(event) =>
-                  setSelectedClubId(
-                    event.target.value === "all"
-                      ? "all"
-                      : Number(event.target.value),
-                  )
-                }
+                onChange={(event) => handleClubChange(event.target.value)}
                 className="w-full max-w-md rounded-xl border border-border bg-background px-4 py-3 text-label text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"
               >
                 <option value="all">All assigned clubs</option>
@@ -301,10 +378,9 @@ export default function ClubMembersPage() {
           {/* Status Filters */}
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex flex-wrap gap-2">
-
               <button
                 type="button"
-                onClick={() => setActiveFilter("approved")}
+                onClick={() => handleStatusChange("approved")}
                 aria-pressed={activeFilter === "approved"}
                 className={`inline-flex items-center gap-2 rounded-xl px-5 py-3 text-label font-semibold transition-all ${
                   activeFilter === "approved"
@@ -314,6 +390,7 @@ export default function ClubMembersPage() {
               >
                 <CheckCircle2 className="h-4 w-4" />
                 Approved
+
                 <span
                   className={`rounded-full px-2 py-0.5 text-caption ${
                     activeFilter === "approved"
@@ -327,7 +404,7 @@ export default function ClubMembersPage() {
 
               <button
                 type="button"
-                onClick={() => setActiveFilter("rejected")}
+                onClick={() => handleStatusChange("rejected")}
                 aria-pressed={activeFilter === "rejected"}
                 className={`inline-flex items-center gap-2 rounded-xl px-5 py-3 text-label font-semibold transition-all ${
                   activeFilter === "rejected"
@@ -337,6 +414,7 @@ export default function ClubMembersPage() {
               >
                 <XCircle className="h-4 w-4" />
                 Rejected
+
                 <span
                   className={`rounded-full px-2 py-0.5 text-caption ${
                     activeFilter === "rejected"
@@ -347,7 +425,6 @@ export default function ClubMembersPage() {
                   {rejectedCount}
                 </span>
               </button>
-
             </div>
 
             <p className="text-caption text-text-muted" aria-live="polite">
@@ -368,80 +445,74 @@ export default function ClubMembersPage() {
             />
           )}
 
-          
-{/* Loading */}
-{hasAssignedClubs && isPending && (
-  <div
-    role="status"
-    aria-label="Loading club members"
-    className="grid gap-5 lg:grid-cols-2"
-  >
-    <span className="sr-only">Loading club members...</span>
+          {/* Loading */}
+          {hasAssignedClubs && isPending && (
+            <div
+              role="status"
+              aria-label="Loading club members"
+              className="grid gap-5 lg:grid-cols-2"
+            >
+              <span className="sr-only">Loading club members...</span>
 
-    {[1, 2, 3, 4].map((item) => (
-      <Card
-        key={item}
-        padding="lg"
-        className="space-y-5 border-border-subtle shadow-subtle"
-      >
-        {/* Student Header */}
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 flex-1 items-center gap-3">
-            <Skeleton className="h-12 w-12 shrink-0 rounded-xl" />
+              {[1, 2, 3, 4].map((item) => (
+                <Card
+                  key={item}
+                  padding="lg"
+                  className="space-y-5 border-border-subtle shadow-subtle"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <Skeleton className="h-12 w-12 shrink-0 rounded-xl" />
 
-            <div className="flex-1 space-y-2">
-              <Skeleton className="h-4 w-1/2" />
-              <Skeleton className="h-3 w-1/3" />
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-1/2" />
+                        <Skeleton className="h-3 w-1/3" />
+                      </div>
+                    </div>
+
+                    <Skeleton className="h-7 w-20 rounded-full" />
+                  </div>
+
+                  <Skeleton className="h-11 w-full rounded-xl" />
+
+                  <div className="grid gap-5 border-t border-border-subtle pt-5 sm:grid-cols-2">
+                    {[1, 2, 3, 4].map((detail) => (
+                      <div key={detail} className="flex items-start gap-3">
+                        <Skeleton className="h-9 w-9 shrink-0 rounded-lg" />
+
+                        <div className="flex-1 space-y-2">
+                          <Skeleton className="h-3 w-20" />
+                          <Skeleton className="h-4 w-32" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3 border-t border-border-subtle pt-4">
+                    <Skeleton className="h-4 w-28" />
+                    <Skeleton className="h-4 w-24" />
+                  </div>
+                </Card>
+              ))}
             </div>
-          </div>
-
-          <Skeleton className="h-7 w-20 rounded-full" />
-        </div>
-
-        {/* Club Information */}
-        <Skeleton className="h-11 w-full rounded-xl" />
-
-        {/* Student Details */}
-        <div className="grid gap-5 border-t border-border-subtle pt-5 sm:grid-cols-2">
-          {[1, 2, 3, 4].map((detail) => (
-            <div key={detail} className="flex items-start gap-3">
-              <Skeleton className="h-9 w-9 shrink-0 rounded-lg" />
-
-              <div className="flex-1 space-y-2">
-                <Skeleton className="h-3 w-20" />
-                <Skeleton className="h-4 w-32" />
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Review Date */}
-        <div className="flex items-center justify-between gap-3 border-t border-border-subtle pt-4">
-          <Skeleton className="h-4 w-28" />
-          <Skeleton className="h-4 w-24" />
-        </div>
-      </Card>
-    ))}
-  </div>
-)}
-
+          )}
 
           {/* Error */}
           {hasAssignedClubs && isError && (
-            <EmptyState
-              icon={<RefreshCw className="h-7 w-7" />}
-              title="Unable to load club members"
-              description="Something went wrong while loading membership information. Please try again."
-            />
-          )}
+            <>
+              <EmptyState
+                icon={<RefreshCw className="h-7 w-7" />}
+                title="Unable to load club members"
+                description="Something went wrong while loading membership information. Please try again."
+              />
 
-          {hasAssignedClubs && isError && (
-            <div className="flex justify-center">
-              <Button onClick={() => void refetch()}>
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Try again
-              </Button>
-            </div>
+              <div className="flex justify-center">
+                <Button onClick={() => void refetch()}>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Try again
+                </Button>
+              </div>
+            </>
           )}
 
           {/* Empty Filter Result */}
@@ -451,160 +522,233 @@ export default function ClubMembersPage() {
             filteredMembers.length === 0 && (
               <EmptyState
                 icon={
-                  activeFilter === "approved" ? (
+                  search.trim() ? (
+                    <Search className="h-7 w-7" />
+                  ) : activeFilter === "approved" ? (
                     <Users className="h-7 w-7" />
                   ) : (
                     <XCircle className="h-7 w-7" />
                   )
                 }
                 title={
-                  activeFilter === "approved"
-                    ? "No approved members yet"
-                    : "No rejected requests"
+                  search.trim()
+                    ? "No matching members found"
+                    : activeFilter === "approved"
+                      ? "No approved members yet"
+                      : "No rejected requests"
                 }
                 description={
-                  activeFilter === "approved"
-                    ? "Students whose membership applications are approved will appear here."
-                    : "Rejected membership applications will appear here."
+                  search.trim()
+                    ? "Try another student name, admission number or email address."
+                    : activeFilter === "approved"
+                      ? "Students whose membership applications are approved will appear here."
+                      : "Rejected membership applications will appear here."
                 }
               />
             )}
 
-          {/* Member Cards */}
+         
+{/* Member Table */}
+{hasAssignedClubs &&
+  !isPending &&
+  !isError &&
+  filteredMembers.length > 0 && (
+    <Card
+      
+      className="overflow-hidden border-border-subtle shadow-subtle"
+    >
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[950px] text-left">
+          <thead className="border-b border-border-subtle bg-background">
+            <tr>
+              <th className="px-5 py-4 text-caption font-bold uppercase tracking-wider text-text-muted">
+                Student
+              </th>
+
+              <th className="px-5 py-4 text-caption font-bold uppercase tracking-wider text-text-muted">
+                Admission No.
+              </th>
+
+              <th className="px-5 py-4 text-caption font-bold uppercase tracking-wider text-text-muted">
+                Department
+              </th>
+
+              <th className="px-5 py-4 text-caption font-bold uppercase tracking-wider text-text-muted">
+                Semester
+              </th>
+
+              <th className="px-5 py-4 text-caption font-bold uppercase tracking-wider text-text-muted">
+                Contact
+              </th>
+
+              <th className="px-5 py-4 text-caption font-bold uppercase tracking-wider text-text-muted">
+                Club
+              </th>
+
+              <th className="px-5 py-4 text-caption font-bold uppercase tracking-wider text-text-muted">
+                Status
+              </th>
+
+              <th className="px-5 py-4 text-caption font-bold uppercase tracking-wider text-text-muted">
+                Review Date
+              </th>
+            </tr>
+          </thead>
+
+          <tbody className="divide-y divide-border-subtle">
+            {filteredMembers.map((member) => (
+              <tr
+                key={`${member.clubId}-${member.studentId}`}
+                className="transition-colors hover:bg-primary-subtle/30"
+              >
+                {/* Student */}
+                <td className="px-5 py-4">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-subtle text-primary">
+                      <UserRound className="h-5 w-5" />
+                    </div>
+
+                    <div className="min-w-0">
+                      <p className="max-w-[180px] truncate text-label font-bold text-text">
+                        {member.studentName}
+                      </p>
+
+                      <p className="mt-1 max-w-[180px] truncate text-caption text-text-muted">
+                        {member.email}
+                      </p>
+                    </div>
+                  </div>
+                </td>
+
+                {/* Admission number */}
+                <td className="px-5 py-4">
+                  <span className="text-label font-semibold text-text">
+                    {member.admissionNumber}
+                  </span>
+                </td>
+
+                {/* Department */}
+                <td className="px-5 py-4">
+                  <div>
+                    <p className="text-label font-medium text-text">
+                      {member.departmentName || "Not available"}
+                    </p>
+
+                    {member.departmentCode && (
+                      <p className="mt-1 text-caption text-text-muted">
+                        {member.departmentCode}
+                      </p>
+                    )}
+                  </div>
+                </td>
+
+                {/* Semester */}
+                <td className="px-5 py-4">
+                  <span className="inline-flex rounded-lg bg-secondary px-3 py-1.5 text-caption font-semibold text-text">
+                    Semester {member.semester}
+                  </span>
+                </td>
+
+                {/* Contact */}
+                <td className="px-5 py-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-caption text-text-muted">
+                      <Mail className="h-3.5 w-3.5 shrink-0" />
+                      <span className="max-w-[150px] truncate">
+                        {member.email}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 text-caption text-text-muted">
+                      <Phone className="h-3.5 w-3.5 shrink-0" />
+                      <span>{member.phone || "Not provided"}</span>
+                    </div>
+                  </div>
+                </td>
+
+                {/* Club */}
+                <td className="px-5 py-4">
+                  <span className="inline-flex items-center gap-2 rounded-lg bg-primary-subtle px-3 py-2 text-caption font-semibold text-primary">
+                    <GraduationCap className="h-4 w-4" />
+                    {member.clubName}
+                  </span>
+                </td>
+
+                {/* Status */}
+                <td className="px-5 py-4">
+                  <span
+                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-caption font-semibold ${
+                      member.status === "approved"
+                        ? "bg-green-50 text-green-700"
+                        : "bg-red-50 text-red-700"
+                    }`}
+                  >
+                    {member.status === "approved" ? (
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                    ) : (
+                      <XCircle className="h-3.5 w-3.5" />
+                    )}
+
+                    {member.status === "approved"
+                      ? "Approved"
+                      : "Rejected"}
+                  </span>
+                </td>
+
+                {/* Review date */}
+                <td className="px-5 py-4">
+                  <div className="flex items-center gap-2 whitespace-nowrap text-caption font-medium text-text-muted">
+                    <CalendarDays className="h-4 w-4" />
+
+                    {member.joinedAt
+                      ? new Date(member.joinedAt).toLocaleDateString(
+                          "en-IN",
+                          {
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          },
+                        )
+                      : "Not available"}
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="border-t border-border-subtle px-5 py-4">
+        <p className="text-caption text-text-muted">
+          Showing{" "}
+          <span className="font-bold text-text">
+            {filteredMembers.length}
+          </span>{" "}
+          {filteredMembers.length === 1 ? "member" : "members"}
+        </p>
+      </div>
+    </Card>
+  )}
+
+
+          {/* Pagination */}
           {hasAssignedClubs &&
             !isPending &&
             !isError &&
-            filteredMembers.length > 0 && (
-              <div className="grid gap-5 lg:grid-cols-2">
-
-                {filteredMembers.map((member) => (
-                  <Card
-                    key={member.studentId}
-                    padding="lg"
-                    className="group flex h-full flex-col border-border-subtle shadow-subtle transition-all duration-200 hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg"
-                  >
-
-                    {/* Student Header */}
-                    <div className="flex items-start justify-between gap-3">
-
-                      <div className="flex min-w-0 items-center gap-3">
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary-subtle text-primary transition-colors group-hover:bg-primary group-hover:text-white">
-                          <UserRound className="h-6 w-6" />
-                        </div>
-
-                        <div className="min-w-0">
-                          <h3 className="break-words text-subheading font-bold text-text">
-                            {member.studentName}
-                          </h3>
-
-                          <p className="mt-1 break-words text-caption text-text-muted">
-                            {member.admissionNumber}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Status */}
-                      <span
-                        className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-caption font-semibold ${
-                          member.status === "approved"
-                            ? "bg-green-50 text-green-700"
-                            : "bg-red-50 text-red-700"
-                        }`}
-                      >
-                        {member.status === "approved" ? (
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                        ) : (
-                          <XCircle className="h-3.5 w-3.5" />
-                        )}
-
-                        {member.status === "approved" ? "Approved" : "Rejected"}
-                      </span>
-
-                    </div>
-
-                    {/* Club Information */}
-                    <div className="mt-5 flex items-center gap-2 rounded-xl bg-primary-subtle/60 px-4 py-3">
-                      <GraduationCap className="h-4 w-4 shrink-0 text-primary" />
-                      <p className="truncate text-label font-semibold text-primary">
-                        {member.clubName}
-                      </p>
-                    </div>
-
-                    {/* Student Details */}
-                    <div className="mt-5 grid flex-1 gap-5 border-t border-border-subtle pt-5 sm:grid-cols-2">
-
-                      <DetailItem
-                        icon={<Mail className="h-4 w-4" />}
-                        label="Email address"
-                        value={member.email}
-                      />
-
-                      <DetailItem
-                        icon={<Phone className="h-4 w-4" />}
-                        label="Phone number"
-                        value={member.phone}
-                      />
-
-                      <DetailItem
-                        icon={<GraduationCap className="h-4 w-4" />}
-                        label="Department"
-                        value={
-                          member.departmentName
-                            ? `${member.departmentName}${
-                                member.departmentCode
-                                  ? ` (${member.departmentCode})`
-                                  : ""
-                              }`
-                            : null
-                        }
-                      />
-
-                      <DetailItem
-                        icon={<CalendarDays className="h-4 w-4" />}
-                        label="Semester"
-                        value={member.semester}
-                      />
-
-                    </div>
-
-                    {/* Review Date */}
-                    <div className="mt-5 flex items-center justify-between gap-3 border-t border-border-subtle pt-4">
-                      <div className="flex items-center gap-2 text-text-muted">
-                        <ShieldCheck className="h-4 w-4" />
-                        <span className="text-caption font-medium">
-                          {member.status === "approved"
-                            ? "Approved date"
-                            : "Reviewed date"}
-                        </span>
-                      </div>
-
-                      <span className="text-caption font-semibold text-text">
-                        {member.joinedAt
-                          ? new Date(member.joinedAt).toLocaleDateString(
-                              "en-IN",
-                              {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              },
-                            )
-                          : "Not available"}
-                      </span>
-                    </div>
-
-                  </Card>
-                ))}
-
-              </div>
+            pagination &&
+            pagination.totalPages > 1 && (
+              <Pagination
+                page={pagination.page}
+                totalPages={pagination.totalPages}
+                onPageChange={setPage}
+              />
             )}
-
         </section>
 
         {/* Footer */}
         <p className="pb-3 text-center text-caption text-text-subtle">
           EduNex · Connecting students, faculty and campus life.
         </p>
-
       </main>
     </CoordinatorLayout>
   );

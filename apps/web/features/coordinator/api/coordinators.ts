@@ -1,6 +1,7 @@
 
 import { isAxiosError } from "axios";
 import { api } from "@/lib/axios";
+import { CoordinatorClubMember, CoordinatorMembershipRequest } from "@/features/clubs/api/clubs";
 
 export type CoordinatorAssignment = {
   id: number;
@@ -38,6 +39,7 @@ type ApiResponse<T> = {
   pagination?: { total: number; page: number; limit: number; totalPages: number };
 };
 
+
 export type CoordinatorAssignmentsResult = {
   assignments: CoordinatorAssignment[];
   pagination: { total: number; page: number; limit: number; totalPages: number };
@@ -55,6 +57,21 @@ export type CoordinatorStatus = {
   isCoordinator: boolean;
   assignments: StudentCoordinatorAssignment[];
 };
+
+export type ListParams = {
+  search?: string;
+  page?: number;
+  limit?: number;
+};
+
+export type Pagination = {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+};
+
+
 
 // Get coordinator assignments
 export const getCoordinatorAssignments = async (
@@ -146,4 +163,16 @@ export const getCoordinatorStatus = async (): Promise<CoordinatorStatus> => {
   }
 
   return data.data;
+};
+
+
+
+export type CoordinatorMembershipRequestsResult = {
+  requests: CoordinatorMembershipRequest[];
+  pagination: Pagination;
+};
+
+export type CoordinatorClubMembersResult = {
+  members: CoordinatorClubMember[];
+  pagination: Pagination;
 };

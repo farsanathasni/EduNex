@@ -15,6 +15,7 @@ import {
   type CreateCoordinatorInput,
   type CoordinatorAssignmentsParams,
   type UpdateCoordinatorInput,
+  ListParams,
 } from "@/features/coordinator/api/coordinators";
 
 import {
@@ -135,10 +136,26 @@ export const useCoordinatorStatusQuery = () => {
 };
 
 // Membership requests
-export const useCoordinatorMembershipRequests = (enabled = true) => {
+export const useCoordinatorMembershipRequests = (
+  params?: ListParams,
+  enabled = true,
+) => {
   return useQuery({
-    queryKey: ["coordinator", "membership-requests"],
-    queryFn: getCoordinatorMembershipRequests,
+    queryKey: ["coordinator", "membership-requests", params],
+    queryFn: () => getCoordinatorMembershipRequests(params),
+    retry: retryUnlessAuthError,
+    enabled,
+  });
+};
+
+// Club members
+export const useCoordinatorClubMembers = (
+  params?: ListParams,
+  enabled = true,
+) => {
+  return useQuery({
+    queryKey: ["coordinator", "club-members", params],
+    queryFn: () => getCoordinatorClubMembers(params),
     retry: retryUnlessAuthError,
     enabled,
   });
@@ -169,12 +186,4 @@ export const useReviewClubMembershipRequest = () => {
   });
 };
 
-// Club members
-export const useCoordinatorClubMembers = (enabled = true) => {
-  return useQuery({
-    queryKey: ["coordinator", "club-members"],
-    queryFn: getCoordinatorClubMembers,
-    retry: retryUnlessAuthError,
-    enabled,
-  });
-};
+

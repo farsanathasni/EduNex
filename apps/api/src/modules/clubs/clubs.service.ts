@@ -506,59 +506,120 @@ export const getCoordinatorProfileByUserId = async (userId: string) => {
 };
 
 
+
 export const getCoordinatorMembershipRequests = async (
   coordinatorStudentId: number,
+  search = "",
+  page = 1,
+  limit = 10,
 ) => {
-  const requests = await db
-    .select({
-      requestId: clubMemberships.id,
-      clubId: clubs.id,
-      clubName: clubs.name,
-      status: clubMemberships.status,
-      requestedAt: clubMemberships.requestedAt,
+  const conditions = [
+    eq(clubMemberships.status, "pending"),
+  ];
 
-      studentId: StudentProfile.id,
-      studentName: StudentProfile.name,
-      admissionNumber: StudentProfile.admissionNumber,
-      email: user.email,
-      phone: StudentProfile.phone,
-      semester: StudentProfile.semester,
+  if (search.trim()) {
+    conditions.push(
+      or(
+        ilike(StudentProfile.name, `%${search}%`),
+        ilike(StudentProfile.admissionNumber, `%${search}%`),
+        ilike(user.email, `%${search}%`),
+        ilike(clubs.name, `%${search}%`),
+      )!,
+    );
+  }
 
-      departmentId: departments.id,
-      departmentName: departments.name,
-      departmentCode: departments.code,
-    })
-    .from(clubMemberships)
-    .innerJoin(
-      clubs,
-      eq(clubMemberships.clubId, clubs.id),
-    )
-    .innerJoin(
-      coordinatorAssignments,
-      and(
-        eq(coordinatorAssignments.clubId, clubMemberships.clubId),
-        eq(coordinatorAssignments.studentId, coordinatorStudentId),
-      ),
-    )
-    .innerJoin(
-      StudentProfile,
-      eq(clubMemberships.studentId, StudentProfile.id),
-    )
-    .innerJoin(
-      user,
-      eq(StudentProfile.userId, user.id),
-    )
-    .innerJoin(
-      departments,
-      eq(StudentProfile.departmentId, departments.id),
-    )
-    .where(
-      eq(clubMemberships.status, "pending")
-    )
-    .orderBy(desc(clubMemberships.requestedAt));
+  const whereCondition = and(...conditions);
+  const pagination = getPagination(page, limit);
 
-  return requests;
+  const [requests, totalResult] = await Promise.all([
+    db
+      .select({
+        requestId: clubMemberships.id,
+        clubId: clubs.id,
+        clubName: clubs.name,
+        status: clubMemberships.status,
+        requestedAt: clubMemberships.requestedAt,
+
+        studentId: StudentProfile.id,
+        studentName: StudentProfile.name,
+        admissionNumber: StudentProfile.admissionNumber,
+        email: user.email,
+        phone: StudentProfile.phone,
+        semester: StudentProfile.semester,
+
+        departmentId: departments.id,
+        departmentName: departments.name,
+        departmentCode: departments.code,
+      })
+      .from(clubMemberships)
+      .innerJoin(
+        clubs,
+        eq(clubMemberships.clubId, clubs.id),
+      )
+      .innerJoin(
+        coordinatorAssignments,
+        and(
+          eq(coordinatorAssignments.clubId, clubMemberships.clubId),
+          eq(coordinatorAssignments.studentId, coordinatorStudentId),
+        ),
+      )
+      .innerJoin(
+        StudentProfile,
+        eq(clubMemberships.studentId, StudentProfile.id),
+      )
+      .innerJoin(user, eq(StudentProfile.userId, user.id))
+      .innerJoin(
+        departments,
+        eq(StudentProfile.departmentId, departments.id),
+      )
+      .where(whereCondition)
+      .orderBy(desc(clubMemberships.requestedAt))
+      .limit(pagination.limit)
+      .offset(pagination.offset),
+
+    db
+      .select({ total: count() })
+      .from(clubMemberships)
+      .innerJoin(
+        clubs,
+        eq(clubMemberships.clubId, clubs.id),
+      )
+      .innerJoin(
+        coordinatorAssignments,
+        and(
+          eq(coordinatorAssignments.clubId, clubMemberships.clubId),
+          eq(coordinatorAssignments.studentId, coordinatorStudentId),
+        ),
+      )
+      .innerJoin(
+        StudentProfile,
+        eq(clubMemberships.studentId, StudentProfile.id),
+      )
+      .innerJoin(user, eq(StudentProfile.userId, user.id))
+      .innerJoin(
+        departments,
+        eq(StudentProfile.departmentId, departments.id),
+      )
+      .where(whereCondition),
+  ]);
+
+  const total = totalResult[0]?.total ?? 0;
+  const totalPages = Math.ceil(total / limit);
+
+  return {
+    requests,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPreviousPage: page > 1,
+    },
+  };
 };
+
+
 
 
 
@@ -618,50 +679,109 @@ export const reviewClubMembershipRequest = async (
 
 export const getCoordinatorClubMembers = async (
   coordinatorStudentId: number,
+  search = "",
+  page = 1,
+  limit = 10,
 ) => {
-  const members = await db
-    .select({
-      clubId: clubs.id,
-      clubName: clubs.name,
-      studentId: StudentProfile.id,
-      studentName: StudentProfile.name,
-      admissionNumber: StudentProfile.admissionNumber,
-      email: user.email,
-      phone: StudentProfile.phone,
-      semester: StudentProfile.semester,
-      departmentName: departments.name,
-      departmentCode: departments.code,
-      status: clubMemberships.status,
-      joinedAt: clubMemberships.reviewedAt,
-    })
-    .from(clubMemberships)
-    .innerJoin(
-      clubs,
-      eq(clubMemberships.clubId, clubs.id),
-    )
-    .innerJoin(
-      coordinatorAssignments,
-      and(
-        eq(coordinatorAssignments.clubId, clubMemberships.clubId),
-        eq(coordinatorAssignments.studentId, coordinatorStudentId),
-      ),
-    )
-    .innerJoin(
-      StudentProfile,
-      eq(clubMemberships.studentId, StudentProfile.id),
-    )
-    .innerJoin(user, eq(StudentProfile.userId, user.id))
-    .innerJoin(
-      departments,
-      eq(StudentProfile.departmentId, departments.id),
-    )
-    .where(
-      and(
-        inArray(clubMemberships.status, ["approved", "rejected"]),
-        eq(StudentProfile.isDeleted, false),
-      ),
-    )
-    .orderBy(desc(clubMemberships.reviewedAt));
+  const conditions = [
+    inArray(clubMemberships.status, ["approved", "rejected"]),
+    eq(StudentProfile.isDeleted, false),
+  ];
 
-  return members;
+  if (search.trim()) {
+    conditions.push(
+      or(
+        ilike(StudentProfile.name, `%${search}%`),
+        ilike(StudentProfile.admissionNumber, `%${search}%`),
+        ilike(user.email, `%${search}%`),
+        ilike(clubs.name, `%${search}%`),
+      )!,
+    );
+  }
+
+  const whereCondition = and(...conditions);
+  const pagination = getPagination(page, limit);
+
+  const [members, totalResult] = await Promise.all([
+    db
+      .select({
+        clubId: clubs.id,
+        clubName: clubs.name,
+        studentId: StudentProfile.id,
+        studentName: StudentProfile.name,
+        admissionNumber: StudentProfile.admissionNumber,
+        email: user.email,
+        phone: StudentProfile.phone,
+        semester: StudentProfile.semester,
+        departmentName: departments.name,
+        departmentCode: departments.code,
+        status: clubMemberships.status,
+        joinedAt: clubMemberships.reviewedAt,
+      })
+      .from(clubMemberships)
+      .innerJoin(
+        clubs,
+        eq(clubMemberships.clubId, clubs.id),
+      )
+      .innerJoin(
+        coordinatorAssignments,
+        and(
+          eq(coordinatorAssignments.clubId, clubMemberships.clubId),
+          eq(coordinatorAssignments.studentId, coordinatorStudentId),
+        ),
+      )
+      .innerJoin(
+        StudentProfile,
+        eq(clubMemberships.studentId, StudentProfile.id),
+      )
+      .innerJoin(user, eq(StudentProfile.userId, user.id))
+      .innerJoin(
+        departments,
+        eq(StudentProfile.departmentId, departments.id),
+      )
+      .where(whereCondition)
+      .orderBy(desc(clubMemberships.reviewedAt))
+      .limit(pagination.limit)
+      .offset(pagination.offset),
+
+    db
+      .select({ total: count() })
+      .from(clubMemberships)
+      .innerJoin(
+        clubs,
+        eq(clubMemberships.clubId, clubs.id),
+      )
+      .innerJoin(
+        coordinatorAssignments,
+        and(
+          eq(coordinatorAssignments.clubId, clubMemberships.clubId),
+          eq(coordinatorAssignments.studentId, coordinatorStudentId),
+        ),
+      )
+      .innerJoin(
+        StudentProfile,
+        eq(clubMemberships.studentId, StudentProfile.id),
+      )
+      .innerJoin(user, eq(StudentProfile.userId, user.id))
+      .innerJoin(
+        departments,
+        eq(StudentProfile.departmentId, departments.id),
+      )
+      .where(whereCondition),
+  ]);
+
+  const total = totalResult[0]?.total ?? 0;
+  const totalPages = Math.ceil(total / limit);
+
+  return {
+    members,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPreviousPage: page > 1,
+    },
+  };
 };

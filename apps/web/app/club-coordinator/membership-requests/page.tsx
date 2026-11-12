@@ -15,6 +15,7 @@ import {
   Building2,
   Hash,
   ShieldCheck,
+  Search,
 } from "lucide-react";
 
 import Button from "@/components/ui/button";
@@ -28,6 +29,7 @@ import {
 import CoordinatorLayout from "@/features/coordinator/components/coordinator-layout";
 import { useAccess } from "@/lib/navigation/access";
 import { Skeleton } from "@/components/ui/skeleton";
+import Pagination from "@/features/coordinator/components/pagination";
 
 /* -------------------------------------------------------------------------- */
 /* Helpers                                                                    */
@@ -88,7 +90,8 @@ function StudentDetail({
   label: string;
   value: string | number | null | undefined;
 }) {
-  const hasValue = value !== null && value !== undefined && value !== "";
+  const hasValue =
+    value !== null && value !== undefined && value !== "";
 
   return (
     <div className="flex min-w-0 items-start gap-3">
@@ -97,7 +100,10 @@ function StudentDetail({
       </div>
 
       <div className="min-w-0">
-        <p className="text-caption font-medium text-text-subtle">{label}</p>
+        <p className="text-caption font-medium text-text-subtle">
+          {label}
+        </p>
+
         <p className="mt-1 break-words text-label font-semibold text-text">
           {hasValue ? value : "Not provided"}
         </p>
@@ -105,9 +111,6 @@ function StudentDetail({
     </div>
   );
 }
-
-
-
 
 function LoadingState() {
   return (
@@ -168,7 +171,6 @@ function LoadingState() {
   );
 }
 
-
 function EmptyState({
   title,
   description,
@@ -187,7 +189,9 @@ function EmptyState({
         {icon}
       </div>
 
-      <h3 className="mt-5 text-subheading font-bold text-text">{title}</h3>
+      <h3 className="mt-5 text-subheading font-bold text-text">
+        {title}
+      </h3>
 
       <p className="mt-2 max-w-md text-label leading-6 text-text-muted">
         {description}
@@ -201,7 +205,13 @@ function EmptyState({
 /* -------------------------------------------------------------------------- */
 
 export default function MembershipRequestsPage() {
-  const [selectedClubId, setSelectedClubId] = useState<number | "all">("all");
+  const [selectedClubId, setSelectedClubId] =
+    useState<number | "all">("all");
+
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+
+  const limit = 6;
 
   const { me } = useAccess();
 
@@ -214,21 +224,41 @@ export default function MembershipRequestsPage() {
 
   const hasAssignedClubs = coordinatedClubs.length > 0;
 
+  /* ---------------------------------------------------------------------- */
+  /* Membership requests query                                              */
+  /* ---------------------------------------------------------------------- */
+
   const {
-    data: requests = [],
+    data,
     isPending,
     isError,
     refetch,
-  } = useCoordinatorMembershipRequests(hasAssignedClubs);
+  } = useCoordinatorMembershipRequests(
+    {
+      search: search.trim(),
+      page,
+      limit,
+    },
+    hasAssignedClubs,
+  );
 
+  const requests = data?.requests ?? [];
+  const pagination = data?.pagination;
+
+  // Only show requests belonging to assigned clubs.
   const assignedRequests = requests.filter((request) =>
     assignedClubIds.has(request.clubId),
   );
 
+  // Apply selected club filter.
   const visibleRequests = assignedRequests.filter(
     (request) =>
       selectedClubId === "all" || request.clubId === selectedClubId,
   );
+
+  /* ---------------------------------------------------------------------- */
+  /* Mutation                                                               */
+  /* ---------------------------------------------------------------------- */
 
   const reviewMutation = useReviewClubMembershipRequest();
 
@@ -239,12 +269,29 @@ export default function MembershipRequestsPage() {
     reviewMutation.mutate({ requestId, decision });
   };
 
+  /* ---------------------------------------------------------------------- */
+  /* Handlers                                                               */
+  /* ---------------------------------------------------------------------- */
+
+  const handleSearch = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
+
+  const handleClubChange = (value: string) => {
+    setSelectedClubId(
+      value === "all" ? "all" : Number(value),
+    );
+    setPage(1);
+  };
+
   return (
     <CoordinatorLayout>
       <main className="space-y-8 pb-8">
 
         {/* Hero section */}
         <section className="relative overflow-hidden rounded-3xl bg-brand px-6 py-9 text-text-on-primary shadow-lg sm:px-10 sm:py-11">
+
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-0 opacity-[0.12]"
@@ -284,10 +331,11 @@ export default function MembershipRequestsPage() {
             <div className="mt-7 flex flex-wrap gap-3">
               <div className="min-w-36 rounded-2xl border border-white/15 bg-white/10 px-5 py-4 backdrop-blur-sm">
                 <p className="text-heading font-extrabold leading-none">
-                  {visibleRequests.length}
+                  {pagination?.total ?? 0}
                 </p>
+
                 <p className="mt-2 text-caption text-white/80">
-                  Showing requests
+                  Total matching requests
                 </p>
               </div>
 
@@ -295,17 +343,9 @@ export default function MembershipRequestsPage() {
                 <p className="text-heading font-extrabold leading-none">
                   {coordinatedClubs.length}
                 </p>
+
                 <p className="mt-2 text-caption text-white/80">
                   Assigned clubs
-                </p>
-              </div>
-
-              <div className="min-w-36 rounded-2xl border border-white/15 bg-white/10 px-5 py-4 backdrop-blur-sm">
-                <p className="text-heading font-extrabold leading-none">
-                  {assignedRequests.length}
-                </p>
-                <p className="mt-2 text-caption text-white/80">
-                  Total applications
                 </p>
               </div>
             </div>
@@ -314,22 +354,51 @@ export default function MembershipRequestsPage() {
 
         {/* Application section */}
         <section>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <p className="text-caption font-semibold uppercase tracking-wider text-primary">
-                Review and manage
-              </p>
+          <div>
+            <p className="text-caption font-semibold uppercase tracking-wider text-primary">
+              Review and manage
+            </p>
 
-              <h2 className="mt-2 text-heading-lg font-extrabold text-text">
-                Student Applications
-              </h2>
+            <h2 className="mt-2 text-heading-lg font-extrabold text-text">
+              Student Applications
+            </h2>
 
-              <p className="mt-1.5 text-label text-text-muted">
-                Review student information before making your decision.
-              </p>
+            <p className="mt-1.5 text-label text-text-muted">
+              Review student information before making your decision.
+            </p>
+          </div>
+
+          {/* Search */}
+          <Card
+            padding="md"
+            className="mt-6 border-border-subtle shadow-subtle"
+          >
+            <label
+              htmlFor="request-search"
+              className="mb-2 block text-label font-semibold text-text"
+            >
+              Search applications
+            </label>
+
+            <div className="relative max-w-md">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+
+              <input
+                id="request-search"
+                type="search"
+                value={search}
+                onChange={(event) =>
+                  handleSearch(event.target.value)
+                }
+                placeholder="Search by student name, admission number or email..."
+                className="w-full rounded-xl border border-border bg-background py-3 pl-10 pr-4 text-label text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"
+              />
             </div>
+          </Card>
 
-            {coordinatedClubs.length > 1 && (
+          {/* Club filter */}
+          {coordinatedClubs.length > 1 && (
+            <div className="mt-5">
               <label className="block w-full sm:max-w-xs">
                 <span className="mb-2 block text-caption font-semibold text-text-muted">
                   Filter by assigned club
@@ -338,11 +407,7 @@ export default function MembershipRequestsPage() {
                 <select
                   value={selectedClubId}
                   onChange={(event) =>
-                    setSelectedClubId(
-                      event.target.value === "all"
-                        ? "all"
-                        : Number(event.target.value),
-                    )
+                    handleClubChange(event.target.value)
                   }
                   className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-label font-medium text-text outline-none transition focus:border-primary focus:ring-4 focus:ring-primary/10"
                 >
@@ -355,8 +420,8 @@ export default function MembershipRequestsPage() {
                   ))}
                 </select>
               </label>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* No assigned clubs */}
           {!hasAssignedClubs ? (
@@ -368,32 +433,51 @@ export default function MembershipRequestsPage() {
           ) : isPending ? (
             <LoadingState />
           ) : isError ? (
-            <Card
-              padding="lg"
-              role="alert"
-              className="mt-6 border-dashed py-12 text-center"
-            >
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-subtle text-accent">
-                <AlertCircle className="h-7 w-7" />
-              </div>
+            <>
+              <Card
+                padding="lg"
+                role="alert"
+                className="mt-6 border-dashed py-12 text-center"
+              >
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-subtle text-accent">
+                  <AlertCircle className="h-7 w-7" />
+                </div>
 
-              <h3 className="mt-4 text-subheading font-bold text-text">
-                Unable to load membership requests
-              </h3>
+                <h3 className="mt-4 text-subheading font-bold text-text">
+                  Unable to load membership requests
+                </h3>
 
-              <p className="mt-2 text-label text-text-muted">
-                Please check your connection and try again.
-              </p>
+                <p className="mt-2 text-label text-text-muted">
+                  Please check your connection and try again.
+                </p>
 
-              <Button className="mt-5" onClick={() => void refetch()}>
-                Try again
-              </Button>
-            </Card>
+                <Button
+                  className="mt-5"
+                  onClick={() => void refetch()}
+                >
+                  Try again
+                </Button>
+              </Card>
+            </>
           ) : visibleRequests.length === 0 ? (
             <EmptyState
-              icon={<Users className="h-7 w-7" />}
-              title="No pending requests"
-              description="There are no student membership applications to review for this selection. New applications will appear here when students apply."
+              icon={
+                search.trim() ? (
+                  <Search className="h-7 w-7" />
+                ) : (
+                  <Users className="h-7 w-7" />
+                )
+              }
+              title={
+                search.trim()
+                  ? "No matching requests found"
+                  : "No pending requests"
+              }
+              description={
+                search.trim()
+                  ? "Try another student name, admission number or email address."
+                  : "There are no student membership applications to review for this selection. New applications will appear here when students apply."
+              }
             />
           ) : (
             <div className="mt-6 space-y-5">
@@ -518,6 +602,7 @@ export default function MembershipRequestsPage() {
                         className="inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 disabled:opacity-50"
                       >
                         <CheckCircle2 className="h-4 w-4" />
+
                         {reviewMutation.isPending
                           ? "Processing..."
                           : "Approve request"}
@@ -528,6 +613,20 @@ export default function MembershipRequestsPage() {
               ))}
             </div>
           )}
+
+          {/* Pagination */}
+          {hasAssignedClubs &&
+            !isPending &&
+            !isError &&
+            visibleRequests.length > 0 &&
+            pagination &&
+            pagination.totalPages > 1 && (
+              <Pagination
+                page={pagination.page}
+                totalPages={pagination.totalPages}
+                onPageChange={setPage}
+              />
+            )}
 
           {/* Mutation error */}
           {reviewMutation.isError && (
