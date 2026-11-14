@@ -75,6 +75,7 @@ const rolePermissionMap: Record<string, string[]> = {
     "club:update",
     "club:delete",
     "event:view",
+    "attendance:view",
     "certificate:view",
   ],
 

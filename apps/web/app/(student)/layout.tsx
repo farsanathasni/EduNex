@@ -7,7 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { RouteGuard } from "@/features/auth/components/route-guard";
 import StudentHeader from "@/features/students/components/student-header";
 import { authClient } from "@/lib/auth-client";
-import StudentSidebar from "./student-sidebar";
+import StudentSidebar from "../../features/students/components/student-sidebar";
 import { useAccess } from "@/lib/navigation/access";
 import { useModeStore } from "@/stores/mode-store";
 
@@ -50,6 +50,10 @@ function handleSwitchMode() {
       title: "My Memberships",
       subtitle: "Manage your club memberships",
     },
+    "/student/attendance": {
+    title: "My Attendance",
+    subtitle: "View your event attendance records",
+  },
     "/studentprofile": {
       title: "My Profile",
       subtitle: "View and manage your profile",

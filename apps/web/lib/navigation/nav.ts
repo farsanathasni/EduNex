@@ -118,6 +118,13 @@ export const NAV: NavItem[] = [
     permission: ["club", "view"],
   },
   {
+  label: "Attendance Reports",
+  href: "/attendance/hod",
+  icon: "✓",
+  roles: HOD,
+  permission: ["attendance", "view"],
+},
+  {
     label: "Event Approvals",
     href: "/hod/approvals",
     icon: "✓",
@@ -186,6 +193,13 @@ export const NAV: NavItem[] = [
   icon: "\u2667",
   roles: ["student"],
   permission: ["club", "view"],
+  mode: "student",
+},
+{
+  label: "My Attendance",
+  href: "/attendance/student",
+  icon: "✓",
+  roles: ["student"],
   mode: "student",
 },
 {

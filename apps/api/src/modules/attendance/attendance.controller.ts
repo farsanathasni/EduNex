@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
 import asyncHandler from "../../middleware/asyncHandler.js";
-import type { Access } from "../rbac/rbac.access.js";
-import { getEventAttendance, saveAttendance } from "./attendance.service.js";
+import { isHod, resolveDepartmentScope, type Access } from "../rbac/rbac.access.js";
+import { getEventAttendance, getHodAttendanceEvents, getStudentAttendance, saveAttendance } from "./attendance.service.js";
 
 export const getEventAttendanceController = asyncHandler(
   async (req: Request, res: Response) => {
@@ -36,6 +36,55 @@ export const saveAttendanceController = asyncHandler(
     return res.status(200).json({
       success: true,
       message: "Attendance saved successfully",
+      data: result,
+    });
+  },
+);
+
+
+export const getStudentAttendanceController = asyncHandler(
+  async (req: Request, res: Response) => {
+    const userId = res.locals.user.id as string;
+
+    const result = await getStudentAttendance(userId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Student attendance fetched successfully",
+      data: result,
+    });
+  },
+);
+
+
+export const GetHodAttendanceEvents = asyncHandler(
+  async (_req: Request, res: Response) => {
+    const access = res.locals.access as Access;
+
+    if (!access.isSuperAdmin && !isHod(access)) {
+      return res.status(403).json({
+        success: false,
+        message: "Only an HOD can view department attendance reports.",
+      });
+    }
+
+    const scope = await resolveDepartmentScope(access);
+
+    if (!scope) {
+      return res.status(403).json({
+        success: false,
+        message: "Department access not available.",
+      });
+    }
+
+    const departmentId =
+      scope.kind === "department" ? scope.departmentId : undefined;
+
+    const result = await getHodAttendanceEvents(departmentId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Department events fetched successfully.",
       data: result,
     });
   },

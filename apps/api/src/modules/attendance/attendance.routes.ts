@@ -1,15 +1,9 @@
 import { Router } from "express";
 import { requireAuth } from "../../middleware/auth.middleware.js";
 import { rbac } from "../../middleware/rbac.middleware.js";
-import {
-  attendanceParamsSchema,
-  saveAttendanceSchema,
-} from "./attendance.validation.js";
+import {attendanceParamsSchema,saveAttendanceSchema} from "./attendance.validation.js";
 import validate from "../../middleware/validate.middleware.js";
-import {
-  getEventAttendanceController,
-  saveAttendanceController,
-} from "./attendance.controller.js";
+import {getEventAttendanceController,GetHodAttendanceEvents,getStudentAttendanceController,saveAttendanceController} from "./attendance.controller.js";
 
 const attendanceRouter = Router();
 
@@ -28,6 +22,21 @@ attendanceRouter.post(
   validate(attendanceParamsSchema, "params"),
   validate(saveAttendanceSchema, "body"),
   saveAttendanceController,
+);
+
+
+attendanceRouter.get(
+  "/student",
+  requireAuth,
+  getStudentAttendanceController,
+);
+
+
+attendanceRouter.get(
+  "/events",
+  requireAuth,
+  rbac("attendance", "view"),
+  GetHodAttendanceEvents,
 );
 
 export default attendanceRouter;
