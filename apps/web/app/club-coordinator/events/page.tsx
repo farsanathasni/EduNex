@@ -26,6 +26,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { useAccess } from "@/lib/navigation/access";
+import { useRouter } from "next/navigation";
 
 const gradients = [
   "from-[#19396f] via-[#234c96] to-[#5278bd]",
@@ -37,6 +38,8 @@ const gradients = [
 type EventFilter = "all" | "my";
 
 export default function BrowseEventsPage() {
+
+  const router = useRouter();
   const [search, setSearch] = useState("");
   const [selectedClubId, setSelectedClubId] = useState<number | "all">("all");
   const [eventFilter, setEventFilter] = useState<EventFilter>("all");
@@ -613,18 +616,29 @@ export default function BrowseEventsPage() {
                     </div>
 
                     {/* Card Footer */}
-                    <div className="mt-5 flex items-center justify-between gap-3 border-t border-border-subtle pt-4">
+<div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-border-subtle pt-4">
 
-                      <span className="text-xs font-medium text-text-subtle">
-                        EduNex Campus
-                      </span>
+  <span className="text-xs font-medium text-text-subtle">
+    EduNex Campus
+  </span>
 
-                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
-                        Event information
-                        <ArrowUpRight className="h-3.5 w-3.5" />
-                      </span>
+  {assignedClubIds.has(event.clubId) ? (
+    <button
+      type="button"
+      onClick={() => router.push(`/attendance/${event.id}`)}
+      className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-primary-hover"
+    >
+      <CalendarCheck2 className="h-4 w-4" />
+      Take Attendance
+    </button>
+  ) : (
+    <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
+      Event information
+      <ArrowUpRight className="h-3.5 w-3.5" />
+    </span>
+  )}
 
-                    </div>
+</div>
                   </div>
                 </article>
               ))}

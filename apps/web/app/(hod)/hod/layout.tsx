@@ -21,7 +21,7 @@ export default function HodLayout({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const menuItems = navItems
-    .filter((item) => item.href.startsWith("/hod/"))
+    .filter((item) => item.href.startsWith("/hod/")||item.href === "/attendance/hod",)
     .map((item) => ({
       ...item,
       label:
@@ -134,12 +134,20 @@ export default function HodLayout({
           </button>
 
           <div>
-            <p className="font-semibold">HOD Portal</p>
+  <p className="font-semibold">
+    {pathname === "/attendance/hod"
+      ? "Attendance Reports"
+      : pathname.startsWith("/attendance/hod/")
+        ? "Event Attendance"
+        : "HOD Portal"}
+  </p>
 
-            <p className="text-xs text-text-muted">
-              Department management and administration
-            </p>
-          </div>
+  <p className="text-xs text-text-muted">
+    {pathname.startsWith("/attendance/hod")
+      ? "View department event attendance"
+      : "Department management and administration"}
+  </p>
+</div>
         </header>
 
         <main className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">

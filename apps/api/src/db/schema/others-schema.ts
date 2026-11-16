@@ -124,6 +124,70 @@ export const eventApprovals = pgTable("event_approvals", {
     check("event_approvals_decision_check", sql`(decision)::text = ANY ((ARRAY['pending'::character varying, 'approved'::character varying, 'rejected'::character varying])::text[])`),
 ]);
 
+
+
+export const eventImages = pgTable(
+  "event_images",
+  {
+    id: bigint({ mode: "number" })
+      .primaryKey()
+      .generatedAlwaysAsIdentity(),
+
+    eventId: bigint("event_id", { mode: "number" })
+      .notNull()
+      .references(() => events.id, { onDelete: "cascade" }),
+
+    uploadedBy: text("uploaded_by")
+      .notNull()
+      .references(() => user.id, { onDelete: "restrict" }),
+
+    uploadedByRole: varchar("uploaded_by_role", { length: 30 })
+      .notNull(),
+
+    objectKey: text("object_key").notNull().unique(),
+
+    originalName: varchar("original_name", { length: 255 })
+      .notNull(),
+
+    contentType: varchar("content_type", { length: 100 })
+      .notNull(),
+
+    sizeBytes: integer("size_bytes").notNull(),
+
+    status: varchar("status", { length: 20 })
+      .default("pending")
+      .notNull(),
+
+    reviewedBy: text("reviewed_by")
+      .references(() => user.id, { onDelete: "set null" }),
+
+    reviewedAt: timestamp("reviewed_at", {
+      withTimezone: true,
+      mode: "string",
+    }),
+
+    rejectionReason: text("rejection_reason"),
+
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+      mode: "string",
+    }).defaultNow().notNull(),
+  },
+  (table) => [
+    index("event_images_event_id_idx").on(table.eventId),
+    index("event_images_status_idx").on(table.status),
+    check(
+      "event_images_status_check",
+      sql`status IN ('pending', 'approved', 'rejected')`,
+    ),
+    check(
+      "event_images_size_check",
+      sql`size_bytes > 0 AND size_bytes <= 10485760`,
+    ),
+  ],
+);
+
+
 export const attendance = pgTable("attendance", {
     // You can use { mode: "bigint" } if numbers are exceeding js number limitations
     id: bigint({ mode: "number" }).primaryKey().generatedAlwaysAsIdentity({ name: "attendance_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 9223372036854775807, cache: 1 }),

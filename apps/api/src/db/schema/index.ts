@@ -18,4 +18,5 @@ export {
   studyGroupMembers,
   lostAndFound,
   notifications,
+  eventImages
 } from "./others-schema.js";
