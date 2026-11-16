@@ -19,14 +19,18 @@ export default function PrincipalLayout({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const menuItems = navItems
-    .filter((item) => item.href.startsWith("/principal"))
-    .map((item) => ({
-      ...item,
-      label:
-        item.href === "/principal/students"
-          ? "Student Management"
-          : item.label,
-    }));
+  .filter(
+    (item) =>
+      item.href.startsWith("/principal") ||
+      item.href.startsWith("/attendance/principal"),
+  )
+  .map((item) => ({
+    ...item,
+    label:
+      item.href === "/principal/students"
+        ? "Student Management"
+        : item.label,
+  }));
 
   const handleSignOut = async () => {
     setSigningOut(true);
