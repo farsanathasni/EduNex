@@ -2,14 +2,28 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { CalendarDays, MapPin, ClipboardList, ChevronRight, Loader2 } from "lucide-react";
+import {
+  CalendarDays,
+  MapPin,
+  ClipboardList,
+  ChevronRight,
+  Loader2,
+} from "lucide-react";
+
 import { useHodAttendanceEvents } from "@/features/attendence/api/attendance-query";
 
 export default function HodAttendancePage() {
   const router = useRouter();
 
-  const { data: events, isLoading, isError, error } =
-    useHodAttendanceEvents();
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+  } = useHodAttendanceEvents();
+
+  // API response: { events, pagination }
+  const events = data?.events ?? [];
 
   if (isLoading) {
     return (
@@ -22,7 +36,8 @@ export default function HodAttendancePage() {
   if (isError) {
     return (
       <div className="rounded-xl border border-red-200 bg-red-50 p-5 text-red-700">
-        Failed to load attendance reports: {error.message}
+        Failed to load attendance reports:{" "}
+        {error instanceof Error ? error.message : "Something went wrong"}
       </div>
     );
   }
@@ -33,17 +48,20 @@ export default function HodAttendancePage() {
         <h2 className="text-xl font-semibold text-gray-900">
           Attendance Reports
         </h2>
+
         <p className="mt-1 text-sm text-gray-500">
           View event attendance reports for your department.
         </p>
       </div>
 
-      {!events || events.length === 0 ? (
+      {events.length === 0 ? (
         <div className="rounded-xl border border-dashed border-gray-300 bg-white p-10 text-center">
           <ClipboardList className="mx-auto h-10 w-10 text-gray-400" />
+
           <h3 className="mt-3 font-semibold text-gray-800">
             No events found
           </h3>
+
           <p className="mt-1 text-sm text-gray-500">
             No events are available for attendance reports.
           </p>
@@ -60,6 +78,7 @@ export default function HodAttendancePage() {
                   <h3 className="font-semibold text-gray-900">
                     {event.title}
                   </h3>
+
                   <p className="mt-1 text-sm text-blue-600">
                     {event.clubName}
                   </p>

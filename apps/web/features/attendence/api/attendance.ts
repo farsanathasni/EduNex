@@ -3,6 +3,21 @@ import { api } from "@/lib/axios";
 
 export type AttendanceStatus = "present" | "absent";
 
+export interface AttendanceQuery {
+  page?: number;
+  limit?: number;
+  search?: string;
+}
+
+export interface AttendancePagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
 export interface AttendanceEvent {
   id: number;
   clubId: number;
@@ -33,6 +48,7 @@ export interface EventAttendanceResult {
   event: AttendanceEvent;
   summary: AttendanceSummary;
   members: EventAttendanceMember[];
+  pagination: AttendancePagination;
 }
 
 export interface SaveAttendanceInput {
@@ -83,7 +99,6 @@ export interface MyAttendanceResult {
   records: MyAttendanceRecord[];
 }
 
-
 export interface HodAttendanceEvent {
   id: number;
   title: string;
@@ -97,19 +112,25 @@ export interface HodAttendanceEvent {
   departmentId: number;
 }
 
+export interface AttendanceEventsResult {
+  events: HodAttendanceEvent[];
+  pagination: AttendancePagination;
+}
 
-// Fetch event attendance
+// GET EVENT ATTENDANCE
 export const getEventAttendance = async (
   eventId: number,
+  query: AttendanceQuery = {},
 ): Promise<EventAttendanceResult> => {
   const { data } = await api.get<ApiResponse<EventAttendanceResult>>(
     `/attendance/event/${eventId}`,
+    { params: query },
   );
 
   return data.data;
 };
 
-// Save or update event attendance
+// SAVE / UPDATE EVENT ATTENDANCE
 export const saveEventAttendance = async (
   eventId: number,
   input: SaveAttendanceInput,
@@ -122,8 +143,7 @@ export const saveEventAttendance = async (
   return data.data;
 };
 
-
-
+// GET STUDENT OWN ATTENDANCE
 export const getStudentAttendance = async (): Promise<MyAttendanceResult> => {
   const { data } = await api.get<ApiResponse<MyAttendanceResult>>(
     "/attendance/student",
@@ -132,12 +152,15 @@ export const getStudentAttendance = async (): Promise<MyAttendanceResult> => {
   return data.data;
 };
 
-
-export const getHodAttendanceEvents = async (): Promise<
-  HodAttendanceEvent[]
-> => {
-  const { data } = await api.get<ApiResponse<HodAttendanceEvent[]>>(
+// GET ATTENDANCE EVENTS
+// Principal: all departments
+// HOD: own department
+export const getHodAttendanceEvents = async (
+  query: AttendanceQuery = {},
+): Promise<AttendanceEventsResult> => {
+  const { data } = await api.get<ApiResponse<AttendanceEventsResult>>(
     "/attendance/events",
+    { params: query },
   );
 
   return data.data;

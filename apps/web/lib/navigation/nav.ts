@@ -26,7 +26,7 @@ export const NAV: NavItem[] = [
 
   // Administration
   {
-    label: "Overview",
+    label: "Dashboard",
     href: "/principal",
     icon: "\u2302",
     roles: ADMIN,
@@ -80,6 +80,13 @@ export const NAV: NavItem[] = [
     roles: ADMIN,
     permission: ["event", "approve"],
   },
+  {
+  label: "Attendance Reports",
+  href: "/attendance/principal",
+  icon: "✓",
+  roles: ADMIN,
+  permission: ["attendance", "view"],
+},
   {
     label: "Roles & Permissions",
     href: "/principal/roles",

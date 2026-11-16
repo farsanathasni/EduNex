@@ -99,6 +99,11 @@ if (isPending) {
       description: "Review requests that require Principal approval.",
       href: "/principal/approvals",
     },
+    {
+  title: "Attendance Reports",
+  description: "View and manage event attendance across all departments.",
+  href: "/attendance/principal",
+},
   ];
 
   return (

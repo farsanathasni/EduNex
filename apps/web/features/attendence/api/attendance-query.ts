@@ -1,41 +1,63 @@
 
-import {useQuery,useMutation,useQueryClient} from "@tanstack/react-query";
-import { getEventAttendance, getHodAttendanceEvents, getStudentAttendance, HodAttendanceEvent, SaveAttendanceInput, saveEventAttendance } from "./attendance";
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 
-
+import {
+  getEventAttendance,
+  getHodAttendanceEvents,
+  getStudentAttendance,
+  saveEventAttendance,
+  type AttendanceQuery,
+  type SaveAttendanceInput,
+} from "./attendance";
 
 export const attendanceKeys = {
   all: ["attendance"] as const,
-  event: (eventId: number) =>
-    [...attendanceKeys.all, "event", eventId] as const,
+
+  events: (query: AttendanceQuery) =>
+    [...attendanceKeys.all, "events", query] as const,
+
+  event: (eventId: number, query: AttendanceQuery) =>
+    [...attendanceKeys.all, "event", eventId, query] as const,
+
+  student: () =>
+    [...attendanceKeys.all, "student"] as const,
 };
 
-
+// STUDENT ATTENDANCE
 export const useStudentAttendance = () => {
   return useQuery({
-    queryKey: [...attendanceKeys.all, "student"],
+    queryKey: attendanceKeys.student(),
     queryFn: getStudentAttendance,
   });
 };
 
-
-export const useHodAttendanceEvents =()=>{
+// PRINCIPAL / HOD ATTENDANCE EVENTS
+export const useHodAttendanceEvents = (
+  query: AttendanceQuery = {},
+) => {
   return useQuery({
-    queryKey:[...attendanceKeys.all,"hod","events"],
-    queryFn:()=>getHodAttendanceEvents(),
-  })
-}
+    queryKey: attendanceKeys.events(query),
+    queryFn: () => getHodAttendanceEvents(query),
+  });
+};
 
-// Fetch event attendance
-export const useEventAttendance = (eventId: number) => {
+// EVENT ATTENDANCE MEMBERS
+export const useEventAttendance = (
+  eventId: number,
+  query: AttendanceQuery = {},
+) => {
   return useQuery({
-    queryKey: attendanceKeys.event(eventId),
-    queryFn: () => getEventAttendance(eventId),
+    queryKey: attendanceKeys.event(eventId, query),
+    queryFn: () => getEventAttendance(eventId, query),
     enabled: Number.isInteger(eventId) && eventId > 0,
   });
 };
 
-// Save or update attendance
+// SAVE / UPDATE ATTENDANCE
 export const useSaveEventAttendance = (eventId: number) => {
   const queryClient = useQueryClient();
 
@@ -45,7 +67,7 @@ export const useSaveEventAttendance = (eventId: number) => {
 
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: attendanceKeys.event(eventId),
+        queryKey: [...attendanceKeys.all, "event", eventId],
       });
     },
   });
