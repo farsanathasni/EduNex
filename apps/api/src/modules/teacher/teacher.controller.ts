@@ -54,14 +54,33 @@ export const getTeacherStudentsController: RequestHandler =
         ? Number(req.query.semester)
         : undefined;
 
-      const data = await getTeacherStudents(
+      const search =
+        typeof req.query.search === "string"
+          ? req.query.search.trim()
+          : "";
+
+      const page =
+        req.query.page === undefined
+          ? 1
+          : Number(req.query.page);
+
+      const limit =
+        req.query.limit === undefined
+          ? 10
+          : Number(req.query.limit);
+
+      const result = await getTeacherStudents(
         getUserId(res),
         semester,
+        search,
+        page,
+        limit,
       );
 
       res.status(200).json({
         success: true,
-        data,
+        data: result.students,
+        pagination: result.pagination,
       });
     } catch (error) {
       next(error);
