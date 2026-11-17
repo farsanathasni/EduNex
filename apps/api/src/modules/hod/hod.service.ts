@@ -12,6 +12,7 @@ import {
 } from "../../db/schema/others-schema.js";
 import { user } from "../../db/schema/auth-schema.js";
 import { coordinatorAssignments } from "../../db/schema/coordinator-schema.js";
+import { notifyUser } from "../../lib/notify.js";
 
 // departmentId is optional everywhere below:
 //   a number   -> only that department (HOD)
@@ -309,7 +310,6 @@ export const getPendingEvents = async (
 
 // Approve or reject a pending event as the Principal.
 // departmentId undefined = Super Admin (any department).
-
 export const reviewEvent = async (
   eventId: number,
   reviewerId: string,
@@ -317,7 +317,7 @@ export const reviewEvent = async (
   decision: "approved" | "rejected",
   comments?: string,
 ) => {
-  return db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const updatedEvents = await tx
       .update(events)
       .set({
@@ -341,6 +341,8 @@ export const reviewEvent = async (
       )
       .returning({
         id: events.id,
+        title: events.title,
+        requestedBy: events.requestedBy,
       });
 
     if (updatedEvents.length === 0) {
@@ -356,10 +358,31 @@ export const reviewEvent = async (
       reviewedAt: new Date().toISOString(),
     });
 
-    return {
-      id: eventId,
-      status: decision,
-    };
+    return updatedEvents[0];
   });
-};
 
+  // Notify the person who requested the event (after the save succeeded).
+  // A failed notification must never fail the approval.
+  try {
+    if (result.requestedBy) {
+      const approved = decision === "approved";
+
+      await notifyUser(result.requestedBy, {
+        title: approved ? "Event approved" : "Event rejected",
+        message: approved
+          ? `Your event "${result.title}" was approved.`
+          : `Your event "${result.title}" was rejected.${comments ? ` Reason: ${comments}` : ""}`,
+        notificationType: approved ? "event_approved" : "event_rejected",
+        referenceType: "event",
+        referenceId: result.id,
+      });
+    }
+  } catch (err) {
+    console.error("Failed to send event review notification", err);
+  }
+
+  return {
+    id: eventId,
+    status: decision,
+  };
+};

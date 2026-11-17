@@ -15,7 +15,6 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 
-import CoordinatorLayout from "@/features/coordinator/components/coordinator-layout";
 import Card from "@/components/ui/card";
 import Button from "@/components/ui/button";
 
@@ -141,7 +140,7 @@ export default function BrowseEventsPage() {
   };
 
   return (
-    <CoordinatorLayout>
+   <>
       <main className="space-y-8 pb-10">
 
         {/* Page Heading */}
@@ -685,6 +684,6 @@ export default function BrowseEventsPage() {
         </div>
 
       </main>
-    </CoordinatorLayout>
+    </>
   );
 }

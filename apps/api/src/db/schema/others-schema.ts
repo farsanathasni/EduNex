@@ -222,7 +222,7 @@ export const resources = pgTable("resources", {
     // You can use { mode: "bigint" } if numbers are exceeding js number limitations
     departmentId: bigint("department_id", { mode: "number" }),
     // You can use { mode: "bigint" } if numbers are exceeding js number limitations
-    uploadedBy: bigint("uploaded_by", { mode: "number" }).notNull(),
+    uploadedBy: text("uploaded_by").notNull(),
     visibility: varchar({ length: 20 }).default('department').notNull(),
     createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
@@ -357,6 +357,7 @@ export const notifications = pgTable("notifications", {
             foreignColumns: [user.id],
             name: "notifications_user_id_user_id_fk"
         }).onDelete("cascade"),
+        index("notifications_user_id_idx").on(table.userId, table.createdAt),
 ]);
 
 

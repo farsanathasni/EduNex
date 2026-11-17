@@ -9,7 +9,6 @@ import {
   Users,
 } from "lucide-react";
 
-import CoordinatorLayout from "@/features/coordinator/components/coordinator-layout";
 import { useAccess } from "@/lib/navigation/access";
 
 import Card from "@/components/ui/card";
@@ -210,7 +209,7 @@ export default function CoordinatorProfilePage() {
       .toUpperCase() || "CC";
 
   return (
-    <CoordinatorLayout>
+    <>
       <main className="min-h-screen bg-background px-4 py-6 font-roobert text-text sm:px-6 sm:py-8">
         <div className="mx-auto max-w-5xl space-y-6">
           {isPending ? (
@@ -375,6 +374,6 @@ export default function CoordinatorProfilePage() {
           )}
         </div>
       </main>
-    </CoordinatorLayout>
+    </>
   );
 }

@@ -1,0 +1,1 @@
+ALTER TABLE "resources" ALTER COLUMN "uploaded_by" SET DATA TYPE text;

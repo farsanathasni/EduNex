@@ -13,6 +13,7 @@ import coordinatorRouter from "./modules/coordinator/coordinator.router.js";
 import eventsRouter from "./modules/events/events.routes.js";
 import attendenceRouter from "./modules/attendance/attendance.routes.js";
 import staffRouter from "./modules/staff/staff.router.js";
+import notificationsRouter from "./modules/notifications/notifications.routes.js";
 
 import errorHandler from "./middleware/error.middleware.js";
 import rolesRouter, { meRouter } from "./modules/rbac/rbac.routes.js";
@@ -44,6 +45,7 @@ app.use("/api/coordinator", coordinatorRouter);
 app.use("/api/events", eventsRouter);
 app.use("/api/attendance", attendenceRouter);
 app.use("/api/staff", staffRouter);
+app.use("/api/notifications", notificationsRouter);
 
 app.use("/api/me", meRouter);
 app.use("/api/roles", rolesRouter);

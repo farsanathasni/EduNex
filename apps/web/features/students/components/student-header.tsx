@@ -7,6 +7,9 @@ import {
 } from "lucide-react";
 
 import Button from "@/components/ui/button";
+import { NotificationBell } from "@/features/notifications/api/components/notification-bell";
+
+
 
 interface StudentHeaderProps {
   search?: string;
@@ -81,8 +84,10 @@ export default function StudentHeader({
               <span className="hidden sm:inline">
                 Switch to coordinator
               </span>
+             
             </Button>
           )}
+           <NotificationBell role="student" />
 
           <Button
             type="button"

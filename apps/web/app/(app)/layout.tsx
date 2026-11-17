@@ -8,6 +8,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { authClient } from "@/lib/auth-client";
 import { useAccess } from "@/lib/navigation/access";
 import { ModeSwitch } from "@/components/layout/mode-switch";
+import { NotificationBell } from "@/features/notifications/api/components/notification-bell"; // NOTIFICATION
 
 // One layout for every role. The sidebar is built from lib/nav.ts,
 // filtered by the roles and permissions in /api/me.
@@ -15,8 +16,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { me, isPending, isError, error, refetch, unauthorized, navItems, mode, canSwitchMode } =
-    useAccess();
+  const {
+    me,
+    isPending,
+    isError,
+    error,
+    refetch,
+    unauthorized,
+    navItems,
+    mode,
+    canSwitchMode,
+    hasRole, // NOTIFICATION
+    isSuperAdmin, // NOTIFICATION
+  } = useAccess();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -62,6 +74,17 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       ? "Coordinator view"
       : "Student view"
     : me.roles.map((r) => r.name ?? r.slug).join(", ");
+
+  // NOTIFICATION: which role's links/page the bell should use
+  const notificationRole = isSuperAdmin
+    ? "principal"
+    : hasRole("hod")
+      ? "hod"
+      : hasRole("faculty")
+        ? "faculty"
+        : mode === "coordinator"
+          ? "coordinator"
+          : "student";
 
   return (
     <div className="min-h-screen bg-background text-text md:flex">
@@ -136,6 +159,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <p className="font-semibold">{me.user?.name ?? "User"}</p>
 <p className="text-xs text-text-muted">{me.user?.email ?? ""}</p>
           </div>
+
+          <NotificationBell role={notificationRole} /> {/* NOTIFICATION */}
 
           <ModeSwitch />
         </header>

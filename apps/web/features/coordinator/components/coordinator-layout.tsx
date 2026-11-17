@@ -16,6 +16,7 @@ import { useAccess } from "@/lib/navigation/access";
 import { ModeSwitch } from "@/components/layout/mode-switch";
 import { authClient } from "@/lib/auth-client";
 import Button from "@/components/ui/button";
+import { NotificationBell } from "@/features/notifications/api/components/notification-bell";
 
 export default function CoordinatorLayout({
   children,
@@ -64,13 +65,15 @@ export default function CoordinatorLayout({
               : item.icon,
     }));
 
-  const currentPage =
-    navigation.find(
-      (item) =>
-        pathname === item.href ||
-        (item.href !== "/dashboard" &&
-          pathname.startsWith(`${item.href}/`)),
-    )?.name ?? "Dashboard";
+const currentPage =
+  pathname === "/club-coordinator/notifications"
+    ? "Notifications"
+    : navigation.find(
+        (item) =>
+          pathname === item.href ||
+          (item.href !== "/dashboard" &&
+            pathname.startsWith(`${item.href}/`)),
+      )?.name ?? "Dashboard";
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800">
@@ -220,6 +223,7 @@ export default function CoordinatorLayout({
 
           {/* Header actions */}
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <NotificationBell role="coordinator" />
             <ModeSwitch />
 
             {(mode === "coordinator" || isSuperAdmin) && (

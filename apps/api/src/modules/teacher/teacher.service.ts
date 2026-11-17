@@ -17,6 +17,7 @@ import {
   departments,
   resources,
 } from "../../db/schema/others-schema.js";
+import { notifyMany } from "../../lib/notify.js";
 
 type MaterialInput = {
   title: string;
@@ -233,6 +234,33 @@ export async function createTeacherMaterial(
       visibility: input.visibility,
     })
     .returning();
+
+      try {
+    const students = await db
+      .select({ userId: StudentProfile.userId })
+      .from(StudentProfile)
+      .where(
+        and(
+          eq(StudentProfile.isDeleted, false),
+          input.visibility === "department"
+            ? eq(StudentProfile.departmentId, teacher.departmentId)
+            : undefined,
+        ),
+      );
+
+    await notifyMany(
+      students.map((s) => s.userId),
+      {
+        title: "New study material",
+        message: `"${material.title}" was added.`,
+        notificationType: "resource_added",
+        referenceType: "resource",
+        referenceId: material.id,
+      },
+    );
+  } catch (err) {
+    console.error("Failed to send study material notification", err);
+  }
 
   return material;
 

@@ -1,8 +1,8 @@
 
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 import { X, GraduationCap } from "lucide-react";
 
 import { useAccess } from "@/lib/navigation/access";

@@ -7,6 +7,7 @@ import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { RouteGuard } from "@/features/auth/components/route-guard";
 import { useAccess } from "@/lib/navigation/access";
+import { NotificationBell } from "@/features/notifications/api/components/notification-bell";
 
 
 export default function HodLayout({
@@ -124,31 +125,37 @@ export default function HodLayout({
 
       <div className="min-w-0 flex-1">
         <header className="sticky top-0 z-30 flex items-center gap-4 border-b border-border bg-surface px-4 py-4 sm:px-6">
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(true)}
-            aria-label="Open navigation menu"
-            className="rounded-lg border border-border px-3 py-2 md:hidden"
-          >
-            ☰
-          </button>
+  <button
+    type="button"
+    onClick={() => setMobileMenuOpen(true)}
+    aria-label="Open navigation menu"
+    className="rounded-lg border border-border px-3 py-2 md:hidden"
+  >
+    ☰
+  </button>
 
-          <div>
-  <p className="font-semibold">
-    {pathname === "/attendance/hod"
-      ? "Attendance Reports"
-      : pathname.startsWith("/attendance/hod/")
-        ? "Event Attendance"
-        : "HOD Portal"}
-  </p>
+  <div className="min-w-0 flex-1">
+    <p className="font-semibold">
+      {pathname === "/hod/notifications"
+        ? "Notifications"
+        : pathname === "/attendance/hod"
+          ? "Attendance Reports"
+          : pathname.startsWith("/attendance/hod/")
+            ? "Event Attendance"
+            : "HOD Portal"}
+    </p>
 
-  <p className="text-xs text-text-muted">
-    {pathname.startsWith("/attendance/hod")
-      ? "View department event attendance"
-      : "Department management and administration"}
-  </p>
-</div>
-        </header>
+    <p className="text-xs text-text-muted">
+      {pathname === "/hod/notifications"
+        ? "Stay up to date with campus activity"
+        : pathname.startsWith("/attendance/hod")
+          ? "View department event attendance"
+          : "Department management and administration"}
+    </p>
+  </div>
+
+  <NotificationBell role="hod" />
+</header>
 
         <main className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
           {children}

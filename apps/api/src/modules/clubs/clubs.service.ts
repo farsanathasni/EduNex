@@ -22,6 +22,7 @@ import { StudentProfile } from "../../db/schema/student-profile.js";
 import { user } from "../../db/schema/auth-schema.js";
 import { coordinatorAssignments } from "../../db/schema/coordinator-schema.js";
 import type { UpdateClubInput } from "./clubs.validation.js";
+import { notifyUser,notifyMany } from "../../lib/notify.js";
 
 const getPagination = (page: number, limit: number) => ({
   limit,
@@ -288,7 +289,7 @@ export const createMemberShipRequest = async (
   studentId: number,
 ) => {
   const [club] = await db
-    .select({ id: clubs.id })
+    .select({ id: clubs.id, name: clubs.name })
     .from(clubs)
     .where(eq(clubs.id, clubId))
     .limit(1);
@@ -324,7 +325,47 @@ export const createMemberShipRequest = async (
     })
     .returning();
 
-  return Array.isArray(result) ? result[0] ?? null : null;
+  const created = Array.isArray(result) ? result[0] ?? null : null;
+
+  // Tell the club's coordinators. Never fail the request because of this.
+  if (created) {
+    try {
+      const [student] = await db
+        .select({ name: StudentProfile.name })
+        .from(StudentProfile)
+        .where(eq(StudentProfile.id, studentId))
+        .limit(1);
+
+      const coordinators = await db
+        .select({ userId: StudentProfile.userId })
+        .from(coordinatorAssignments)
+        .innerJoin(
+          StudentProfile,
+          eq(coordinatorAssignments.studentId, StudentProfile.id),
+        )
+        .where(
+          and(
+            eq(coordinatorAssignments.clubId, clubId),
+            eq(StudentProfile.isDeleted, false),
+          ),
+        );
+
+      await notifyMany(
+        coordinators.map((c) => c.userId),
+        {
+          title: "New membership request",
+          message: `${student?.name ?? "A student"} wants to join ${club.name}.`,
+          notificationType: "membership_requested",
+          referenceType: "membership_request",
+          referenceId: created.id,
+        },
+      );
+    } catch (err) {
+      console.error("Failed to send membership request notification", err);
+    }
+  }
+
+  return created;
 };
 
 export const getMyMembershipRequests = async (
@@ -670,6 +711,42 @@ export const reviewClubMembershipRequest = async (
 
   if (!updatedRequest) {
     throw new Error("MEMBERSHIP_REQUEST_ALREADY_REVIEWED");
+  }
+
+  // Tell the student the result.
+  // A failed notification must never fail the review.
+  try {
+    const [info] = await db
+      .select({
+        userId: StudentProfile.userId,
+        clubName: clubs.name,
+      })
+      .from(clubMemberships)
+      .innerJoin(
+        StudentProfile,
+        eq(clubMemberships.studentId, StudentProfile.id),
+      )
+      .innerJoin(clubs, eq(clubMemberships.clubId, clubs.id))
+      .where(eq(clubMemberships.id, updatedRequest.id))
+      .limit(1);
+
+    if (info) {
+      const approved = decision === "approved";
+
+      await notifyUser(info.userId, {
+        title: approved ? "Membership approved" : "Membership rejected",
+        message: approved
+          ? `Your request to join ${info.clubName} was approved.`
+          : `Your request to join ${info.clubName} was rejected.`,
+        notificationType: approved
+          ? "membership_approved"
+          : "membership_rejected",
+        referenceType: "membership",
+        referenceId: updatedRequest.clubId,
+      });
+    }
+  } catch (err) {
+    console.error("Failed to send membership review notification", err);
   }
 
   return updatedRequest;
