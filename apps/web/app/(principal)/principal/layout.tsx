@@ -6,6 +6,7 @@ import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { RouteGuard } from "@/features/auth/components/route-guard";
 import { useAccess } from "@/lib/navigation/access";
+import { NotificationBell } from "@/features/notifications/api/components/notification-bell";
 
 
 export default function PrincipalLayout({
@@ -116,22 +117,24 @@ export default function PrincipalLayout({
 
       <div className="min-w-0 flex-1">
         <header className="sticky top-0 z-30 flex items-center gap-4 border-b border-border bg-surface px-4 py-4 sm:px-6">
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(true)}
-            aria-label="Open navigation menu"
-            className="rounded-lg border border-border px-3 py-2 md:hidden"
-          >
-            ☰
-          </button>
+  <button
+    type="button"
+    onClick={() => setMobileMenuOpen(true)}
+    aria-label="Open navigation menu"
+    className="rounded-lg border border-border px-3 py-2 md:hidden"
+  >
+    ☰
+  </button>
 
-          <div>
-            <p className="font-semibold">Principal Portal</p>
-            <p className="text-xs text-text-muted">
-              College administration and management
-            </p>
-          </div>
-        </header>
+  <div className="min-w-0 flex-1">
+    <p className="font-semibold">Principal Portal</p>
+    <p className="text-xs text-text-muted">
+      College administration and management
+    </p>
+  </div>
+
+  <NotificationBell role="principal" />
+</header>
 
         <div className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
           {children}

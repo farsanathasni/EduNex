@@ -29,6 +29,23 @@ export interface TeacherStudent {
   phone: string | null;
 }
 
+export interface TeacherStudentListParams {
+  search: string;
+  semester?: number;
+  page: number;
+  limit: number;
+}
+
+export interface TeacherStudentListResult {
+  students: TeacherStudent[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
 export interface StudyMaterial {
   id: number;
   title: string;
@@ -53,6 +70,10 @@ interface ApiResponse<T> {
   message?: string;
 }
 
+interface PaginatedApiResponse<T> extends ApiResponse<T> {
+  pagination: TeacherStudentListResult["pagination"];
+}
+
 // API functions
 
 export const teacherApi = {
@@ -70,14 +91,27 @@ export const teacherApi = {
     return response.data.data;
   },
 
-  getStudents: async (semester?: number) => {
-    const response = await api.get<ApiResponse<TeacherStudent[]>>(
+  getStudents: async (
+    params: TeacherStudentListParams
+  ): Promise<TeacherStudentListResult> => {
+    const response = await api.get<PaginatedApiResponse<TeacherStudent[]>>(
       "/teacher/students",
       {
-        params: semester ? { semester } : {},
+        params: {
+          search: params.search,
+          page: params.page,
+          limit: params.limit,
+          ...(params.semester !== undefined
+            ? { semester: params.semester }
+            : {}),
+        },
       }
     );
-    return response.data.data;
+
+    return {
+      students: response.data.data,
+      pagination: response.data.pagination,
+    };
   },
 
   getMaterials: async () => {
@@ -109,8 +143,8 @@ export const teacherKeys = {
   all: ["teacher"] as const,
   dashboard: () => [...teacherKeys.all, "dashboard"] as const,
   classes: () => [...teacherKeys.all, "classes"] as const,
-  students: (semester?: number) =>
-    [...teacherKeys.all, "students", semester] as const,
+  students: (params: TeacherStudentListParams) =>
+    [...teacherKeys.all, "students", params] as const,
   materials: () => [...teacherKeys.all, "materials"] as const,
 };
 
@@ -133,10 +167,12 @@ export function useTeacherClassesQuery() {
   });
 }
 
-export function useTeacherStudentsQuery(semester?: number) {
+export function useTeacherStudentsQuery(
+  params: TeacherStudentListParams
+) {
   return useQuery({
-    queryKey: teacherKeys.students(semester),
-    queryFn: () => teacherApi.getStudents(semester),
+    queryKey: teacherKeys.students(params),
+    queryFn: () => teacherApi.getStudents(params),
     retry: false,
   });
 }

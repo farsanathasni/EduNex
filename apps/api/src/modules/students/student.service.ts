@@ -16,6 +16,7 @@ import { user } from "../../db/schema/auth-schema.js";
 import { coordinatorAssignments } from "../../db/schema/coordinator-schema.js";
 import { roles, userRoles } from "../../db/schema/rbac-schema.js";
 import { sendEmail } from "../../utils/email.js";
+import { notifyUser } from "../../lib/notify.js";
 
 type CreateStudentProfileData = {
   userId: string;
@@ -525,6 +526,18 @@ getProfile: async (userId: string) => {
       );
     }
 
+    try {
+      await notifyUser(student.userId, {
+        title: "Appointed as club coordinator",
+        message: `You have been appointed as coordinator of ${club.name}.`,
+        notificationType: "coordinator_assigned",
+        referenceType: "club",
+        referenceId: club.id,
+      });
+    } catch (err) {
+      console.error("Failed to send coordinator assignment notification", err);
+    }
+
     return {
       assignment,
       emailSent,
@@ -681,6 +694,7 @@ getProfile: async (userId: string) => {
     const [club] = await db
       .select({
         id: clubs.id,
+        name: clubs.name,
         departmentId: clubs.departmentId,
       })
       .from(clubs)
@@ -723,7 +737,7 @@ getProfile: async (userId: string) => {
 
     const coordinatorRole = await getClubCoordinatorRole();
 
-    return db.transaction(async (tx) => {
+      const updated = await db.transaction(async (tx) => {
       const result = await tx
         .update(coordinatorAssignments)
         .set({
@@ -793,6 +807,26 @@ getProfile: async (userId: string) => {
 
       return assignment;
     });
+
+        // Notify the student who is now the coordinator (only if something changed for them).
+    if (
+      existingAssignment.studentId !== studentId ||
+      existingAssignment.clubId !== clubId
+    ) {
+      try {
+        await notifyUser(student.userId, {
+          title: "Appointed as club coordinator",
+          message: `You have been appointed as coordinator of ${club.name}.`,
+          notificationType: "coordinator_assigned",
+          referenceType: "club",
+          referenceId: club.id,
+        });
+      } catch (err) {
+        console.error("Failed to send coordinator update notification", err);
+      }
+    }
+
+    return updated;
   },
 
   // Remove one coordinator-to-club assignment without deleting the student.
@@ -802,9 +836,12 @@ getProfile: async (userId: string) => {
       .select({
         studentId: coordinatorAssignments.studentId,
         userId: StudentProfile.userId,
+        clubId: coordinatorAssignments.clubId,
+        clubName: clubs.name,
       })
       .from(coordinatorAssignments)
       .innerJoin(StudentProfile, eq(coordinatorAssignments.studentId, StudentProfile.id))
+      .innerJoin(clubs, eq(coordinatorAssignments.clubId, clubs.id))
       .where(and(
         eq(coordinatorAssignments.id, assignmentId),
         eq(StudentProfile.isDeleted, false),
@@ -813,12 +850,12 @@ getProfile: async (userId: string) => {
     if (!existing) return null;
 
     const coordinatorRole = await getClubCoordinatorRole();
-    return db.transaction(async (tx) => {
-      const [removed] = await tx
+    const removed = await db.transaction(async (tx) => {
+      const [removedRow] = await tx
         .delete(coordinatorAssignments)
         .where(eq(coordinatorAssignments.id, assignmentId))
         .returning({ id: coordinatorAssignments.id });
-      if (!removed) return null;
+      if (!removedRow) return null;
 
       const [remaining] = await tx
         .select({ id: coordinatorAssignments.id })
@@ -831,7 +868,23 @@ getProfile: async (userId: string) => {
           eq(userRoles.roleId, coordinatorRole.id),
         ));
       }
-      return removed;
+      return removedRow;
     });
+
+    if (removed) {
+      try {
+        await notifyUser(existing.userId, {
+          title: "Coordinator role removed",
+          message: `You are no longer a coordinator of ${existing.clubName}.`,
+          notificationType: "coordinator_removed",
+          referenceType: "club",
+          referenceId: existing.clubId,
+        });
+      } catch (err) {
+        console.error("Failed to send coordinator removal notification", err);
+      }
+    }
+
+    return removed;
   },
 };

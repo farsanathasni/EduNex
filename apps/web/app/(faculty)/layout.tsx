@@ -4,6 +4,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAccess } from "@/lib/navigation/access";
+import { NotificationBell } from "@/features/notifications/api/components/notification-bell";
+
+
 
 export default function TeacherLayout({
   children,
@@ -55,6 +58,7 @@ export default function TeacherLayout({
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-lg font-bold text-white">
             E
           </div>
+          
 
           <div>
             <h1 className="text-lg font-bold">EduNex</h1>
@@ -103,21 +107,24 @@ export default function TeacherLayout({
             </p>
 
             <h2 className="font-semibold">
-              {navigation.find((item) => isActive(item.href))?.label ??
-                "Teacher Portal"}
-            </h2>
+  {pathname === "/teacher/notifications"
+    ? "Notifications"
+    : navigation.find((item) => isActive(item.href))?.label ?? "Teacher Portal"}
+</h2>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="hidden text-right sm:block">
-              <p className="text-sm font-medium">Faculty</p>
-              <p className="text-xs text-muted">Teacher Account</p>
-            </div>
+<div className="flex items-center gap-3">
+  <NotificationBell role="faculty" />
 
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-subtle font-semibold text-primary">
-              T
-            </div>
-          </div>
+  <div className="hidden text-right sm:block">
+    <p className="text-sm font-medium">Faculty</p>
+    <p className="text-xs text-muted">Teacher Account</p>
+  </div>
+
+  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-subtle font-semibold text-primary">
+    T
+  </div>
+</div>
         </header>
 
         {/* Mobile navigation */}

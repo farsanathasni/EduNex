@@ -5,6 +5,9 @@ import {
   count,
   desc,
   eq,
+  ilike,
+  or,
+  type SQL,
 } from "drizzle-orm";
 
 import { db } from "../../config/database.js";
@@ -14,6 +17,7 @@ import {
   departments,
   resources,
 } from "../../db/schema/others-schema.js";
+import { notifyMany } from "../../lib/notify.js";
 
 type MaterialInput = {
   title: string;
@@ -123,10 +127,13 @@ export async function getTeacherClasses(userId: string) {
 export async function getTeacherStudents(
   userId: string,
   semester?: number,
+  search = "",
+  page = 1,
+  limit = 10,
 ) {
   const teacher = await getTeacherContext(userId);
 
-  const conditions = [
+  const conditions: SQL[] = [
     eq(StudentProfile.departmentId, teacher.departmentId),
     eq(StudentProfile.isDeleted, false),
   ];
@@ -137,17 +144,54 @@ export async function getTeacherStudents(
     );
   }
 
-  return db
-    .select({
-      id: StudentProfile.id,
-      name: StudentProfile.name,
-      admissionNumber: StudentProfile.admissionNumber,
-      semester: StudentProfile.semester,
-      phone: StudentProfile.phone,
-    })
-    .from(StudentProfile)
-    .where(and(...conditions))
-    .orderBy(asc(StudentProfile.name));
+  if (search.trim()) {
+    const searchTerm = `%${search.trim()}%`;
+
+    const searchCondition = or(
+      ilike(StudentProfile.name, searchTerm),
+      ilike(StudentProfile.admissionNumber, searchTerm),
+    );
+
+    if (searchCondition) {
+      conditions.push(searchCondition);
+    }
+  }
+
+  const whereCondition = and(...conditions);
+  const offset = (page - 1) * limit;
+
+  const [students, totalResult] = await Promise.all([
+    db
+      .select({
+        id: StudentProfile.id,
+        name: StudentProfile.name,
+        admissionNumber: StudentProfile.admissionNumber,
+        semester: StudentProfile.semester,
+        phone: StudentProfile.phone,
+      })
+      .from(StudentProfile)
+      .where(whereCondition)
+      .orderBy(asc(StudentProfile.name))
+      .limit(limit)
+      .offset(offset),
+
+    db
+      .select({ total: count() })
+      .from(StudentProfile)
+      .where(whereCondition),
+  ]);
+
+  const total = totalResult[0].total;
+
+  return {
+    students,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
 }
 
 // List study materials
@@ -190,6 +234,33 @@ export async function createTeacherMaterial(
       visibility: input.visibility,
     })
     .returning();
+
+      try {
+    const students = await db
+      .select({ userId: StudentProfile.userId })
+      .from(StudentProfile)
+      .where(
+        and(
+          eq(StudentProfile.isDeleted, false),
+          input.visibility === "department"
+            ? eq(StudentProfile.departmentId, teacher.departmentId)
+            : undefined,
+        ),
+      );
+
+    await notifyMany(
+      students.map((s) => s.userId),
+      {
+        title: "New study material",
+        message: `"${material.title}" was added.`,
+        notificationType: "resource_added",
+        referenceType: "resource",
+        referenceId: material.id,
+      },
+    );
+  } catch (err) {
+    console.error("Failed to send study material notification", err);
+  }
 
   return material;
 

@@ -1,4 +1,3 @@
-
 import {
   and,
   asc,
@@ -12,11 +11,14 @@ import {
 
 import { db } from "../../config/database.js";
 import {
+  clubMemberships,
   clubs,
   events,
 } from "../../db/schema/others-schema.js";
 import { StudentProfile } from "../../db/schema/student-profile.js";
 import { coordinatorAssignments } from "../../db/schema/coordinator-schema.js";
+import { staff } from "../../db/schema/staff-schema.js";
+import { notifyMany } from "../../lib/notify.js";
 
 const getEventSearchCondition = (search: string) => {
   if (!search) {
@@ -238,6 +240,28 @@ export const createEventRequest = async (
     })
     .returning();
 
+  // Tell every active principal that a new request is waiting.
+  // A failed notification must never fail the request itself.
+  try {
+    const principals = await db
+      .select({ userId: staff.userId })
+      .from(staff)
+      .where(and(eq(staff.role, "principal"), eq(staff.isActive, true)));
+
+    await notifyMany(
+      principals.map((p) => p.userId),
+      {
+        title: "New event request",
+        message: `"${newEvent.title}" is waiting for your approval.`,
+        notificationType: "event_requested",
+        referenceType: "event_approval",
+        referenceId: newEvent.id,
+      },
+    );
+  } catch (err) {
+    console.error("Failed to send event request notification", err);
+  }
+
   return newEvent;
 };
 
@@ -354,9 +378,48 @@ export const publishApprovedEvent = async (eventId: number) => {
     )
     .returning({
       id: events.id,
+      clubId: events.clubId,
       title: events.title,
       status: events.status,
     });
 
-  return publishedEvent ?? null;
+  if (!publishedEvent) return null;
+
+  // Tell every approved member of the club about the new event.
+  // A failed notification must never fail the publish.
+  try {
+    const members = await db
+      .select({ userId: StudentProfile.userId })
+      .from(clubMemberships)
+      .innerJoin(
+        StudentProfile,
+        eq(clubMemberships.studentId, StudentProfile.id),
+      )
+      .where(
+        and(
+          eq(clubMemberships.clubId, publishedEvent.clubId),
+          eq(clubMemberships.status, "approved"),
+          eq(StudentProfile.isDeleted, false),
+        ),
+      );
+
+    await notifyMany(
+      members.map((m) => m.userId),
+      {
+        title: "New event published",
+        message: `"${publishedEvent.title}" has been published. Check the events page for details.`,
+        notificationType: "event_published",
+        referenceType: "event",
+        referenceId: publishedEvent.id,
+      },
+    );
+  } catch (err) {
+    console.error("Failed to send event published notification", err);
+  }
+
+  return {
+    id: publishedEvent.id,
+    title: publishedEvent.title,
+    status: publishedEvent.status,
+  };
 };

@@ -3,7 +3,6 @@
 
 import { useState } from "react";
 
-import CoordinatorLayout from "@/features/coordinator/components/coordinator-layout";
 import Card from "@/components/ui/card";
 import { useAccess } from "@/lib/navigation/access";
 
@@ -112,7 +111,7 @@ export default function RequestEventPage() {
   };
 
   return (
-    <CoordinatorLayout>
+    <>
       <div className="mx-auto max-w-4xl space-y-7 pb-10">
         {/* Header */}
         <section className="rounded-3xl bg-gradient-to-br from-[#19396f] via-[#234c96] to-[#315eaa] p-8 text-white shadow-lg">
@@ -477,6 +476,6 @@ export default function RequestEventPage() {
           )}
         </Card>
       </div>
-    </CoordinatorLayout>
+    </>
   );
 }

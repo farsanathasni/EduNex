@@ -17,7 +17,6 @@ import {
   Search,
 } from "lucide-react";
 
-import CoordinatorLayout from "@/features/coordinator/components/coordinator-layout";
 import Card from "@/components/ui/card";
 import Button from "@/components/ui/button";
 
@@ -228,7 +227,7 @@ export default function ClubMembersPage() {
   };
 
   return (
-    <CoordinatorLayout>
+    <>
       <main className="min-h-screen space-y-8 bg-background pb-8 font-roobert text-text">
 
         {/* Hero Section */}
@@ -750,6 +749,6 @@ export default function ClubMembersPage() {
           EduNex · Connecting students, faculty and campus life.
         </p>
       </main>
-    </CoordinatorLayout>
+    </>
   );
 }

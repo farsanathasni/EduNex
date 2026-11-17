@@ -26,7 +26,6 @@ import {
   useReviewClubMembershipRequest,
 } from "@/features/coordinator/api/coordinator-query";
 
-import CoordinatorLayout from "@/features/coordinator/components/coordinator-layout";
 import { useAccess } from "@/lib/navigation/access";
 import { Skeleton } from "@/components/ui/skeleton";
 import Pagination from "@/features/coordinator/components/pagination";
@@ -286,7 +285,7 @@ export default function MembershipRequestsPage() {
   };
 
   return (
-    <CoordinatorLayout>
+    <>
       <main className="space-y-8 pb-8">
 
         {/* Hero section */}
@@ -644,6 +643,6 @@ export default function MembershipRequestsPage() {
           )}
         </section>
       </main>
-    </CoordinatorLayout>
+    </>
   );
 }

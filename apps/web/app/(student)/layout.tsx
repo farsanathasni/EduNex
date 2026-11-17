@@ -54,6 +54,11 @@ function handleSwitchMode() {
     title: "My Attendance",
     subtitle: "View your event attendance records",
   },
+
+  "/studentNotifications": {
+  title: "Notifications",
+  subtitle: "Stay up to date with campus activity",
+},
     "/studentprofile": {
       title: "My Profile",
       subtitle: "View and manage your profile",
@@ -83,6 +88,7 @@ function handleSwitchMode() {
 
   return (
     <div className="min-h-screen bg-background">
+      
       <StudentHeader
   title={currentPage.title}
   subtitle={currentPage.subtitle}
@@ -91,6 +97,7 @@ function handleSwitchMode() {
   isSigningOut={isSigningOut}
   canSwitchMode={canSwitchMode}
   onSwitchMode={handleSwitchMode}
+
 />
 
       <div className="flex min-h-[calc(100vh-76px)]">

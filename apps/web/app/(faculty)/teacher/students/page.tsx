@@ -2,10 +2,14 @@
 "use client";
 
 import { useState } from "react";
+import Button from "@/components/ui/button";
+import Input from "@/components/ui/input";
 import {
   useTeacherClassesQuery,
   useTeacherStudentsQuery,
 } from "@/features/teacher/api/teacher-query";
+
+const PAGE_SIZE = 10;
 
 function TeacherStudentsSkeleton() {
   return (
@@ -64,18 +68,32 @@ function TeacherStudentsSkeleton() {
 }
 
 export default function TeacherStudentsPage() {
+  const [search, setSearch] = useState("");
   const [semester, setSemester] = useState("");
+  const [page, setPage] = useState(1);
 
   const selectedSemester = semester
     ? Number(semester)
     : undefined;
 
   const {
-    data: students,
+    data,
     isLoading,
+    isFetching,
     isError,
     refetch,
-  } = useTeacherStudentsQuery(selectedSemester);
+  } = useTeacherStudentsQuery({
+    search: search.trim(),
+    semester: selectedSemester,
+    page,
+    limit: PAGE_SIZE,
+  });
+
+  const students = data?.students ?? [];
+  const pagination = data?.pagination;
+  const totalPages = pagination?.totalPages ?? 0;
+  const hasFilters =
+    search.trim().length > 0 || selectedSemester !== undefined;
 
   const { data: classes } = useTeacherClassesQuery();
 
@@ -94,22 +112,39 @@ export default function TeacherStudentsPage() {
         <>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-muted">
-              {students?.length ?? 0} students found
+              {pagination?.total ?? 0} students found
             </p>
 
-            <select
-              value={semester}
-              onChange={(e) => setSemester(e.target.value)}
-              className="rounded-lg border border-border bg-surface px-4 py-2 text-sm outline-none focus:border-primary"
-            >
-              <option value="">All Semesters</option>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+              <Input
+                type="search"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="Search by name or admission number"
+                aria-label="Search students"
+                className="sm:w-64"
+              />
 
-              {classes?.map((item) => (
-                <option key={item.semester} value={item.semester}>
-                  Semester {item.semester}
-                </option>
-              ))}
-            </select>
+              <select
+                value={semester}
+                onChange={(e) => {
+                  setSemester(e.target.value);
+                  setPage(1);
+                }}
+                className="rounded-lg border border-border bg-surface px-4 py-2 text-sm outline-none focus:border-primary"
+              >
+                <option value="">All Semesters</option>
+
+                {classes?.map((item) => (
+                  <option key={item.semester} value={item.semester}>
+                    Semester {item.semester}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
           {isError ? (
@@ -126,7 +161,9 @@ export default function TeacherStudentsPage() {
             <div className="rounded-xl border border-border bg-surface p-8 text-center">
               <p className="font-medium">No students found</p>
               <p className="mt-2 text-sm text-muted">
-                Try selecting another semester.
+                {hasFilters
+                  ? "Try adjusting your search or semester filter."
+                  : "No students are available in your department yet."}
               </p>
             </div>
           ) : (
@@ -166,6 +203,37 @@ export default function TeacherStudentsPage() {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          )}
+
+          {!isError && (pagination?.total ?? 0) > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-sm">
+              <p className="text-muted">
+                {pagination?.total ?? 0} students · Page{" "}
+                {pagination?.page ?? page} of {Math.max(totalPages, 1)}
+              </p>
+
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 1 || isFetching}
+                  onClick={() =>
+                    setPage((current) => Math.max(1, current - 1))
+                  }
+                >
+                  Previous
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= totalPages || isFetching}
+                  onClick={() => setPage((current) => current + 1)}
+                >
+                  Next
+                </Button>
               </div>
             </div>
           )}
