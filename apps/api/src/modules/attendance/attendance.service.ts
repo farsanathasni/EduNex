@@ -5,13 +5,34 @@ import {attendance,clubMemberships, clubs, events,} from "../../db/schema/others
 import { coordinatorAssignments } from "../../db/schema/coordinator-schema.js";
 import { staff } from "../../db/schema/staff-schema.js";
 
+type AttendanceQuery = {
+  page: number;
+  limit: number;
+  search: string;
+};
 
+const createPagination = (
+  page: number,
+  limit: number,
+  total: number,
+) => {
+  const totalPages = Math.ceil(total / limit);
 
+  return {
+    page,
+    limit,
+    total,
+    totalPages,
+    hasNextPage: page < totalPages,
+    hasPreviousPage: page > 1,
+  };
+};
 
 export const getEventAttendance = async (
   eventId: number,
   userId: string,
   isSuperAdmin = false,
+  query?: AttendanceQuery,
 ) => {
   const [event] = await db
     .select({
@@ -94,7 +115,7 @@ export const getEventAttendance = async (
     }
   }
 
-  const members = await db
+    const allMembers = await db
     .select({
       studentId: StudentProfile.id,
       name: StudentProfile.name,
@@ -122,22 +143,40 @@ export const getEventAttendance = async (
       ),
     );
 
-  const total = members.length;
+  // Calculate summary using ALL members, not only the current page.
+  const total = allMembers.length;
 
-  const present = members.filter(
+  const present = allMembers.filter(
     (member) => member.status === "present",
   ).length;
 
-  const absent = members.filter(
+  const absent = allMembers.filter(
     (member) => member.status === "absent",
   ).length;
 
-  const unmarked = members.filter(
+  const unmarked = allMembers.filter(
     (member) => member.status === null,
   ).length;
 
   const percentage =
     total > 0 ? Math.round((present / total) * 100) : 0;
+
+  // Search and pagination.
+  const page = query?.page ?? 1;
+  const limit = query?.limit ?? 10;
+  const search = query?.search?.trim().toLowerCase() ?? "";
+
+  const filteredMembers = allMembers.filter((member) => {
+    return (
+      member.name.toLowerCase().includes(search) ||
+      (member.admissionNumber ?? "").toLowerCase().includes(search)
+    );
+  });
+
+  const filteredTotal = filteredMembers.length;
+  const offset = (page - 1) * limit;
+
+  const members = filteredMembers.slice(offset, offset + limit);
 
   return {
     event,
@@ -149,9 +188,9 @@ export const getEventAttendance = async (
       percentage,
     },
     members,
+    pagination: createPagination(page, limit, filteredTotal),
   };
 };
-
 
 
 export const saveAttendance = async (
@@ -333,9 +372,12 @@ export const getStudentAttendance = async (userId: string) => {
 // Get events for the attendance reports page.
 export const getHodAttendanceEvents = async (
   departmentId?: number,
+  query?: AttendanceQuery,
 ) => {
   const conditions: SQL[] = [];
 
+  // HOD: only their department.
+  // Principal: departmentId is undefined, so all departments are included.
   if (departmentId !== undefined) {
     conditions.push(eq(clubs.departmentId, departmentId));
   }
@@ -357,5 +399,31 @@ export const getHodAttendanceEvents = async (
     .innerJoin(clubs, eq(events.clubId, clubs.id))
     .where(conditions.length ? and(...conditions) : undefined);
 
-  return eventList;
+  // Search.
+  const page = query?.page ?? 1;
+  const limit = query?.limit ?? 10;
+  const search = query?.search?.trim().toLowerCase() ?? "";
+
+  const filteredEvents = eventList.filter((event) => {
+    return (
+      event.title.toLowerCase().includes(search) ||
+      (event.clubName ?? "").toLowerCase().includes(search) ||
+      (event.description ?? "").toLowerCase().includes(search) ||
+      (event.location ?? "").toLowerCase().includes(search)
+    );
+  });
+
+  // Pagination.
+  const total = filteredEvents.length;
+  const offset = (page - 1) * limit;
+
+  const paginatedEvents = filteredEvents.slice(
+  offset,
+  offset + limit,
+);
+
+return {
+  events: paginatedEvents,
+  pagination: createPagination(page, limit, total),
+};
 };
