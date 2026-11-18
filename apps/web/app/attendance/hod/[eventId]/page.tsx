@@ -1,8 +1,20 @@
 
 "use client";
 
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, CalendarDays, Users, CheckCircle2, XCircle, Clock, Loader2 } from "lucide-react";
+import {
+  ArrowLeft,
+  CalendarDays,
+  Users,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
+
 import { useEventAttendance } from "@/features/attendence/api/attendance-query";
 
 export default function HodEventAttendancePage() {
@@ -11,12 +23,20 @@ export default function HodEventAttendancePage() {
 
   const eventId = Number(params.eventId);
 
+  const [page, setPage] = useState(1);
+  const limit = 10;
+
   const {
     data,
     isLoading,
     isError,
     error,
-  } = useEventAttendance(eventId);
+    isFetching,
+  } = useEventAttendance(eventId, {
+    page,
+    limit,
+    search: "",
+  });
 
   if (isLoading) {
     return (
@@ -30,7 +50,7 @@ export default function HodEventAttendancePage() {
     return (
       <div className="space-y-4">
         <button
-          onClick={() => router.back()}
+          onClick={() => router.push("/attendance/hod")}
           className="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -44,7 +64,10 @@ export default function HodEventAttendancePage() {
     );
   }
 
-  const { event, summary, members } = data;
+  const { event, summary, members, pagination } = data;
+
+  const totalPages = pagination.totalPages;
+  const currentPage = pagination.page;
 
   const cards = [
     {
@@ -77,6 +100,14 @@ export default function HodEventAttendancePage() {
     },
   ];
 
+  const startItem =
+    pagination.total === 0 ? 0 : (currentPage - 1) * limit + 1;
+
+  const endItem = Math.min(
+    currentPage * limit,
+    pagination.total,
+  );
+
   return (
     <div className="space-y-6">
       <button
@@ -87,12 +118,13 @@ export default function HodEventAttendancePage() {
         Back to Attendance Reports
       </button>
 
+      {/* Event Information */}
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
         <h1 className="text-2xl font-bold text-gray-900">
           {event.title}
         </h1>
 
-        <p className="mt-2 text-blue-600 font-medium">
+        <p className="mt-2 font-medium text-blue-600">
           {event.clubName}
         </p>
 
@@ -111,6 +143,7 @@ export default function HodEventAttendancePage() {
         </div>
       </div>
 
+      {/* Summary Cards */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {cards.map((card) => {
           const Icon = card.icon;
@@ -121,7 +154,10 @@ export default function HodEventAttendancePage() {
               className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
             >
               <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-500">{card.label}</p>
+                <p className="text-sm text-gray-500">
+                  {card.label}
+                </p>
+
                 <div className={`rounded-lg p-2 ${card.bg}`}>
                   <Icon className={`h-5 w-5 ${card.color}`} />
                 </div>
@@ -135,12 +171,14 @@ export default function HodEventAttendancePage() {
         })}
       </div>
 
+      {/* Attendance Percentage */}
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
         <div className="flex items-center justify-between gap-4">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
               Attendance Percentage
             </h2>
+
             <p className="mt-1 text-sm text-gray-500">
               Present members out of total approved members
             </p>
@@ -159,11 +197,13 @@ export default function HodEventAttendancePage() {
         </div>
       </div>
 
+      {/* Student Attendance Table */}
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="border-b border-gray-200 p-5">
           <h2 className="text-lg font-semibold text-gray-900">
             Student Attendance
           </h2>
+
           <p className="mt-1 text-sm text-gray-500">
             Attendance records for approved club members
           </p>
@@ -174,17 +214,28 @@ export default function HodEventAttendancePage() {
             <thead className="bg-gray-50 text-gray-600">
               <tr>
                 <th className="px-5 py-4 font-semibold">#</th>
-                <th className="px-5 py-4 font-semibold">Student Name</th>
-                <th className="px-5 py-4 font-semibold">Admission Number</th>
+                <th className="px-5 py-4 font-semibold">
+                  Student Name
+                </th>
+                <th className="px-5 py-4 font-semibold">
+                  Admission Number
+                </th>
                 <th className="px-5 py-4 font-semibold">Status</th>
-                <th className="px-5 py-4 font-semibold">Marked At</th>
+                <th className="px-5 py-4 font-semibold">
+                  Marked At
+                </th>
               </tr>
             </thead>
 
             <tbody className="divide-y divide-gray-100">
               {members.map((member, index) => (
-                <tr key={member.studentId} className="hover:bg-gray-50">
-                  <td className="px-5 py-4">{index + 1}</td>
+                <tr
+                  key={member.studentId}
+                  className="hover:bg-gray-50"
+                >
+                  <td className="px-5 py-4">
+                    {(currentPage - 1) * limit + index + 1}
+                  </td>
 
                   <td className="px-5 py-4 font-medium text-gray-900">
                     {member.name}
@@ -218,7 +269,10 @@ export default function HodEventAttendancePage() {
 
               {members.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-5 py-10 text-center text-gray-500">
+                  <td
+                    colSpan={5}
+                    className="px-5 py-10 text-center text-gray-500"
+                  >
                     No approved members found for this event.
                   </td>
                 </tr>
@@ -226,6 +280,49 @@ export default function HodEventAttendancePage() {
             </tbody>
           </table>
         </div>
+
+        {/* Pagination */}
+        {pagination.total > 0 && (
+          <div className="flex flex-col gap-4 border-t border-gray-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-gray-500">
+              Showing{" "}
+              <span className="font-medium text-gray-900">
+                {startItem}-{endItem}
+              </span>{" "}
+              of{" "}
+              <span className="font-medium text-gray-900">
+                {pagination.total}
+              </span>{" "}
+              students
+            </p>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={!pagination.hasPreviousPage || isFetching}
+                onClick={() => setPage((prev) => prev - 1)}
+                className="flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <ChevronLeft className="h-4 w-4" />
+                Previous
+              </button>
+
+              <span className="px-2 text-sm text-gray-600">
+                Page {currentPage} of {totalPages}
+              </span>
+
+              <button
+                type="button"
+                disabled={!pagination.hasNextPage || isFetching}
+                onClick={() => setPage((prev) => prev + 1)}
+                className="flex items-center gap-1 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Next
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -624,7 +624,7 @@ export default function BrowseEventsPage() {
   {assignedClubIds.has(event.clubId) ? (
     <button
       type="button"
-      onClick={() => router.push(`/attendance/${event.id}`)}
+      onClick={() => router.push(`/attendance/coordinator/${event.id}`)}
       className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-semibold text-white transition hover:bg-primary-hover"
     >
       <CalendarCheck2 className="h-4 w-4" />
