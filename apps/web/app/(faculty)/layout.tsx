@@ -21,9 +21,11 @@ export default function TeacherLayout({
     unauthorized,
   } = useAccess();
 
-  const navigation = navItems.filter((item) =>
-    item.href.startsWith("/teacher")
-  );
+  const navigation = navItems.filter(
+  (item) =>
+    item.href.startsWith("/teacher") ||
+    item.href === "/attendance/faculty"
+);
 
   const isActive = (href: string) =>
     href === "/teacher"

@@ -74,7 +74,7 @@ const roleHome = me ? getDashboardPath(me) : null;
 const deniedAccessDestination = isPrincipalAdmin
   ? "/principal"
   : coordinatorOnly && hasAnyRole(["student"])
-    ? "/studentDashboard"
+    ? "/student-dashboard"
     : roleHome && roleHome !== pathname
       ? roleHome
       : "/dashboard";
