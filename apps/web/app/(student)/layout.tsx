@@ -48,7 +48,7 @@ function handleSwitchMode() {
     subtitle: "Manage your club memberships",
   },
   "/student/attendance": {
-    title: "My Attendance",
+    title: "Event Attendance",
     subtitle: "View your event attendance records",
   },
   "/studentNotifications": {

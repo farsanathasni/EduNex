@@ -26,7 +26,7 @@ function StudentAttendanceLayoutContent({
 
   function handleSwitchMode() {
     setMode("coordinator");
-    router.push("/dashboard");
+    router.push("/club-coordinator/events");
   }
 
   async function handleLogout() {
@@ -48,7 +48,7 @@ function StudentAttendanceLayoutContent({
   return (
     <div className="min-h-screen bg-background text-text">
       <StudentHeader
-        title="My Attendance"
+        title="Event Attendance"
         subtitle="View your event attendance records"
         onOpenMobileMenu={() => setIsSidebarOpen(true)}
         onLogout={handleLogout}

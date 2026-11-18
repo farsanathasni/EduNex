@@ -100,7 +100,7 @@ if (isPending) {
       href: "/principal/approvals",
     },
     {
-  title: "Attendance Reports",
+  title: "Event Attendance Reports",
   description: "View and manage event attendance across all departments.",
   href: "/attendance/principal",
 },

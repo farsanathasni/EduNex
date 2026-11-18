@@ -81,7 +81,7 @@ export const NAV: NavItem[] = [
     permission: ["event", "approve"],
   },
   {
-  label: "Attendance Reports",
+  label: "Event Attendance Reports",
   href: "/attendance/principal",
   icon: "✓",
   roles: ADMIN,
@@ -125,7 +125,7 @@ export const NAV: NavItem[] = [
     permission: ["club", "view"],
   },
   {
-  label: "Attendance Reports",
+  label: "Event Attendance Reports",
   href: "/attendance/hod",
   icon: "✓",
   roles: HOD,
@@ -170,7 +170,7 @@ export const NAV: NavItem[] = [
 },
 
 {
-  label: "Attendance Reports",
+  label: "Event Attendance Reports",
   href: "/attendance/faculty",
   icon: "✓",
   roles: FACULTY,
@@ -211,7 +211,7 @@ export const NAV: NavItem[] = [
   mode: "student",
 },
 {
-  label: "My Attendance",
+  label: "Event Attendance",
   href: "/attendance/student",
   icon: "✓",
   roles: ["student"],

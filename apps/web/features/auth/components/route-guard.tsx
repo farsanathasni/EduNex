@@ -85,6 +85,19 @@ const deniedAccessDestination = isPrincipalAdmin
       ? deniedAccessDestination
       : null;
 
+      console.log("RouteGuard Debug:", {
+  pathname,
+  isPending,
+  isError,
+  me,
+  roleAllowed,
+  permissionAllowed,
+  coordinatorAllowed,
+  routeAllowed,
+  deniedAccessDestination,
+  redirectTo,
+});
+
   useEffect(() => {
     if (redirectTo) {
       router.replace(redirectTo);
@@ -127,3 +140,5 @@ const deniedAccessDestination = isPrincipalAdmin
 
   return <>{children}</>;
 }
+
+

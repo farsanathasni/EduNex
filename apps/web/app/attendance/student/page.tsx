@@ -54,7 +54,7 @@ export default function StudentAttendancePage() {
   return (
     <div className="w-full space-y-6 p-4 sm:p-6 lg:p-8">
       <PageHeader
-        title="My attendance"
+        title="Event attendance"
         description="Your record across campus events."
         action={
           <div className="flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-2.5 shadow-subtle">
