@@ -10,15 +10,35 @@ export const getEventAttendanceController = asyncHandler(
   async (req: Request, res: Response) => {
     const eventId = Number(req.params.eventId);
     const userId = res.locals.user.id as string;
-    const isSuperAdmin = (res.locals.access as Access).isSuperAdmin;
+    const access = res.locals.access as Access;
 
     const query = attendanceQuerySchema.parse(req.query);
+
+    let facultyDepartmentId: number | undefined;
+
+    const isFaculty = access.roles.some(
+      (role) => role.slug === "faculty",
+    );
+
+    if (isFaculty && !access.isSuperAdmin) {
+      const scope = await resolveDepartmentScope(access);
+
+      if (!scope || scope.kind !== "department") {
+        return res.status(403).json({
+          success: false,
+          message: "Faculty department access not available.",
+        });
+      }
+
+      facultyDepartmentId = scope.departmentId;
+    }
 
     const result = await getEventAttendance(
       eventId,
       userId,
-      isSuperAdmin,
+      access.isSuperAdmin,
       query,
+      facultyDepartmentId,
     );
 
     return res.status(200).json({
@@ -72,7 +92,11 @@ export const GetHodAttendanceEvents = asyncHandler(
   async (_req: Request, res: Response) => {
     const access = res.locals.access as Access;
 
-    if (!access.isSuperAdmin && !isHod(access)) {
+    const isFaculty = access.roles.some(
+  (role) => role.slug === "faculty",
+);
+
+if (!access.isSuperAdmin && !isHod(access) && !isFaculty) {
       return res.status(403).json({
         success: false,
         message: "You are not authorized to view attendance reports.",
@@ -83,18 +107,17 @@ export const GetHodAttendanceEvents = asyncHandler(
 
     // Super Admin (Principal) can view events from every department.
     if (!access.isSuperAdmin) {
-      const scope = await resolveDepartmentScope(access);
+  const scope = await resolveDepartmentScope(access);
 
-      if (!scope) {
-        return res.status(403).json({
-          success: false,
-          message: "Department access not available.",
-        });
-      }
+  if (!scope || scope.kind !== "department") {
+    return res.status(403).json({
+      success: false,
+      message: "Department access not available.",
+    });
+  }
 
-      departmentId =
-        scope.kind === "department" ? scope.departmentId : undefined;
-    }
+  departmentId = scope.departmentId;
+}
 
 const query = attendanceQuerySchema.parse(_req.query);
 

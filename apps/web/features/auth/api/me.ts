@@ -37,7 +37,7 @@ export function getDashboardPath(me: Me): string | null {
 
 
   if (roleSlugs.has("student")) {
-    return "/studentDashboard";
+    return "/student-dashboard";
   }
 
   if (roleSlugs.has("club-coordinator")) {

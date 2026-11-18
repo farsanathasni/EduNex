@@ -332,7 +332,7 @@ export default function StudentProfile() {
       },
       {
         onSuccess: () => {
-          router.push("/studentDashboard");
+          router.push("/student-dashboard");
         },
 
         onError: (error: unknown) => {
@@ -525,7 +525,7 @@ export default function StudentProfile() {
 
             <Button
               type="button"
-              onClick={() => router.push("/studentDashboard")}
+              onClick={() => router.push("/shboard")}
             >
               Go to dashboard
               <ArrowRight className="h-4 w-4" />

@@ -33,6 +33,7 @@ export const getEventAttendance = async (
   userId: string,
   isSuperAdmin = false,
   query?: AttendanceQuery,
+  facultyDepartmentId?: number,
 ) => {
   const [event] = await db
     .select({
@@ -53,7 +54,13 @@ export const getEventAttendance = async (
     throw new Error("EVENT_NOT_FOUND");
   }
 
-  if (!isSuperAdmin) {
+ if (!isSuperAdmin) {
+  // Faculty: read-only access to events in their own department.
+  if (facultyDepartmentId !== undefined) {
+    if (facultyDepartmentId !== event.departmentId) {
+      throw new Error("UNAUTHORIZED_EVENT_ACCESS");
+    }
+  } else {
     // First check whether the logged-in user is an active HOD.
     const [hod] = await db
       .select({
@@ -114,6 +121,7 @@ export const getEventAttendance = async (
       }
     }
   }
+}
 
     const allMembers = await db
     .select({
@@ -399,12 +407,24 @@ export const getHodAttendanceEvents = async (
     .innerJoin(clubs, eq(events.clubId, clubs.id))
     .where(conditions.length ? and(...conditions) : undefined);
 
+// Faculty & HOD: only approved and upcoming events.
+// Principal: can see all events, including rejected events.
+const visibleEvents =
+  departmentId !== undefined
+    ? eventList.filter((event) =>
+        ["approved", "upcoming", "published"].includes(
+          event.status.toLowerCase().replace(/\s+/g, "_"),
+        ),
+      )
+    : eventList;
+    
+
   // Search.
   const page = query?.page ?? 1;
   const limit = query?.limit ?? 10;
   const search = query?.search?.trim().toLowerCase() ?? "";
 
-  const filteredEvents = eventList.filter((event) => {
+  const filteredEvents = visibleEvents.filter((event) => {
     return (
       event.title.toLowerCase().includes(search) ||
       (event.clubName ?? "").toLowerCase().includes(search) ||

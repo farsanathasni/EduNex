@@ -48,7 +48,7 @@ export default function StudentSidebar({
       >
         <div className="flex min-h-[76px] items-center justify-between border-b border-border px-5">
           <Link
-            href="/studentDashboard"
+            href="/student-dashboard"
             onClick={onClose}
             className="flex items-center gap-3"
           >

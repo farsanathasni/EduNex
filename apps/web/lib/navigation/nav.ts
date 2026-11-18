@@ -169,11 +169,19 @@ export const NAV: NavItem[] = [
   roles: FACULTY,
 },
 
+{
+  label: "Attendance Reports",
+  href: "/attendance/faculty",
+  icon: "✓",
+  roles: FACULTY,
+  permission: ["attendance", "view"],
+},
+
   // Student view
   // Student view
 {
   label: "Dashboard",
-  href: "/studentDashboard",
+  href: "/student-dashboard",
   icon: "\u2302",
   roles: ["student"],
   mode: "student",

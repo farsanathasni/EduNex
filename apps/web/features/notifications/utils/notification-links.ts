@@ -7,7 +7,7 @@ const LINKS: Record<NotificationRole, Record<string, string>> = {
   student: {
     event: "/studentEvents",
     membership: "/student/my-memberships",
-    announcement: "/studentDashboard",
+    announcement: "/student-dashboard",
   },
   coordinator: {
     event: "/club-coordinator/events",
