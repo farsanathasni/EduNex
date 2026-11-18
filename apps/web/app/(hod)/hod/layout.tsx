@@ -139,7 +139,7 @@ export default function HodLayout({
       {pathname === "/hod/notifications"
         ? "Notifications"
         : pathname === "/attendance/hod"
-          ? "Attendance Reports"
+          ? "Event Attendance Reports"
           : pathname.startsWith("/attendance/hod/")
             ? "Event Attendance"
             : "HOD Portal"}

@@ -54,7 +54,7 @@ export default function HodEventAttendancePage() {
           className="flex items-center gap-2 text-sm text-gray-600 hover:text-blue-600"
         >
           <ArrowLeft className="h-4 w-4" />
-          Back to Attendance Reports
+          Back to Event Attendance Reports
         </button>
 
         <div className="rounded-xl border border-red-200 bg-red-50 p-5 text-red-700">
@@ -115,7 +115,7 @@ export default function HodEventAttendancePage() {
         className="flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-blue-600"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to Attendance Reports
+        Back to Event Attendance Reports
       </button>
 
       {/* Event Information */}

@@ -57,9 +57,11 @@ const canSwitchMode =
   hasRole("student") &&
   coordinatedClubs.length > 0;
 
-const mode: Mode = canSwitchMode
-  ? storedMode
-  : "student";
+  const mode: Mode =
+  canSwitchMode &&
+  (storedMode === "student" || storedMode === "coordinator")
+    ? storedMode
+    : "student";
 
   const setMode = (nextMode: Mode) => {
     if (canSwitchMode) setStoredMode(nextMode);
@@ -76,14 +78,14 @@ const mode: Mode = canSwitchMode
     );
 
   const navItems = getNavItems();
-  console.log("Mode:", mode);
-  console.log("Coordinated clubs:", coordinatedClubs);
-  console.log("Permissions:", me?.permissions);
-  console.log(
-  "Permission details:",
-  JSON.stringify(me?.permissions, null, 2)
-);
-  console.log("Can create event:", can("event", "create"));
+//   console.log("Mode:", mode);
+//   console.log("Coordinated clubs:", coordinatedClubs);
+//   console.log("Permissions:", me?.permissions);
+//   console.log(
+//   "Permission details:",
+//   JSON.stringify(me?.permissions, null, 2)
+// );
+//   console.log("Can create event:", can("event", "create"));
 
 
   return {
