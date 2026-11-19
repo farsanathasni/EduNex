@@ -5,9 +5,9 @@ import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import { RouteGuard } from "@/features/auth/components/route-guard";
+import { useLogout } from "@/features/auth/hooks/use-logout";
 import StudentHeader from "@/features/students/components/student-header";
-import { authClient } from "@/lib/auth-client";
-import StudentSidebar from "../../features/students/components/student-sidebar";
+import StudentSidebar from "../../../features/students/components/student-sidebar";
 import { useAccess } from "@/lib/navigation/access";
 import { useModeStore } from "@/stores/mode-store";
 
@@ -20,9 +20,9 @@ function StudentLayoutContent({
   const pathname = usePathname();
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const { canSwitchMode } = useAccess();
+  const { logout: handleLogout, isSigningOut } = useLogout();
 const setMode = useModeStore((state) => state.setMode);
 
 function handleSwitchMode() {
@@ -72,23 +72,6 @@ function handleSwitchMode() {
     title: "Student Portal",
     subtitle: "Your personal campus space",
   };
-
-  async function handleLogout() {
-    if (isSigningOut) return;
-
-    setIsSigningOut(true);
-
-    try {
-      await authClient.signOut();
-      router.replace("/login");
-      router.refresh();
-    } catch (error) {
-      console.error("Logout failed:", error);
-    } finally {
-      setIsSigningOut(false);
-    }
-  }
-
   return (
     <div className="min-h-screen bg-background">
       

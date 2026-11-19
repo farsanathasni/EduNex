@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAccess } from "@/lib/navigation/access";
 import { RouteGuard } from "@/features/auth/components/route-guard";
+import LogoutButton from "@/features/auth/components/logout-button";
 import { NotificationBell } from "@/features/notifications/api/components/notification-bell";
 
 
@@ -104,6 +105,10 @@ function TeacherLayoutContent({
               );
             })}
           </nav>
+
+          <div className="mt-6 border-t border-border pt-4">
+            <LogoutButton className="w-full rounded-lg border border-border px-4 py-3 text-left text-sm font-medium transition hover:bg-background disabled:opacity-50" />
+          </div>
         </div>
       </aside>
 
@@ -152,6 +157,11 @@ function TeacherLayoutContent({
               {item.label}
             </Link>
           ))}
+
+          <LogoutButton
+            className="ml-auto shrink-0 whitespace-nowrap rounded-lg border border-border px-3 py-2 text-sm font-medium transition hover:bg-background disabled:opacity-50"
+            label="Log out"
+          />
         </nav>
 
         <main className="mx-auto max-w-[1500px] p-5 sm:p-8">

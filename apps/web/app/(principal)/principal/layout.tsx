@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
-import { authClient } from "@/lib/auth-client";
 import { RouteGuard } from "@/features/auth/components/route-guard";
+import LogoutButton from "@/features/auth/components/logout-button";
 import { useAccess } from "@/lib/navigation/access";
 import { NotificationBell } from "@/features/notifications/api/components/notification-bell";
 
@@ -15,10 +15,8 @@ export default function PrincipalLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
   const { navItems } = useAccess();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [signingOut, setSigningOut] = useState(false);
   const menuItems = navItems
   .filter(
     (item) =>
@@ -32,19 +30,6 @@ export default function PrincipalLayout({
         ? "Student Management"
         : item.label,
   }));
-
-  const handleSignOut = async () => {
-    setSigningOut(true);
-
-    try {
-      await authClient.signOut();
-      router.replace("/login");
-      router.refresh();
-    } finally {
-      setSigningOut(false);
-    }
-  };
-
   return (
     <RouteGuard roles={["super-admin"]}>
     <div className="min-h-screen bg-background text-text md:flex">
@@ -104,14 +89,7 @@ export default function PrincipalLayout({
         </nav>
 
         <div className="border-t border-border p-4">
-          <button
-            type="button"
-            onClick={handleSignOut}
-            disabled={signingOut}
-            className="w-full rounded-xl border border-border px-4 py-3 text-left text-sm font-medium transition hover:bg-background disabled:opacity-50"
-          >
-            {signingOut ? "Signing out..." : "Sign out"}
-          </button>
+          <LogoutButton />
         </div>
       </aside>
 
