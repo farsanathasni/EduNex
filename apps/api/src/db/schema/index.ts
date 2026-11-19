@@ -4,6 +4,7 @@ export * from "./student-profile.js"
 export * from "./staff-schema.js"
 export * from "./coordinator-schema.js";
 export * from "./rbac-schema.js";
+export * from "./attendance-schema.js";
 export {
   departments,
   clubs,

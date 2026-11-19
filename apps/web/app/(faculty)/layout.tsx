@@ -4,11 +4,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAccess } from "@/lib/navigation/access";
+import { RouteGuard } from "@/features/auth/components/route-guard";
 import { NotificationBell } from "@/features/notifications/api/components/notification-bell";
 
 
 
-export default function TeacherLayout({
+function TeacherLayoutContent({
   children,
 }: {
   children: React.ReactNode;
@@ -151,5 +152,17 @@ export default function TeacherLayout({
         </main>
       </div>
     </div>
+  );
+}
+
+export default function TeacherLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <RouteGuard roles={["faculty"]}>
+      <TeacherLayoutContent>{children}</TeacherLayoutContent>
+    </RouteGuard>
   );
 }

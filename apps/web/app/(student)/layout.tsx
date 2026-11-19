@@ -30,36 +30,43 @@ function handleSwitchMode() {
   router.push("/club-coordinator/events");
 }
 
-  const pageDetails: Record<string, { title: string; subtitle: string }> = {
-  "/student-dashboard": {
-    title: "Student dashboard",
-    subtitle: "Your personal campus space",
-  },
-  "/student": {
-    title: "Explore Clubs",
-    subtitle: "Discover and join campus clubs",
-  },
-  "/studentEvents": {
-    title: "Campus Events",
-    subtitle: "Explore upcoming campus events",
-  },
-  "/student/my-memberships": {
-    title: "My Memberships",
-    subtitle: "Manage your club memberships",
-  },
-  "/student/attendance": {
-    title: "Event Attendance",
-    subtitle: "View your event attendance records",
-  },
-  "/studentNotifications": {
-    title: "Notifications",
-    subtitle: "Stay up to date with campus activity",
-  },
-  "/studentprofile": {
-    title: "My Profile",
-    subtitle: "View and manage your profile",
-  },
-};
+  const pageDetails: Record<
+    string,
+    { title: string; subtitle: string }
+  > = {
+    "/student-dashboard": {
+      title: "Student dashboard",
+      subtitle: "Your personal campus space",
+    },
+    "/student": {
+      title: "Explore Clubs",
+      subtitle: "Discover and join campus clubs",
+    },
+    "/studentEvents": {
+      title: "Campus Events",
+      subtitle: "Explore upcoming campus events",
+    },
+    "/student/my-memberships": {
+      title: "My Memberships",
+      subtitle: "Manage your club memberships",
+    },
+    "/student/attendance": {
+      title: "Event Attendance",
+      subtitle: "View your event attendance records",
+    },
+    "/studentClassAttendance": {
+      title: "My Attendance",
+      subtitle: "View your class attendance records",
+    },
+    "/studentNotifications": {
+      title: "Notifications",
+      subtitle: "Stay up to date with campus activity",
+    },
+    "/studentprofile": {
+      title: "My Profile",
+      subtitle: "View and manage your profile",
+    },
+  };
 
   const currentPage = pageDetails[pathname] ?? {
     title: "Student Portal",

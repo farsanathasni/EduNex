@@ -18,7 +18,6 @@ export function useAccess() {
   const setStoredMode = useModeStore((s) => s.setMode);
 
   const roleSlugs = me?.roles.map((r) => r.slug) ?? [];
-console.log("Assigned roles:", roleSlugs);
   const isSuperAdmin = me?.isSuperAdmin === true;
 
   const hasRole = (slug: string) => roleSlugs.includes(slug);
@@ -78,15 +77,6 @@ const canSwitchMode =
     );
 
   const navItems = getNavItems();
-//   console.log("Mode:", mode);
-//   console.log("Coordinated clubs:", coordinatedClubs);
-//   console.log("Permissions:", me?.permissions);
-//   console.log(
-//   "Permission details:",
-//   JSON.stringify(me?.permissions, null, 2)
-// );
-//   console.log("Can create event:", can("event", "create"));
-
 
   return {
     me,

@@ -1,4 +1,4 @@
-
+﻿
 import type { Mode } from "@/stores/mode-store";
 
 export type NavItem = {
@@ -21,6 +21,7 @@ export const NAV: NavItem[] = [
   label: "Overview",
   href: "/dashboard",
   icon: "⌂",
+  
   roles: ["hod"],
 },
 
@@ -29,12 +30,14 @@ export const NAV: NavItem[] = [
     label: "Dashboard",
     href: "/principal",
     icon: "\u2302",
+    
     roles: ADMIN,
   },
   {
     label: "Staff Management",
     href: "/principal/staff",
     icon: "♙",
+    
     roles: ADMIN,
     permission: ["staff", "create"],
   },
@@ -42,6 +45,7 @@ export const NAV: NavItem[] = [
     label: "Departments",
     href: "/principal/departments",
     icon: "▦",
+    
     roles: ADMIN,
     permission: ["department", "view"],
   },
@@ -49,6 +53,7 @@ export const NAV: NavItem[] = [
     label: "College Students",
     href: "/principal/students",
     icon: "♧",
+    
     roles: ADMIN,
     permission: ["student", "view"],
   },
@@ -56,6 +61,7 @@ export const NAV: NavItem[] = [
     label: "Coordinators",
     href: "/principal/coordinators",
     icon: "★",
+    
     roles: ADMIN,
     permission: ["coordinator", "view"],
   },
@@ -63,13 +69,22 @@ export const NAV: NavItem[] = [
     label: "Clubs",
     href: "/principal/clubs",
     icon: "◈",
+    
     roles: ADMIN,
     permission: ["club", "view"],
+  },
+  {
+    label: "Subjects",
+    href: "/principal/subjects",
+    icon: "▤",
+    roles: ADMIN,
+    permission: ["subject", "view"],
   },
   {
     label: "College Events",
     href: "/principal/events",
     icon: "▣",
+    
     roles: ADMIN,
     permission: ["event", "view"],
   },
@@ -77,6 +92,7 @@ export const NAV: NavItem[] = [
     label: "Approvals",
     href: "/principal/approvals",
     icon: "✓",
+    
     roles: ADMIN,
     permission: ["event", "approve"],
   },
@@ -84,6 +100,7 @@ export const NAV: NavItem[] = [
   label: "Event Attendance Reports",
   href: "/attendance/principal",
   icon: "✓",
+  
   roles: ADMIN,
   permission: ["attendance", "view"],
 },
@@ -91,6 +108,7 @@ export const NAV: NavItem[] = [
     label: "Roles & Permissions",
     href: "/principal/roles",
     icon: "⚙",
+    
     roles: ADMIN,
     permission: ["role", "view"],
   },
@@ -100,6 +118,7 @@ export const NAV: NavItem[] = [
     label: "Department Overview",
     href: "/hod/dashboard",
     icon: "⌂",
+   
     roles: HOD,
     permission: ["staff", "view"],
   },
@@ -107,6 +126,7 @@ export const NAV: NavItem[] = [
     label: "Staff Management",
     href: "/hod/staff",
     icon: "\u2659",
+  
     roles: HOD,
     permission: ["staff", "view"],
   },
@@ -114,6 +134,7 @@ export const NAV: NavItem[] = [
     label: "Students",
     href: "/hod/students",
     icon: "♧",
+  
     roles: HOD,
     permission: ["student", "view"],
   },
@@ -121,53 +142,81 @@ export const NAV: NavItem[] = [
     label: "Clubs",
     href: "/hod/clubs",
     icon: "◈",
+  
     roles: HOD,
     permission: ["club", "view"],
   },
   {
-  label: "Event Attendance Reports",
-  href: "/attendance/hod",
-  icon: "✓",
-  roles: HOD,
-  permission: ["attendance", "view"],
-},
+    label: "Attendance Reports",
+    href: "/attendance/hod",
+    icon: "✓",
+
+    roles: HOD,
+    permission: ["attendance", "view"],
+  },
+  {
+    label: "Class Attendance Reports",
+    href: "/hod/attendance-reports",
+    icon: "▤",
+    roles: HOD,
+    permission: ["class_attendance", "report"],
+  },
   {
     label: "Event Approvals",
     href: "/hod/approvals",
     icon: "✓",
+   
     roles: HOD,
     permission: ["event", "approve"],
   },
 
   // Faculty
-  
   // Faculty / Teacher
   {
     label: "Dashboard",
     href: "/teacher",
     icon: "⌂",
+   
     roles: FACULTY,
   },
   {
     label: "My Class",
     href: "/teacher/classes",
     icon: "▤",
+    
     roles: FACULTY,
   },
   {
     label: "My Students",
     href: "/teacher/students",
     icon: "♙",
+   
     roles: FACULTY,
     permission: ["student", "view"],
   },
+  {
+    label: "My Subjects",
+    href: "/teacher/class-attendance",
+    icon: "▤",
   
-{
-  label: "Study Materials",
-  href: "/teacher/study-materials",
-  icon: "▤",
-  roles: FACULTY,
-},
+    roles: FACULTY,
+    permission: ["class_attendance", "mark"],
+  },
+  {
+    label: "Take Attendance",
+    href: "/teacher/class-attendance/take",
+    icon: "✓",
+    
+    roles: FACULTY,
+    permission: ["class_attendance", "mark"],
+  },
+  {
+    label: "Study Materials",
+    href: "/teacher/study-materials",
+    icon: "▤",
+  
+    roles: FACULTY,
+  },
 
 {
   label: "Event Attendance Reports",
@@ -183,6 +232,7 @@ export const NAV: NavItem[] = [
   label: "Dashboard",
   href: "/student-dashboard",
   icon: "\u2302",
+ 
   roles: ["student"],
   mode: "student",
 },
@@ -190,6 +240,7 @@ export const NAV: NavItem[] = [
   label: "Events",
   href: "/studentEvents",
   icon: "▣",
+ 
   roles: ["student"],
   permission: ["event", "view"],
   mode: "student",
@@ -197,8 +248,7 @@ export const NAV: NavItem[] = [
 {
   label: "Explore Clubs",
   href: "/student",
-  icon: "\u25c8",
-  roles: ["student"],
+  icon: "\u25c8", roles: ["student"],
   permission: ["club", "view"],
   mode: "student",
 },
@@ -206,6 +256,7 @@ export const NAV: NavItem[] = [
   label: "My Memberships",
   href: "/student/my-memberships",
   icon: "\u2667",
+  
   roles: ["student"],
   permission: ["club", "view"],
   mode: "student",
@@ -214,13 +265,25 @@ export const NAV: NavItem[] = [
   label: "Event Attendance",
   href: "/attendance/student",
   icon: "✓",
+  
   roles: ["student"],
+  permission: ["class_attendance", "view_own"],
+  mode: "student",
+},
+{
+  label: "My Attendance",
+  href: "/studentClassAttendance",
+  icon: "✓",
+  
+  roles: ["student"],
+  permission: ["class_attendance", "view_own"],
   mode: "student",
 },
 {
   label: "My Profile",
   href: "/studentprofile",
   icon: "☺",
+
   roles: ["student"],
   mode: "student",
 },
@@ -230,6 +293,7 @@ export const NAV: NavItem[] = [
     label: "My Clubs",
     href: "/club-coordinator/clubs",
     icon: "◈",
+    
     roles: ["student"],
     permission: ["club", "view"],
     mode: "coordinator",
@@ -238,6 +302,7 @@ export const NAV: NavItem[] = [
     label: "My Club Events",
     href: "/club-coordinator/events",
     icon: "▣",
+    
     roles: ["student"],
     permission: ["event", "view"],
     mode: "coordinator",
@@ -246,6 +311,7 @@ export const NAV: NavItem[] = [
     label: "Membership Requests",
     href: "/club-coordinator/membership-requests",
     icon: "♧",
+   
     roles: ["student"],
     // permission: ["club", "update"],
     mode: "coordinator",
@@ -254,6 +320,7 @@ export const NAV: NavItem[] = [
     label: "Club Members",
     href: "/club-coordinator/members",
     icon: "♙",
+    
     roles: ["student"],
     // permission: ["club", "update"],
     mode: "coordinator",
@@ -262,6 +329,7 @@ export const NAV: NavItem[] = [
     label: "Request Event",
     href: "/club-coordinator/request-event",
     icon: "+",
+   
     roles: ["student"],
     permission: ["event", "create"],
     mode: "coordinator",
@@ -270,6 +338,7 @@ export const NAV: NavItem[] = [
     label: "My Profile",
     href: "/club-coordinator/profile",
     icon: "☺",
+    
     roles: ["student"],
     mode: "coordinator",
   },
@@ -303,3 +372,4 @@ export const isNavVisible = (
 
   return roleAllowed && permissionAllowed && modeAllowed;
 };
+
