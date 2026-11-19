@@ -3,11 +3,10 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 
-import { authClient } from "@/lib/auth-client";
 import { useAccess } from "@/lib/navigation/access";
 import { ModeSwitch } from "@/components/layout/mode-switch";
+import LogoutButton from "@/features/auth/components/logout-button";
 import { NotificationBell } from "@/features/notifications/api/components/notification-bell"; // NOTIFICATION
 
 // One layout for every role. The sidebar is built from lib/nav.ts,
@@ -15,7 +14,6 @@ import { NotificationBell } from "@/features/notifications/api/components/notifi
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
-  const queryClient = useQueryClient();
   const {
     me,
     isPending,
@@ -31,22 +29,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   } = useAccess();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
     if (unauthorized) router.replace("/login");
   }, [unauthorized, router]);
-
-  const handleSignOut = async () => {
-    setSigningOut(true);
-    try {
-      await authClient.signOut();
-      queryClient.clear();
-      router.replace("/login");
-    } finally {
-      setSigningOut(false);
-    }
-  };
 
   if (isPending || unauthorized) {
     return <p className="p-10 text-text-muted">Checking session...</p>;
@@ -133,14 +119,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className="border-t border-border p-4">
-          <button
-            type="button"
-            onClick={handleSignOut}
-            disabled={signingOut}
-            className="w-full rounded-xl border border-border px-4 py-3 text-left text-sm font-medium transition hover:bg-background disabled:opacity-50"
-          >
-            {signingOut ? "Signing out..." : "Sign out"}
-          </button>
+          <LogoutButton />
         </div>
       </aside>
 
