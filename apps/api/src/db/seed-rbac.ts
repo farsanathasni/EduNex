@@ -57,12 +57,21 @@ const permissionCatalog: Record<string, string[]> = {
   membership: ["view", "approve", "reject"],
   member: ["view"],
   certificate: CRUD,
+  subject: ["view", "create", "update", "delete", "assign"],
+  class_attendance: ["view", "mark", "view_own", "report"],
 };
 
 const rolePermissionMap: Record<string, string[]> = {
-  "super-admin": Object.entries(permissionCatalog).flatMap(
-    ([resource, actions]) => actions.map((action) => `${resource}:${action}`),
-  ),
+  "super-admin": [
+    ...Object.entries(permissionCatalog).flatMap(([resource, actions]) =>
+      actions.map((action) => `${resource}:${action}`),
+    ),
+    "subject:view",
+    "subject:create",
+    "subject:update",
+    "subject:delete",
+    "subject:assign",
+  ],
 
   hod: [
     "student:view",
@@ -77,6 +86,7 @@ const rolePermissionMap: Record<string, string[]> = {
     "event:view",
     "attendance:view",
     "certificate:view",
+    "class_attendance:report",
   ],
 
   faculty: [
@@ -89,6 +99,8 @@ const rolePermissionMap: Record<string, string[]> = {
      "attendance:view",
     "certificate:view",
     "certificate:create",
+     "subject:view",
+     "class_attendance:view", "class_attendance:mark"
   ],
 
   student: [
@@ -97,6 +109,8 @@ const rolePermissionMap: Record<string, string[]> = {
     "club:view",
     "event:view",
     "certificate:view",
+    "subject:view",
+    "class_attendance:view_own"
   ],
 
   "club-coordinator": [

@@ -120,6 +120,13 @@
       "when": 1794908443728,
       "tag": "0016_amused_vision",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1794990569836,
+      "tag": "0017_fixed_bushwacker",
+      "breakpoints": true
     }
   ]
 }

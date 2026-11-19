@@ -18,6 +18,9 @@ import notificationsRouter from "./modules/notifications/notifications.routes.js
 import errorHandler from "./middleware/error.middleware.js";
 import rolesRouter, { meRouter } from "./modules/rbac/rbac.routes.js";
 import teacherRouter from "./modules/teacher/teacher.routes.js";
+import subjectsRouter from "./modules/subjects/subjects.routes.js";
+import classAttendanceRouter from "./modules/class-attendence/class-attendance.routes.js";
+import attendanceReportsRouter from "./modules/attendance-reports/attendance-reports.routes.js";
 
 const app = express();
 const PORT = 5000;
@@ -46,6 +49,10 @@ app.use("/api/events", eventsRouter);
 app.use("/api/attendance", attendenceRouter);
 app.use("/api/staff", staffRouter);
 app.use("/api/notifications", notificationsRouter);
+app.use("/api/subjects", subjectsRouter);
+app.use("/api/class-attendance", classAttendanceRouter);
+app.use("/api/attendance-reports", attendanceReportsRouter);
+
 
 app.use("/api/me", meRouter);
 app.use("/api/roles", rolesRouter);

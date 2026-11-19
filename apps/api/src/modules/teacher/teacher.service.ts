@@ -230,7 +230,7 @@ export async function createTeacherMaterial(
       fileUrl: input.fileUrl,
       fileType: input.fileType,
       departmentId: teacher.departmentId,
-      uploadedBy: Number(teacher.id),
+      uploadedBy: teacher.id,
       visibility: input.visibility,
     })
     .returning();
@@ -279,7 +279,7 @@ export async function deleteTeacherMaterial(
       and(
         eq(resources.id, materialId),
         eq(resources.departmentId, teacher.departmentId),
-        eq(resources.uploadedBy, Number(teacher.id)),
+        eq(resources.uploadedBy, teacher.id),
       ),
     )
     .returning({
