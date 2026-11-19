@@ -28,10 +28,17 @@ function TeacherLayoutContent({
     item.href === "/attendance/faculty"
 );
 
-  const isActive = (href: string) =>
+  const matchesHref = (href: string) =>
     href === "/teacher"
       ? pathname === href
       : pathname.startsWith(href);
+
+  const activeHref = navigation.reduce<string | null>((best, item) => {
+    if (!matchesHref(item.href)) return best;
+    return !best || item.href.length > best.length ? item.href : best;
+  }, null);
+
+  const isActive = (href: string) => href === activeHref;
 
   if (isPending) {
     return (
@@ -112,7 +119,7 @@ function TeacherLayoutContent({
             <h2 className="font-semibold">
   {pathname === "/teacher/notifications"
     ? "Notifications"
-    : navigation.find((item) => isActive(item.href))?.label ?? "Teacher Portal"}
+    : navigation.find((item) => item.href === activeHref)?.label ?? "Teacher Portal"}
 </h2>
           </div>
 
