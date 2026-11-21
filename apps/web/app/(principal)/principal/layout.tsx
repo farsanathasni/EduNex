@@ -21,7 +21,8 @@ export default function PrincipalLayout({
   .filter(
     (item) =>
       item.href.startsWith("/principal") ||
-      item.href.startsWith("/attendance/principal"),
+      item.href.startsWith("/attendance/principal")||
+      item.href.startsWith("/announcement/principal"),
   )
   .map((item) => ({
     ...item,

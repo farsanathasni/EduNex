@@ -14,6 +14,7 @@ import eventsRouter from "./modules/events/events.routes.js";
 import attendenceRouter from "./modules/attendance/attendance.routes.js";
 import staffRouter from "./modules/staff/staff.router.js";
 import notificationsRouter from "./modules/notifications/notifications.routes.js";
+import announcementsRouter from "./modules/announcements/announcements.routes.js";
 
 import errorHandler from "./middleware/error.middleware.js";
 import rolesRouter, { meRouter } from "./modules/rbac/rbac.routes.js";
@@ -49,6 +50,7 @@ app.use("/api/events", eventsRouter);
 app.use("/api/attendance", attendenceRouter);
 app.use("/api/staff", staffRouter);
 app.use("/api/notifications", notificationsRouter);
+app.use("/api/announcements", announcementsRouter);
 app.use("/api/subjects", subjectsRouter);
 app.use("/api/class-attendance", classAttendanceRouter);
 app.use("/api/attendance-reports", attendanceReportsRouter);

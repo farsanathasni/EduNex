@@ -8,11 +8,12 @@ import type { ClubListParams } from "@/features/clubs/api/clubs";
 import type { CreateHodClubInput } from "@/features/clubs/validation/club-schema";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-export const useHodDashboard = () => {
+export const useHodDashboard = (enabled = true) => {
   return useQuery({
     queryKey: ["hod", "dashboard"],
     queryFn: getHodDashboard,
     retry: false,
+    enabled,
   });
 };
 
