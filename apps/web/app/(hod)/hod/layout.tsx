@@ -22,8 +22,12 @@ export default function HodLayout({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const menuItems = navItems
-    .filter((item) => item.href.startsWith("/hod/")||item.href === "/attendance/hod",)
-    .map((item) => ({
+.filter(
+  (item) =>
+    item.href.startsWith("/hod/") ||
+    item.href === "/attendance/hod" ||
+    item.href === "/announcement/hod",
+)    .map((item) => ({
       ...item,
       label:
         item.href === "/hod/students"

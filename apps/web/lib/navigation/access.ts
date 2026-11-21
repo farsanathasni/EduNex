@@ -18,8 +18,7 @@ export function useAccess() {
   const setStoredMode = useModeStore((s) => s.setMode);
 
   const roleSlugs = me?.roles.map((r) => r.slug) ?? [];
-console.log("Assigned roles:", roleSlugs);
-  const isSuperAdmin = me?.isSuperAdmin === true;
+;  const isSuperAdmin = me?.isSuperAdmin === true;
 
   const hasRole = (slug: string) => roleSlugs.includes(slug);
 
@@ -28,8 +27,8 @@ console.log("Assigned roles:", roleSlugs);
 
   // Super Admin has access to every permission.
   const can = (resource: string, action: string) =>
-    isSuperAdmin ||
-    !!me?.permissions.includes(`${resource}:${action}`);
+  isSuperAdmin ||
+  (me?.permissions ?? []).includes(`${resource}:${action}`);
 
   // const canSwitchMode =
   //   !isSuperAdmin &&

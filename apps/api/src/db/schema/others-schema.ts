@@ -243,8 +243,9 @@ export const announcements = pgTable("announcements", {
     // You can use { mode: "bigint" } if numbers are exceeding js number limitations
     departmentId: bigint("department_id", { mode: "number" }),
     // You can use { mode: "bigint" } if numbers are exceeding js number limitations
-    publishedBy: bigint("published_by", { mode: "number" }).notNull(),
-    audience: varchar({ length: 20 }).default('campus').notNull(),
+publishedBy: text("published_by")
+  .notNull()
+  .references(() => user.id, { onDelete: "restrict" }),    audience: varchar({ length: 20 }).default('campus').notNull(),
     clubId: bigint("club_id", { mode: "number" }),
     publishedAt: timestamp("published_at", { withTimezone: true, mode: 'string' }),
     createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),

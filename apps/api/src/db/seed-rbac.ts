@@ -56,6 +56,7 @@ const permissionCatalog: Record<string, string[]> = {
   event: [...CRUD, "approve", "publish"],
   membership: ["view", "approve", "reject"],
   member: ["view"],
+  announcement: CRUD,
   certificate: CRUD,
 };
 
@@ -76,6 +77,10 @@ const rolePermissionMap: Record<string, string[]> = {
     "club:delete",
     "event:view",
     "attendance:view",
+    "announcement:view",
+    "announcement:create",
+    "announcement:update",
+    "announcement:delete",
     "certificate:view",
   ],
 
@@ -87,6 +92,7 @@ const rolePermissionMap: Record<string, string[]> = {
     "event:create",
     "event:update",
      "attendance:view",
+     "announcement:view",
     "certificate:view",
     "certificate:create",
   ],
@@ -96,6 +102,7 @@ const rolePermissionMap: Record<string, string[]> = {
     "department:view",
     "club:view",
     "event:view",
+    "announcement:view",
     "certificate:view",
   ],
 
@@ -112,6 +119,10 @@ const rolePermissionMap: Record<string, string[]> = {
     "membership:approve",
     "membership:reject",
     "member:view",
+    "announcement:view",
+    "announcement:create",
+    "announcement:update",
+    "announcement:delete",
   ],
 };
 

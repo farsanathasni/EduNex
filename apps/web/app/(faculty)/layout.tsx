@@ -24,7 +24,8 @@ export default function TeacherLayout({
   const navigation = navItems.filter(
   (item) =>
     item.href.startsWith("/teacher") ||
-    item.href === "/attendance/faculty"
+    item.href === "/attendance/faculty"||
+    item.href === "/announcement/faculty"
 );
 
   const isActive = (href: string) =>

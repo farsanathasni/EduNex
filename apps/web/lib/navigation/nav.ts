@@ -24,6 +24,15 @@ export const NAV: NavItem[] = [
   roles: ["hod"],
 },
 
+  // Shared pages
+  // {
+  //   label: "Announcements",
+  //   href: "/announcements",
+  //   icon: "▤",
+  //   roles: ["super-admin", "hod", "faculty", "student"],
+  //   permission: ["announcement", "view"],
+  // },
+
   // Administration
   {
     label: "Dashboard",
@@ -31,6 +40,13 @@ export const NAV: NavItem[] = [
     icon: "\u2302",
     roles: ADMIN,
   },
+  {
+  label: "Announcements",
+  href: "/announcement/principal",
+  icon: "▤",
+  roles: ADMIN,
+  permission: ["announcement", "view"],
+},
   {
     label: "Staff Management",
     href: "/principal/staff",
@@ -104,6 +120,13 @@ export const NAV: NavItem[] = [
     permission: ["staff", "view"],
   },
   {
+  label: "Announcements",
+  href: "/announcement/hod",
+  icon: "▤",
+  roles: HOD,
+  permission: ["announcement", "view"],
+},
+  {
     label: "Staff Management",
     href: "/hod/staff",
     icon: "\u2659",
@@ -155,6 +178,13 @@ export const NAV: NavItem[] = [
     roles: FACULTY,
   },
   {
+  label: "Announcements",
+  href: "/announcement/faculty",
+  icon: "▤",
+  roles: ["faculty"],
+  permission: ["announcement", "view"],
+},
+  {
     label: "My Students",
     href: "/teacher/students",
     icon: "♙",
@@ -193,6 +223,13 @@ export const NAV: NavItem[] = [
   roles: ["student"],
   permission: ["event", "view"],
   mode: "student",
+},
+{
+  label: "Announcements",
+  href: "/announcement/student",
+  icon: "▤",
+  roles: ["student"],
+  permission: ["announcement", "view"],
 },
 {
   label: "Explore Clubs",
@@ -234,6 +271,14 @@ export const NAV: NavItem[] = [
     permission: ["club", "view"],
     mode: "coordinator",
   },
+  {
+  label: "Announcements",
+  href: "/announcement/coordinator",
+  icon: "▤",
+  roles: ["student"],
+  mode: "coordinator",
+  permission: ["announcement", "view"],
+},
   {
     label: "My Club Events",
     href: "/club-coordinator/events",
@@ -292,7 +337,7 @@ export const isNavVisible = (
   }
 
   const roleAllowed =
-    !item.roles || ctx.hasAnyRole(item.roles);
+  isSuperAdmin || !item.roles || ctx.hasAnyRole(item.roles);
 
   const permissionAllowed =
     !item.permission ||
