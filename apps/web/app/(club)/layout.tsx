@@ -1,4 +1,4 @@
-import StudentRouteLayout from "../(student)/layout";
+import StudentRouteLayout from "../(student)/student/layout";
 
 
 export default function StudentClubRouteLayout({

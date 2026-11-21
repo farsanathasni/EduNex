@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
 import { useMarkNotificationRead, useNotifications, useNotificationStream } from "../notification-query";
+import type { Notification as ApiNotification } from "../notifications";
 import { getNotificationHref, NotificationRole, NOTIFICATIONS_PAGE } from "../../utils/notification-links";
 import { timeAgo } from "../../utils/time-ago";
 import { NotificationListSkeleton } from "./notification-list-skeleton";
@@ -26,7 +27,7 @@ export function NotificationBell({ role }: { role: NotificationRole }) {
   const unread = items.filter((n) => !n.isRead).length;
   const allPage = NOTIFICATIONS_PAGE[role];
 
-  function handleItemClick(n: Notification) {
+  function handleItemClick(n: ApiNotification) {
     if (!n.isRead) markRead.mutate(n.id);
     setOpen(false);
     const href = getNotificationHref(role, n);

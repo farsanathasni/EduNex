@@ -1,0 +1,5 @@
+-- ALTER TABLE "announcements" ALTER COLUMN "published_by" SET DATA TYPE text;--> statement-breakpoint
+-- ALTER TABLE "announcements" ADD CONSTRAINT "announcements_published_by_user_id_fk" FOREIGN KEY ("published_by") REFERENCES "public"."user"("id") ON DELETE restrict ON UPDATE no action;
+ALTER TABLE "announcements" ALTER COLUMN "published_by" SET DATA TYPE text;--> statement-breakpoint
+ALTER TABLE "announcements" DROP CONSTRAINT IF EXISTS "announcements_published_by_user_id_fk";--> statement-breakpoint
+ALTER TABLE "announcements" ADD CONSTRAINT "announcements_published_by_user_id_fk" FOREIGN KEY ("published_by") REFERENCES "public"."user"("id") ON DELETE restrict ON UPDATE no action;

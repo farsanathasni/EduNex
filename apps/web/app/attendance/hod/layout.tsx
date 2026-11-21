@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 
-import { authClient } from "@/lib/auth-client";
 import { useAccess } from "@/lib/navigation/access";
+import LogoutButton from "@/features/auth/components/logout-button";
 import { RouteGuard } from "@/features/auth/components/route-guard";
 import { NotificationBell } from "@/features/notifications/api/components/notification-bell";
 
@@ -16,10 +16,8 @@ export default function HodAttendanceLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [signingOut, setSigningOut] = useState(false);
 
   const { navItems, isPending, unauthorized } = useAccess();
 
@@ -35,19 +33,6 @@ export default function HodAttendanceLayout({
       : pathname === href || pathname.startsWith(`${href}/`);
 
   const activeItem = navigation.find((item) => isActive(item.href));
-
-  const handleSignOut = async () => {
-    setSigningOut(true);
-
-    try {
-      await authClient.signOut();
-      router.replace("/login");
-      router.refresh();
-    } finally {
-      setSigningOut(false);
-    }
-  };
-
   if (isPending) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -114,14 +99,7 @@ export default function HodAttendanceLayout({
 
           {/* Sign out */}
           <div className="absolute bottom-0 w-full border-t border-border p-4">
-            <button
-              type="button"
-              onClick={handleSignOut}
-              disabled={signingOut}
-              className="w-full rounded-xl border border-border px-4 py-3 text-left text-sm font-medium transition hover:bg-background disabled:opacity-50"
-            >
-              {signingOut ? "Signing out..." : "Sign out"}
-            </button>
+            <LogoutButton />
           </div>
         </aside>
 
@@ -186,14 +164,7 @@ export default function HodAttendanceLayout({
                 })}
               </nav>
 
-              <button
-                type="button"
-                onClick={handleSignOut}
-                disabled={signingOut}
-                className="mt-3 w-full rounded-xl border border-border px-4 py-3 text-left text-sm font-medium hover:bg-background disabled:opacity-50"
-              >
-                {signingOut ? "Signing out..." : "Sign out"}
-              </button>
+              <LogoutButton className="mt-3 w-full rounded-xl border border-border px-4 py-3 text-left text-sm font-medium hover:bg-background disabled:opacity-50" />
             </div>
           )}
 

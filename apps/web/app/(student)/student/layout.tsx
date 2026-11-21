@@ -5,9 +5,9 @@ import { useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 
 import { RouteGuard } from "@/features/auth/components/route-guard";
+import { useLogout } from "@/features/auth/hooks/use-logout";
 import StudentHeader from "@/features/students/components/student-header";
-import { authClient } from "@/lib/auth-client";
-import StudentSidebar from "../../features/students/components/student-sidebar";
+import StudentSidebar from "../../../features/students/components/student-sidebar";
 import { useAccess } from "@/lib/navigation/access";
 import { useModeStore } from "@/stores/mode-store";
 
@@ -20,9 +20,9 @@ function StudentLayoutContent({
   const pathname = usePathname();
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isSigningOut, setIsSigningOut] = useState(false);
 
   const { canSwitchMode } = useAccess();
+  const { logout: handleLogout, isSigningOut } = useLogout();
 const setMode = useModeStore((state) => state.setMode);
 
 function handleSwitchMode() {
@@ -30,58 +30,48 @@ function handleSwitchMode() {
   router.push("/club-coordinator/events");
 }
 
-  const pageDetails: Record<string, { title: string; subtitle: string }> = {
-  "/student-dashboard": {
-    title: "Student dashboard",
-    subtitle: "Your personal campus space",
-  },
-  "/student": {
-    title: "Explore Clubs",
-    subtitle: "Discover and join campus clubs",
-  },
-  "/studentEvents": {
-    title: "Campus Events",
-    subtitle: "Explore upcoming campus events",
-  },
-  "/student/my-memberships": {
-    title: "My Memberships",
-    subtitle: "Manage your club memberships",
-  },
-  "/student/attendance": {
-    title: "Event Attendance",
-    subtitle: "View your event attendance records",
-  },
-  "/studentNotifications": {
-    title: "Notifications",
-    subtitle: "Stay up to date with campus activity",
-  },
-  "/studentprofile": {
-    title: "My Profile",
-    subtitle: "View and manage your profile",
-  },
-};
+  const pageDetails: Record<
+    string,
+    { title: string; subtitle: string }
+  > = {
+    "/student-dashboard": {
+      title: "Student dashboard",
+      subtitle: "Your personal campus space",
+    },
+    "/student": {
+      title: "Explore Clubs",
+      subtitle: "Discover and join campus clubs",
+    },
+    "/studentEvents": {
+      title: "Campus Events",
+      subtitle: "Explore upcoming campus events",
+    },
+    "/student/my-memberships": {
+      title: "My Memberships",
+      subtitle: "Manage your club memberships",
+    },
+    "/student/attendance": {
+      title: "Event Attendance",
+      subtitle: "View your event attendance records",
+    },
+    "/studentClassAttendance": {
+      title: "My Attendance",
+      subtitle: "View your class attendance records",
+    },
+    "/studentNotifications": {
+      title: "Notifications",
+      subtitle: "Stay up to date with campus activity",
+    },
+    "/studentprofile": {
+      title: "My Profile",
+      subtitle: "View and manage your profile",
+    },
+  };
 
   const currentPage = pageDetails[pathname] ?? {
     title: "Student Portal",
     subtitle: "Your personal campus space",
   };
-
-  async function handleLogout() {
-    if (isSigningOut) return;
-
-    setIsSigningOut(true);
-
-    try {
-      await authClient.signOut();
-      router.replace("/login");
-      router.refresh();
-    } catch (error) {
-      console.error("Logout failed:", error);
-    } finally {
-      setIsSigningOut(false);
-    }
-  }
-
   return (
     <div className="min-h-screen bg-background">
       

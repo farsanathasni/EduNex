@@ -4,11 +4,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAccess } from "@/lib/navigation/access";
+import { RouteGuard } from "@/features/auth/components/route-guard";
+import LogoutButton from "@/features/auth/components/logout-button";
 import { NotificationBell } from "@/features/notifications/api/components/notification-bell";
 
 
 
-export default function TeacherLayout({
+function TeacherLayoutContent({
   children,
 }: {
   children: React.ReactNode;
@@ -28,10 +30,17 @@ export default function TeacherLayout({
     item.href === "/announcement/faculty"
 );
 
-  const isActive = (href: string) =>
+  const matchesHref = (href: string) =>
     href === "/teacher"
       ? pathname === href
       : pathname.startsWith(href);
+
+  const activeHref = navigation.reduce<string | null>((best, item) => {
+    if (!matchesHref(item.href)) return best;
+    return !best || item.href.length > best.length ? item.href : best;
+  }, null);
+
+  const isActive = (href: string) => href === activeHref;
 
   if (isPending) {
     return (
@@ -97,6 +106,10 @@ export default function TeacherLayout({
               );
             })}
           </nav>
+
+          <div className="mt-6 border-t border-border pt-4">
+            <LogoutButton className="w-full rounded-lg border border-border px-4 py-3 text-left text-sm font-medium transition hover:bg-background disabled:opacity-50" />
+          </div>
         </div>
       </aside>
 
@@ -112,7 +125,7 @@ export default function TeacherLayout({
             <h2 className="font-semibold">
   {pathname === "/teacher/notifications"
     ? "Notifications"
-    : navigation.find((item) => isActive(item.href))?.label ?? "Teacher Portal"}
+    : navigation.find((item) => item.href === activeHref)?.label ?? "Teacher Portal"}
 </h2>
           </div>
 
@@ -145,6 +158,11 @@ export default function TeacherLayout({
               {item.label}
             </Link>
           ))}
+
+          <LogoutButton
+            className="ml-auto shrink-0 whitespace-nowrap rounded-lg border border-border px-3 py-2 text-sm font-medium transition hover:bg-background disabled:opacity-50"
+            label="Log out"
+          />
         </nav>
 
         <main className="mx-auto max-w-[1500px] p-5 sm:p-8">
@@ -152,5 +170,17 @@ export default function TeacherLayout({
         </main>
       </div>
     </div>
+  );
+}
+
+export default function TeacherLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <RouteGuard roles={["faculty"]}>
+      <TeacherLayoutContent>{children}</TeacherLayoutContent>
+    </RouteGuard>
   );
 }

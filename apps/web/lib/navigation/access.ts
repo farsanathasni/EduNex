@@ -77,15 +77,6 @@ const canSwitchMode =
     );
 
   const navItems = getNavItems();
-//   console.log("Mode:", mode);
-//   console.log("Coordinated clubs:", coordinatedClubs);
-//   console.log("Permissions:", me?.permissions);
-//   console.log(
-//   "Permission details:",
-//   JSON.stringify(me?.permissions, null, 2)
-// );
-//   console.log("Can create event:", can("event", "create"));
-
 
   return {
     me,
