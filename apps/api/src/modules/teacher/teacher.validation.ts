@@ -36,3 +36,8 @@ export const createMaterialSchema = z.object({
   fileType: z.string().max(50).optional(),
   visibility: z.enum(["department", "campus"]).default("department"),
 });
+
+export const uploadMaterialFieldsSchema =
+  createMaterialSchema.omit({ fileUrl: true });
+
+export const updateMaterialSchema = createMaterialSchema.partial();

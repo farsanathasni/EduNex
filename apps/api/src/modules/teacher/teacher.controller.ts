@@ -6,8 +6,15 @@ import {
   getTeacherStudents,
   getTeacherMaterials,
   createTeacherMaterial,
+  createUploadedTeacherMaterial,
   deleteTeacherMaterial,
+  getFileExtension,
+  updateTeacherMaterial,
 } from "./teacher.service.js";
+import {
+  deleteResourceFile,
+  uploadResourceFile,
+} from "../../lib/cloudinary.js";
 
 function getUserId(res: Parameters<RequestHandler>[1]): string {
   const userId = res.locals.user?.id as string | undefined;
@@ -114,6 +121,73 @@ export const createTeacherMaterialController: RequestHandler =
         message: "Study material uploaded successfully",
         data,
       });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+export const uploadTeacherMaterialController: RequestHandler =
+  async (req, res, next) => {
+    try {
+      const file = req.file;
+
+      if (!file) {
+        throw new Error("FILE_REQUIRED");
+      }
+
+      const data = await createUploadedTeacherMaterial(
+        getUserId(res),
+        req.body,
+        file,
+      );
+
+      res.status(201).json({
+        success: true,
+        message: "Study material uploaded successfully",
+        data,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
+export const updateTeacherMaterialController: RequestHandler =
+  async (req, res, next) => {
+    try {
+      const file = req.file;
+      const stored = file ? await uploadResourceFile(file) : null;
+
+      try {
+        const data = await updateTeacherMaterial(getUserId(res), Number(req.params.id), {
+          ...req.body,
+          ...(file && stored
+            ? {
+                fileUrl: stored.secureUrl,
+                fileType: getFileExtension(file.originalname).toUpperCase(),
+                filePublicId: stored.publicId,
+                fileResourceType: stored.resourceType,
+                fileSize: stored.bytes,
+                fileName: file.originalname,
+              }
+            : {}),
+        });
+
+        res.status(200).json({
+          success: true,
+          message: "Study material updated successfully",
+          data,
+        });
+      } catch (error) {
+        if (stored) {
+          try {
+            await deleteResourceFile(stored.publicId, stored.resourceType);
+          } catch (cleanupError) {
+            console.error("Failed to clean up new Cloudinary file", cleanupError);
+          }
+        }
+
+        throw error;
+      }
     } catch (error) {
       next(error);
     }

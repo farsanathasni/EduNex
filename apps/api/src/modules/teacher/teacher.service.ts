@@ -18,6 +18,11 @@ import {
   resources,
 } from "../../db/schema/others-schema.js";
 import { notifyMany } from "../../lib/notify.js";
+import {
+  deleteResourceFile,
+  uploadResourceFile,
+  type UploadedResourceFile,
+} from "../../lib/cloudinary.js";
 
 type MaterialInput = {
   title: string;
@@ -25,6 +30,10 @@ type MaterialInput = {
   fileUrl: string;
   fileType?: string;
   visibility: "department" | "campus";
+  filePublicId?: string;
+  fileResourceType?: string;
+  fileSize?: number;
+  fileName?: string;
 };
 
 type TeacherContext = {
@@ -205,6 +214,10 @@ export async function getTeacherMaterials(userId: string) {
       description: resources.description,
       fileUrl: resources.fileUrl,
       fileType: resources.fileType,
+      filePublicId: resources.filePublicId,
+      fileResourceType: resources.fileResourceType,
+      fileSize: resources.fileSize,
+      fileName: resources.fileName,
       visibility: resources.visibility,
       createdAt: resources.createdAt,
     })
@@ -229,6 +242,10 @@ export async function createTeacherMaterial(
       description: input.description,
       fileUrl: input.fileUrl,
       fileType: input.fileType,
+      filePublicId: input.filePublicId,
+      fileResourceType: input.fileResourceType,
+      fileSize: input.fileSize,
+      fileName: input.fileName,
       departmentId: teacher.departmentId,
       uploadedBy: teacher.id,
       visibility: input.visibility,
@@ -266,6 +283,101 @@ export async function createTeacherMaterial(
 
 }
 
+export function getFileExtension(fileName: string): string {
+  const parts = fileName.toLowerCase().split(".");
+  return parts.length > 1 ? parts[parts.length - 1] : "";
+}
+
+export async function createUploadedTeacherMaterial(
+  userId: string,
+  input: Omit<MaterialInput, "fileUrl" | "fileType">,
+  file: UploadedResourceFile,
+) {
+  const stored = await uploadResourceFile(file);
+
+  return createTeacherMaterial(userId, {
+    ...input,
+    fileUrl: stored.secureUrl,
+    fileType: getFileExtension(file.originalname).toUpperCase(),
+    filePublicId: stored.publicId,
+    fileResourceType: stored.resourceType,
+    fileSize: stored.bytes,
+    fileName: file.originalname,
+  });
+}
+
+export async function updateTeacherMaterial(
+  userId: string,
+  materialId: number,
+  input: Partial<MaterialInput>,
+) {
+  const teacher = await getTeacherContext(userId);
+
+  const [existing] = await db
+    .select({
+      filePublicId: resources.filePublicId,
+    })
+    .from(resources)
+    .where(
+      and(
+        eq(resources.id, materialId),
+        eq(resources.departmentId, teacher.departmentId),
+        eq(resources.uploadedBy, teacher.id),
+      ),
+    )
+    .limit(1);
+
+  if (!existing) {
+    throw new Error("MATERIAL_NOT_FOUND_OR_FORBIDDEN");
+  }
+
+  const values: Partial<typeof resources.$inferInsert> = {};
+
+  if (input.title !== undefined) values.title = input.title;
+  if (input.description !== undefined) values.description = input.description;
+  if (input.fileUrl !== undefined) values.fileUrl = input.fileUrl;
+  if (input.fileType !== undefined) values.fileType = input.fileType;
+  if (input.filePublicId !== undefined) {
+    values.filePublicId = input.filePublicId;
+  }
+  if (input.fileResourceType !== undefined) {
+    values.fileResourceType = input.fileResourceType;
+  }
+  if (input.fileSize !== undefined) values.fileSize = input.fileSize;
+  if (input.fileName !== undefined) values.fileName = input.fileName;
+  if (input.visibility !== undefined) values.visibility = input.visibility;
+  values.updatedAt = new Date().toISOString();
+
+  const [updated] = await db
+    .update(resources)
+    .set(values)
+    .where(
+      and(
+        eq(resources.id, materialId),
+        eq(resources.departmentId, teacher.departmentId),
+        eq(resources.uploadedBy, teacher.id),
+      ),
+    )
+    .returning();
+
+  if (
+    existing.filePublicId &&
+    input.filePublicId &&
+    existing.filePublicId !== input.filePublicId
+  ) {
+    try {
+      await deleteResourceFile(
+        existing.filePublicId,
+        input.fileResourceType ?? "image",
+      );
+    } catch (error) {
+      console.error("Failed to delete replaced Cloudinary file", error);
+    }
+  }
+
+  return updated;
+}
+
 // Delete only materials uploaded by this teacher
 export async function deleteTeacherMaterial(
   userId: string,
@@ -284,12 +396,25 @@ export async function deleteTeacherMaterial(
     )
     .returning({
       id: resources.id,
+      filePublicId: resources.filePublicId,
+      fileResourceType: resources.fileResourceType,
     });
 
   if (!deleted) {
     throw new Error("MATERIAL_NOT_FOUND_OR_FORBIDDEN");
   }
 
-  return deleted;
+  if (deleted.filePublicId) {
+    try {
+      await deleteResourceFile(
+        deleted.filePublicId,
+        deleted.fileResourceType ?? "image",
+      );
+    } catch (error) {
+      console.error("Failed to delete Cloudinary file", error);
+    }
+  }
+
+  return { id: deleted.id };
 }
   
