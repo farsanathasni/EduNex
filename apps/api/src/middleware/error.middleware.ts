@@ -249,6 +249,61 @@ const KNOWN_ERRORS: Record<string, { status: number; message: string }> = {
     status: 403,
     message: "Only the recipient can resolve or reject this issue.",
   },
+
+  LOST_FOUND_NOT_FOUND: { status: 404, message: "Item not found." },
+  CLAIM_NOT_FOUND: { status: 404, message: "Claim not found." },
+  LOST_FOUND_FORBIDDEN: {
+    status: 403,
+    message: "You do not have access to this lost and found action.",
+  },
+  ITEM_NOT_ACTIVE: {
+    status: 409,
+    message: "This item is no longer active and cannot be claimed.",
+  },
+  ITEM_CLAIM_APPROVED: {
+    status: 409,
+    message: "This item cannot be edited after a claim has been approved.",
+  },
+  OWN_ITEM_CLAIM: {
+    status: 400,
+    message: "You cannot claim an item you reported.",
+  },
+  CLAIM_PENDING_EXISTS: {
+    status: 409,
+    message: "You already have a pending claim on this item.",
+  },
+  CLAIM_ATTEMPTS_EXCEEDED: {
+    status: 409,
+    message: "You have reached the maximum of three claims for this item.",
+  },
+  CLAIM_NOT_PENDING: {
+    status: 409,
+    message: "This claim is no longer pending.",
+  },
+  CLAIM_ANSWERS_INVALID: {
+    status: 400,
+    message: "Please answer every verification question.",
+  },
+  INVALID_PHOTO: {
+    status: 400,
+    message: "Photos must be JPG, PNG or WEBP images.",
+  },
+  PHOTO_TOO_LARGE: {
+    status: 400,
+    message: "Each photo must be 5 MB or smaller.",
+  },
+  PHOTO_REQUIRED: {
+    status: 400,
+    message: "Please attach at least one photo.",
+  },
+  TOO_MANY_PHOTOS: {
+    status: 400,
+    message: "You can attach at most three photos.",
+  },
+  PHOTOS_UPLOAD_FAILED: {
+    status: 400,
+    message: "The photos could not be uploaded. Please try again.",
+  },
 };
 
 const errorHandler = (

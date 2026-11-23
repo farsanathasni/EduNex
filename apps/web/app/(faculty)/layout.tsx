@@ -46,12 +46,18 @@ function TeacherLayoutContent({
     "/teacher/issues": "Issues",
     "/teacher/issues/new": "New Issue",
     "/teacher/issues/detail": "Issue Thread",
+    "/teacher/lost-found": "Lost & Found",
+    "/teacher/lost-found/new": "Report Found Item",
+    "/teacher/lost-found/my-claims": "My Claims",
+    "/teacher/lost-found/detail": "Item Details",
   };
 
   const headerTitle = pageTitleMap[pathname]
     ?? (pathname.startsWith("/teacher/issues/")
       ? pageTitleMap["/teacher/issues/detail"]
-      : null)
+      : pathname.startsWith("/teacher/lost-found/")
+        ? pageTitleMap["/teacher/lost-found/detail"]
+        : null)
     ?? (pathname === "/teacher/notifications"
       ? "Notifications"
       : navigation.find((item) => item.href === activeHref)?.label

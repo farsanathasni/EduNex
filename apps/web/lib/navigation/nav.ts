@@ -135,6 +135,13 @@ export const NAV: NavItem[] = [
     roles: ADMIN,
     permission: ["issue", "view"],
   },
+  {
+    label: "Lost & Found",
+    href: "/principal/lost-found",
+    icon: "⌕",
+    roles: ADMIN,
+    permission: ["lost_found", "view"],
+  },
 
   // Head of Department
   {
@@ -206,6 +213,13 @@ export const NAV: NavItem[] = [
     roles: HOD,
     permission: ["issue", "view"],
   },
+  {
+    label: "Lost & Found",
+    href: "/hod/lost-found",
+    icon: "⌕",
+    roles: HOD,
+    permission: ["lost_found", "view"],
+  },
 
   // Faculty
   // Faculty / Teacher
@@ -267,6 +281,13 @@ export const NAV: NavItem[] = [
     icon: "✉",
     roles: FACULTY,
     permission: ["issue", "view"],
+  },
+  {
+    label: "Lost & Found",
+    href: "/teacher/lost-found",
+    icon: "⌕",
+    roles: FACULTY,
+    permission: ["lost_found", "view"],
   },
 
 {
@@ -343,6 +364,14 @@ export const NAV: NavItem[] = [
   icon: "✉",
   roles: ["student"],
   permission: ["issue", "view"],
+  mode: "student",
+},
+{
+  label: "Lost & Found",
+  href: "/student/lost-found",
+  icon: "⌕",
+  roles: ["student"],
+  permission: ["lost_found", "view"],
   mode: "student",
 },
 {

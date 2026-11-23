@@ -45,16 +45,38 @@ export default function PrincipalLayout({
       title: "Issue Thread",
       subtitle: "Review replies and updates",
     },
+    "/principal/lost-found": {
+      title: "Lost & Found",
+      subtitle: "Campus-wide lost and found oversight",
+    },
+    "/principal/lost-found/new": {
+      title: "Report Found Item",
+      subtitle: "Add photos and verification questions",
+    },
+    "/principal/lost-found/my-claims": {
+      title: "My Claims",
+      subtitle: "Track claims you submitted",
+    },
+    "/principal/lost-found/audit": {
+      title: "Lost & Found Audit",
+      subtitle: "Review all lost and found activity",
+    },
+    "/principal/lost-found/detail": {
+      title: "Item Details",
+      subtitle: "Review the item and claim activity",
+    },
   };
 
   const currentPage =
     pageDetails[pathname]
     ?? (pathname.startsWith("/principal/issues/")
       ? pageDetails["/principal/issues/detail"]
-      : {
-          title: "Principal Portal",
-          subtitle: "College administration and management",
-        });
+      : pathname.startsWith("/principal/lost-found/")
+        ? pageDetails["/principal/lost-found/detail"]
+        : {
+            title: "Principal Portal",
+            subtitle: "College administration and management",
+          });
 
   return (
     <RouteGuard roles={["super-admin"]}>
