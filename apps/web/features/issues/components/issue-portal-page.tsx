@@ -54,18 +54,20 @@ export default function IssuePortalPage({
   const router = useRouter();
   const issueId = Number(params?.id);
   const { allowedBoxes, canCreate, canRespond, defaultBox, isReady } =
-    useIssueUiAccess();
+    useIssueUiAccess(portal);
 
   const meta =
     portal === "student" && view === "list" ? STUDENT_LIST_META : PAGE_META[view];
 
   useEffect(() => {
-    if (view === "new" && isReady && !canCreate) {
+    if (view === "new" && isReady && (portal === "principal" || !canCreate)) {
       router.replace(`/${portal}/issues`);
     }
   }, [view, isReady, canCreate, portal, router]);
 
-  if (view === "new" && isReady && !canCreate) return null;
+  if (view === "new" && isReady && (portal === "principal" || !canCreate)) {
+    return null;
+  }
 
   return (
     <div className={CONTAINER_CLASS[portal]}>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, type KeyboardEvent } from "react";
 import Link from "next/link";
 import { AlertCircle, Inbox } from "lucide-react";
 
@@ -93,6 +93,40 @@ export default function IssueList({
   const { data } = query;
   const pagination = data?.pagination;
   const emptyState = EMPTY_STATES[box];
+  const hasTabs = allowedBoxes.length > 1;
+  const tabId = (value: IssueBox) => `issue-tab-${value}`;
+
+  useEffect(() => {
+    if (pagination && page > pagination.totalPages) {
+      setPage(Math.max(1, pagination.totalPages));
+    }
+  }, [pagination?.totalPages, page]);
+
+  const handleTabKeyDown = (
+    event: KeyboardEvent<HTMLButtonElement>,
+    current: IssueBox,
+  ) => {
+    const currentIndex = allowedBoxes.indexOf(current);
+    let nextIndex: number | null = null;
+
+    if (event.key === "ArrowRight") {
+      nextIndex = (currentIndex + 1) % allowedBoxes.length;
+    } else if (event.key === "ArrowLeft") {
+      nextIndex = (currentIndex - 1 + allowedBoxes.length) % allowedBoxes.length;
+    } else if (event.key === "Home") {
+      nextIndex = 0;
+    } else if (event.key === "End") {
+      nextIndex = allowedBoxes.length - 1;
+    }
+
+    if (nextIndex === null) return;
+
+    event.preventDefault();
+    const nextBox = allowedBoxes[nextIndex];
+    setSelectedBox(nextBox);
+    setPage(1);
+    document.getElementById(tabId(nextBox))?.focus();
+  };
 
   return (
     <div className="space-y-5">
@@ -106,13 +140,17 @@ export default function IssueList({
             {allowedBoxes.map((value) => (
               <button
                 key={value}
+                id={tabId(value)}
                 type="button"
                 role="tab"
+                aria-controls="issue-box-panel"
                 aria-selected={box === value}
+                tabIndex={box === value ? 0 : -1}
                 onClick={() => {
                   setSelectedBox(value);
                   setPage(1);
                 }}
+                onKeyDown={(event) => handleTabKeyDown(event, value)}
                 className={`rounded-lg px-4 py-2 text-sm font-medium capitalize transition ${focusRing} ${
                   box === value
                     ? "bg-primary text-primary-foreground"
@@ -160,7 +198,12 @@ export default function IssueList({
         </div>
       </div>
 
-      {!isReady || query.isLoading ? (
+      <div
+        role={hasTabs ? "tabpanel" : undefined}
+        id={hasTabs ? "issue-box-panel" : undefined}
+        aria-labelledby={hasTabs ? tabId(box) : undefined}
+      >
+        {!isReady || query.isLoading ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 6 }).map((_, index) => (
             <Card key={index} padding="lg" className="space-y-4">
@@ -265,7 +308,7 @@ export default function IssueList({
           </div>
 
           {pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm text-text-muted">
                 Page {pagination.page} of {pagination.totalPages} ·{" "}
                 {pagination.total} issues
@@ -294,6 +337,7 @@ export default function IssueList({
           )}
         </>
       )}
+      </div>
     </div>
   );
 }

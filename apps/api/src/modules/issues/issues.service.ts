@@ -1,4 +1,14 @@
-import { and, asc, count, desc, eq, ilike, inArray, or } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  notInArray,
+  or,
+} from "drizzle-orm";
 
 import { db } from "../../config/database.js";
 import { user } from "../../db/schema/auth-schema.js";
@@ -34,6 +44,42 @@ const CLOSED_STATUSES: IssueStatus[] = ["resolved", "rejected"];
 
 const fail = (code: string): never => {
   throw new Error(code);
+};
+
+const safeNotify = async (
+  userId: string | null,
+  payload: Parameters<typeof notifyUser>[1],
+): Promise<void> => {
+  if (!userId) return;
+
+  try {
+    await notifyUser(userId, payload);
+  } catch (error) {
+    console.error("[issues] notification failed", error);
+  }
+};
+
+const hasSenderProfile = async (userId: string): Promise<boolean> => {
+  const [staffRow] = await db
+    .select({ userId: staff.userId })
+    .from(staff)
+    .where(and(eq(staff.userId, userId), eq(staff.isActive, true)))
+    .limit(1);
+
+  if (staffRow) return true;
+
+  const [studentRow] = await db
+    .select({ userId: StudentProfile.userId })
+    .from(StudentProfile)
+    .where(
+      and(
+        eq(StudentProfile.userId, userId),
+        eq(StudentProfile.isDeleted, false),
+      ),
+    )
+    .limit(1);
+
+  return !!studentRow;
 };
 
 const getNameMap = async (
@@ -115,7 +161,8 @@ const getAllowedRecipients = async (
     .from(userRoles)
     .innerJoin(roles, eq(userRoles.roleId, roles.id))
     .innerJoin(user, eq(userRoles.userId, user.id))
-    .where(eq(roles.slug, SUPER_ADMIN_SLUG));
+    .innerJoin(staff, eq(staff.userId, userRoles.userId))
+    .where(and(eq(staff.isActive, true), eq(roles.slug, SUPER_ADMIN_SLUG)));
 
   const seen = new Set<string>();
 
@@ -232,6 +279,14 @@ export const createIssue = async ({
   category,
   recipientId,
 }: CreateIssueParams): Promise<IssueDetail> => {
+  const access = await loadAccess(viewerId);
+
+  if (!access) return fail("UNAUTHORIZED");
+
+  if (access.isSuperAdmin || !(await hasSenderProfile(viewerId))) {
+    fail("ISSUE_SENDER_NOT_ALLOWED");
+  }
+
   const departmentId = await getSenderDepartmentId(viewerId);
   const groups = await getAllowedRecipients(viewerId, departmentId);
 
@@ -252,7 +307,7 @@ export const createIssue = async ({
     })
     .returning();
 
-  await notifyUser(recipientId, {
+  await safeNotify(recipientId, {
     title: "New issue assigned to you",
     message: `A new issue was raised: ${created.title}`,
     notificationType: "issue_created",
@@ -277,11 +332,13 @@ export const listIssues = async ({
 
   const canCreate = can(access, "issue", "create");
   const canRespond = can(access, "issue", "respond");
-  const effectiveBox: IssueBox = !canRespond
-    ? "sent"
-    : !canCreate
-      ? "received"
-      : box;
+  const effectiveBox: IssueBox = access.isSuperAdmin
+    ? "received"
+    : !canRespond
+      ? "sent"
+      : !canCreate
+        ? "received"
+        : box;
 
   const conditions = [
     effectiveBox === "sent"
@@ -365,60 +422,48 @@ export const addIssueResponse = async ({
 }> => {
   const issue = await loadVisibleIssue(issueId, viewerId);
 
-  if (CLOSED_STATUSES.includes(issue.status as IssueStatus)) {
-    fail("ISSUE_CLOSED");
+  if (close === true) {
+    fail("ISSUE_RESOLUTION_FORBIDDEN");
   }
 
   const isSender = issue.reportedBy === viewerId;
   const isRecipient = issue.assignedTo === viewerId;
-
-  if (close && !isSender) {
-    fail("ISSUE_FORBIDDEN");
-  }
-
+  const otherPartyId = isSender ? issue.assignedTo : issue.reportedBy;
+  const nextStatus: IssueStatus =
+    isRecipient && !isSender && issue.status === "open"
+      ? "in_progress"
+      : (issue.status as IssueStatus);
   const now = new Date().toISOString();
 
-  const [saved] = await db
-    .insert(issueResponses)
-    .values({
-      issueId,
-      authorId: viewerId,
-      body,
-      createdAt: now,
-    })
-    .returning();
-
-  if (close) {
-    await db
+  const saved = await db.transaction(async (tx) => {
+    const [updated] = await tx
       .update(issues)
-      .set({
-        status: "resolved",
-        resolvedBy: viewerId,
-        resolvedAt: now,
-        response: body,
-        updatedAt: now,
-      })
-      .where(eq(issues.id, issueId));
-  } else if (isRecipient && issue.status === "open") {
-    await db
-      .update(issues)
-      .set({ status: "in_progress", updatedAt: now })
-      .where(eq(issues.id, issueId));
-  }
+      .set({ status: nextStatus, updatedAt: now })
+      .where(
+        and(
+          eq(issues.id, issueId),
+          notInArray(issues.status, CLOSED_STATUSES),
+        ),
+      )
+      .returning();
 
-  const otherPartyId = isSender ? issue.assignedTo : issue.reportedBy;
+    if (!updated) fail("ISSUE_CLOSED");
 
-  if (otherPartyId) {
-    await notifyUser(otherPartyId, {
-      title: close ? "Issue closed by sender" : "New reply on an issue",
-      message: close
-        ? `The sender closed the issue: ${issue.title}`
-        : `A new reply was added to: ${issue.title}`,
-      notificationType: close ? "issue_closed" : "issue_replied",
-      referenceType: "issue",
-      referenceId: issueId,
-    });
-  }
+    const [response] = await tx
+      .insert(issueResponses)
+      .values({ issueId, authorId: viewerId, body, createdAt: now })
+      .returning();
+
+    return response;
+  });
+
+  await safeNotify(otherPartyId, {
+    title: "New reply on an issue",
+    message: `A new reply was added to: ${issue.title}`,
+    notificationType: "issue_replied",
+    referenceType: "issue",
+    referenceId: issueId,
+  });
 
   const names = await getNameMap([viewerId]);
 
@@ -440,33 +485,40 @@ export const resolveIssue = async ({
     fail("ISSUE_RESOLUTION_FORBIDDEN");
   }
 
-  if (CLOSED_STATUSES.includes(issue.status as IssueStatus)) {
-    fail("ISSUE_CLOSED");
-  }
-
   const now = new Date().toISOString();
 
-  if (note) {
-    await db.insert(issueResponses).values({
-      issueId,
-      authorId: viewerId,
-      body: note,
-      createdAt: now,
-    });
-  }
+  await db.transaction(async (tx) => {
+    const [updated] = await tx
+      .update(issues)
+      .set({
+        status,
+        resolvedBy: viewerId,
+        resolvedAt: now,
+        response: note ?? null,
+        updatedAt: now,
+      })
+      .where(
+        and(
+          eq(issues.id, issueId),
+          eq(issues.assignedTo, viewerId),
+          notInArray(issues.status, CLOSED_STATUSES),
+        ),
+      )
+      .returning();
 
-  await db
-    .update(issues)
-    .set({
-      status,
-      resolvedBy: viewerId,
-      resolvedAt: now,
-      response: note ?? null,
-      updatedAt: now,
-    })
-    .where(eq(issues.id, issueId));
+    if (!updated) fail("ISSUE_CLOSED");
 
-  await notifyUser(issue.reportedBy, {
+    if (note) {
+      await tx.insert(issueResponses).values({
+        issueId,
+        authorId: viewerId,
+        body: note,
+        createdAt: now,
+      });
+    }
+  });
+
+  await safeNotify(issue.reportedBy, {
     title: status === "resolved" ? "Issue resolved" : "Issue rejected",
     message: `Your issue was ${status}: ${issue.title}`,
     notificationType: status === "resolved" ? "issue_resolved" : "issue_rejected",

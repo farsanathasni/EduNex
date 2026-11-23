@@ -7,6 +7,7 @@ import { useAccess } from "@/lib/navigation/access";
 import { RouteGuard } from "@/features/auth/components/route-guard";
 import LogoutButton from "@/features/auth/components/logout-button";
 import { NotificationBell } from "@/features/notifications/api/components/notification-bell";
+import PortalHeader from "@/components/layout/portal-header";
 
 
 
@@ -137,28 +138,22 @@ function TeacherLayoutContent({
       {/* Main content */}
       <div className="lg:pl-[250px]">
 
-        <header className="sticky top-0 z-20 flex h-20 items-center justify-between border-b border-border bg-surface px-5 sm:px-8">
-          <div>
-            <p className="text-xs text-muted">
-              EduNex / Teacher Workspace
-            </p>
-
-            <h2 className="font-semibold">{headerTitle}</h2>
-          </div>
-
-<div className="flex items-center gap-3">
-  <NotificationBell role="faculty" />
-
-  <div className="hidden text-right sm:block">
-    <p className="text-sm font-medium">Faculty</p>
-    <p className="text-xs text-muted">Teacher Account</p>
-  </div>
-
-  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-subtle font-semibold text-primary">
-    T
-  </div>
-</div>
-        </header>
+        <PortalHeader
+          title={headerTitle}
+          breadcrumb="EduNex / Teacher Workspace"
+          notifications={<NotificationBell role="faculty" />}
+          userMenu={
+            <>
+              <div className="hidden text-right sm:block">
+                <p className="text-sm font-medium">Faculty</p>
+                <p className="text-xs text-text-muted">Teacher Account</p>
+              </div>
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-subtle font-semibold text-primary">
+                T
+              </div>
+            </>
+          }
+        />
 
         {/* Mobile navigation */}
         <nav className="flex gap-2 overflow-x-auto border-b border-border bg-surface px-4 py-3 lg:hidden">

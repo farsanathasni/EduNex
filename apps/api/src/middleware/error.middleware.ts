@@ -233,6 +233,10 @@ const KNOWN_ERRORS: Record<string, { status: number; message: string }> = {
     status: 400,
     message: "Please choose a valid recipient from your department or a principal.",
   },
+  ISSUE_SENDER_NOT_ALLOWED: {
+    status: 403,
+    message: "You are not allowed to send issues.",
+  },
   ISSUE_SENDER_DEPARTMENT_MISSING: {
     status: 403,
     message: "Your account has no department assigned.",

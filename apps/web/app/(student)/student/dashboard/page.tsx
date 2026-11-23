@@ -21,16 +21,13 @@ import {
 
 import Button from "@/components/ui/button";
 import Card from "@/components/ui/card";
+import PageContainer from "@/components/ui/page-container";
+import PageHeader from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
-
+import { useRegisterHeaderSearch } from "@/components/layout/header-search";
 import { authClient } from "@/lib/auth-client";
-
 import { useAllEventsQuery } from "@/features/events/api/event-query";
-
-import {
-  useMyStudentMembershipRequestsQuery,
-  useStudentClubsQuery,
-} from "@/features/clubs/api/club-query";
+import { useMyStudentMembershipRequestsQuery, useStudentClubsQuery } from "@/features/clubs/api/club-query";
 
 type IconType = ComponentType<{ className?: string }>;
 
@@ -403,132 +400,46 @@ function Hero({
 
 function StudentDashboardSkeleton() {
   return (
-    <div className="min-h-screen bg-background">
-      {/* Sidebar skeleton */}
-      <aside className="fixed inset-y-0 left-0 hidden w-[270px] border-r border-border bg-surface p-5 lg:block">
-        <div className="flex items-center gap-3 border-b border-border pb-6">
-          <Skeleton className="h-10 w-10 rounded-xl" />
-          <div className="flex-1 space-y-2">
-            <Skeleton className="h-4 w-20" />
-            <Skeleton className="h-3 w-32" />
+    <PageContainer className="space-y-8 py-6 sm:py-8" aria-hidden="true">
+      <div className="space-y-3">
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-10 w-72 max-w-full" />
+        <Skeleton className="h-4 w-96 max-w-full" />
+      </div>
+      <div className="rounded-3xl bg-surface p-8 sm:p-10">
+        <Skeleton className="h-6 w-36" />
+        <Skeleton className="mt-6 h-10 w-72 max-w-full" />
+        <Skeleton className="mt-4 h-4 w-full max-w-lg" />
+        <div className="mt-7 flex gap-3">
+          <Skeleton className="h-11 w-36 rounded-xl" />
+          <Skeleton className="h-11 w-36 rounded-xl" />
+        </div>
+      </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="rounded-3xl border border-border bg-surface p-6">
+            <Skeleton className="h-12 w-12 rounded-xl" />
+            <Skeleton className="mt-5 h-3 w-24" />
+            <Skeleton className="mt-3 h-7 w-16" />
           </div>
-        </div>
-
-        <div className="mt-8 space-y-4">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton key={i} className="h-10 w-full rounded-lg" />
-          ))}
-        </div>
-      </aside>
-
-      {/* Main content skeleton */}
-      <main className="lg:ml-[270px]">
-        {/* Header */}
-        <header className="flex min-h-[76px] items-center justify-between border-b border-border bg-surface px-6">
-          <div className="space-y-2">
+        ))}
+      </div>
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.5fr_1fr]">
+        {[0, 1].map((section) => (
+          <div key={section} className="rounded-3xl border border-border bg-surface p-6">
             <Skeleton className="h-5 w-40" />
-            <Skeleton className="h-3 w-48" />
-          </div>
-          <div className="flex gap-3">
-            <Skeleton className="h-10 w-28 rounded-lg" />
-            <Skeleton className="h-10 w-24 rounded-lg" />
-          </div>
-        </header>
-
-        <div className="mx-auto max-w-[1400px] space-y-10 px-4 py-8 sm:px-6 lg:px-9">
-          {/* Hero */}
-          <div>
-            <div className="rounded-3xl bg-surface p-8 sm:p-10">
-              <Skeleton className="h-6 w-36" />
-              <Skeleton className="mt-6 h-10 w-72 max-w-full" />
-              <Skeleton className="mt-4 h-4 w-full max-w-lg" />
-              <Skeleton className="mt-3 h-4 w-64 max-w-full" />
-              <div className="mt-7 flex gap-3">
-                <Skeleton className="h-11 w-36 rounded-lg" />
-                <Skeleton className="h-11 w-36 rounded-lg" />
-              </div>
-            </div>
-
-            {/* Stats */}
-            <div className="relative z-10 -mt-8 grid grid-cols-1 gap-4 px-3 sm:grid-cols-2 sm:px-8 xl:grid-cols-4">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="rounded-2xl border border-border bg-surface p-6"
-                >
-                  <Skeleton className="h-12 w-12 rounded-xl" />
-                  <Skeleton className="mt-5 h-3 w-24" />
-                  <Skeleton className="mt-3 h-7 w-16" />
-                  <Skeleton className="mt-2 h-3 w-36" />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Events and memberships */}
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.5fr_1fr]">
-            {[0, 1].map((section) => (
-              <div
-                key={section}
-                className="rounded-2xl border border-border bg-surface p-6"
-              >
-                <Skeleton className="h-5 w-40" />
-                <Skeleton className="mt-2 h-3 w-56" />
-                <div className="mt-6 space-y-4">
-                  {Array.from({ length: 3 }).map((_, i) => (
-                    <div key={i} className="flex items-center gap-4">
-                      <Skeleton className="h-14 w-14 shrink-0 rounded-xl" />
-                      <div className="flex-1 space-y-2">
-                        <Skeleton className="h-4 w-2/3" />
-                        <Skeleton className="h-3 w-full" />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Clubs */}
-          <section>
-            <Skeleton className="h-6 w-52" />
-            <Skeleton className="mt-2 h-3 w-64" />
-            <div className="mt-5 grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
+            <div className="mt-6 space-y-4">
               {Array.from({ length: 3 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="rounded-2xl border border-border bg-surface p-6"
-                >
-                  <Skeleton className="h-14 w-14 rounded-xl" />
-                  <Skeleton className="mt-5 h-4 w-2/3" />
-                  <Skeleton className="mt-3 h-3 w-full" />
-                  <Skeleton className="mt-2 h-3 w-4/5" />
+                <div key={i} className="flex items-center gap-4">
+                  <Skeleton className="h-14 w-14 shrink-0 rounded-xl" />
+                  <div className="flex-1 space-y-2"><Skeleton className="h-4 w-2/3" /><Skeleton className="h-3 w-full" /></div>
                 </div>
               ))}
             </div>
-          </section>
-
-          {/* Quick actions */}
-          <section>
-            <Skeleton className="h-6 w-36" />
-            <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-4 rounded-2xl border border-border bg-surface p-5"
-                >
-                  <Skeleton className="h-12 w-12 shrink-0 rounded-xl" />
-                  <div className="flex-1 space-y-2">
-                    <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-3 w-32" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
-      </main>
-    </div>
+          </div>
+        ))}
+      </div>
+    </PageContainer>
   );
 }
 
@@ -538,14 +449,17 @@ function StudentDashboardSkeleton() {
 
 export default function StudentDashboard() {
   const [search, setSearch] = useState("");
+  useRegisterHeaderSearch({
+    value: search,
+    onChange: setSearch,
+    placeholder: "Search upcoming events or clubs",
+  });
 
-  const { data: session, isPending: isSessionPending } =
-    authClient.useSession();
+  const { data: session, isPending: isSessionPending } = authClient.useSession();
 
   const eventsQuery = useAllEventsQuery(true);
   const clubsQuery = useStudentClubsQuery();
-  const membershipsQuery =
-    useMyStudentMembershipRequestsQuery(true);
+  const membershipsQuery = useMyStudentMembershipRequestsQuery(true);
 
   const displayName = session?.user?.name?.trim() || "";
   const firstName = displayName.split(/\s+/)[0] || "Student";
@@ -556,33 +470,30 @@ export default function StudentDashboard() {
 
   const upcomingEvents = useMemo(() => {
     const now = Date.now();
-
     return events
       .filter((event) => {
         const startTime = new Date(event.startTime).getTime();
-
         return Number.isFinite(startTime) && startTime >= now;
       })
-      .sort(
-        (left, right) =>
-          new Date(left.startTime).getTime() -
-          new Date(right.startTime).getTime(),
-      );
+      .sort((left, right) => new Date(left.startTime).getTime() - new Date(right.startTime).getTime());
   }, [events]);
 
-  const filteredEvents = useMemo(() => {
-    const keyword = search.trim().toLowerCase();
-
-    if (!keyword) return upcomingEvents;
-
+  const normalizedSearch = search.trim().toLowerCase();
+  const filteredUpcomingEvents = useMemo(() => {
+    if (!normalizedSearch) return upcomingEvents;
     return upcomingEvents.filter((event) =>
-      `${event.title} ${event.clubName} ${event.location ?? ""} ${
-        event.description ?? ""
-      }`
+      `${event.title} ${event.clubName} ${event.location ?? ""} ${event.description ?? ""}`
         .toLowerCase()
-        .includes(keyword),
+        .includes(normalizedSearch),
     );
-  }, [upcomingEvents, search]);
+  }, [normalizedSearch, upcomingEvents]);
+
+  const filteredClubs = useMemo(() => {
+    if (!normalizedSearch) return clubs;
+    return clubs.filter((club) =>
+      `${club.name} ${club.description ?? ""}`.toLowerCase().includes(normalizedSearch),
+    );
+  }, [clubs, normalizedSearch]);
 
   const approvedMemberships = memberships.filter(
     (membership) => membership.status.toLowerCase() === "approved",
@@ -648,136 +559,95 @@ export default function StudentDashboard() {
   }
 
   return (
-    <div className="min-h-full bg-background text-text">
-      <div className="mx-auto max-w-[1400px] space-y-12 px-4 py-6 sm:px-6 sm:py-8 lg:px-9">
-        {/* Welcome section and statistics */}
-        <div>
-          <Hero
-            eyebrow="Student workspace"
-            title={`Welcome back, ${firstName}`}
-            description="Explore communities, discover upcoming events and make every college day count."
+    <PageContainer className="space-y-10 py-6 sm:py-8">
+      <PageHeader
+        eyebrow="Student workspace"
+        title={`Welcome back, ${firstName}`}
+        description="Explore communities, discover upcoming events and make every college day count."
+        primaryAction={
+          <Link
+            href="/student/events"
+            className={`inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-label font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary-hover sm:w-auto ${focusRing}`}
           >
-            <Link
-              href="/student/events"
-              className={`inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-5 py-3 text-label font-semibold text-accent-foreground shadow-sm transition-colors hover:bg-accent-hover ${focusRing}`}
-            >
-              Explore events
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-
-            <Link
-              href="/student"
-              className={`inline-flex items-center justify-center gap-2 rounded-lg border border-white/30 bg-white/10 px-5 py-3 text-label font-semibold text-white transition-colors hover:bg-white/20 ${focusRing}`}
-            >
-              Discover clubs
-            </Link>
-          </Hero>
-
-          <section
-            aria-label="Your overview"
-            className="relative z-10 -mt-12 grid grid-cols-1 gap-4 px-3 sm:grid-cols-2 sm:px-8 xl:grid-cols-4"
+            Explore events <ArrowRight className="h-4 w-4" />
+          </Link>
+        }
+        action={
+          <Link
+            href="/student"
+            className={`inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-border bg-surface px-5 py-3 text-label font-semibold text-text transition-colors hover:bg-secondary sm:w-auto ${focusRing}`}
           >
-            {studentStats.map((stat) => (
-              <StatCard key={stat.title} stat={stat} />
-            ))}
-          </section>
-        </div>
+            Discover clubs
+          </Link>
+        }
+      />
 
-        {/* Events and memberships */}
-        <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.5fr_1fr]">
-          <Card padding="lg" className="min-w-0">
-            <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h2 className="text-subheading font-extrabold text-text">
-                  Upcoming events
-                </h2>
+      <div>
+        <Hero
+          eyebrow="Your campus, your way"
+          title="Make every day count"
+          description="Find your community, keep up with events, and track your memberships in one friendly space."
+        >
+          <Link href="/student/events" className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 text-label font-semibold text-accent-foreground shadow-sm transition-colors hover:bg-accent-hover ${focusRing}`}>
+            Explore events <ArrowRight className="h-4 w-4" />
+          </Link>
+          <Link href="/student" className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-white/30 bg-white/10 px-5 py-3 text-label font-semibold text-white transition-colors hover:bg-white/20 ${focusRing}`}>
+            Discover clubs
+          </Link>
+        </Hero>
 
-                <p className="mt-1 text-label text-text-muted">
-                  What&apos;s happening around your campus.
-                </p>
-              </div>
+        <section aria-label="Your overview" className="relative z-10 -mt-12 grid grid-cols-1 gap-4 px-2 sm:grid-cols-2 sm:px-6 xl:grid-cols-4">
+          {studentStats.map((stat) => <StatCard key={stat.title} stat={stat} />)}
+        </section>
+      </div>
 
-              <TextLink href="/student/events">
-                View all
-              </TextLink>
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.5fr_1fr]">
+        <Card padding="lg" className="min-w-0 rounded-3xl">
+          <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h2 className="text-subheading font-extrabold text-text">Upcoming events</h2>
+              <p className="mt-1 text-label text-text-muted">What&apos;s happening around your campus.</p>
             </div>
+            <TextLink href="/student/events">View all</TextLink>
+          </div>
 
-            <div className="relative mb-4">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-subtle" />
-
-              <input
-                type="search"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search upcoming events..."
-                aria-label="Search upcoming events"
-                className="w-full rounded-lg border border-border bg-background py-2.5 pl-9 pr-3 text-label text-text outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/20"
-              />
+          {eventsQuery.isPending ? (
+            <ListSkeleton rows={3} />
+          ) : eventsQuery.isError ? (
+            <InlineState
+              role="alert"
+              tone="error"
+              icon={<AlertCircle className="h-6 w-6" />}
+              title="Unable to load campus events"
+              description="Please try again."
+              action={<Button size="sm" onClick={() => void eventsQuery.refetch()}>Try again</Button>}
+            />
+          ) : filteredUpcomingEvents.length === 0 ? (
+            <InlineState
+              icon={normalizedSearch ? <Search className="h-6 w-6" /> : <CalendarDays className="h-6 w-6" />}
+              title={normalizedSearch ? "No matching events" : "No upcoming events"}
+              description={normalizedSearch ? "Try a different search term." : "New campus events will appear here when available."}
+            />
+          ) : (
+            <div className="space-y-3">
+              {filteredUpcomingEvents.slice(0, 4).map((event) => (
+                <EventRow
+                  key={event.id}
+                  title={event.title}
+                  clubName={event.clubName}
+                  startTime={event.startTime}
+                  location={event.location}
+                  description={event.description}
+                />
+              ))}
             </div>
+          )}
+        </Card>
 
-            {eventsQuery.isPending ? (
-              <ListSkeleton rows={3} />
-            ) : eventsQuery.isError ? (
-              <InlineState
-                role="alert"
-                tone="error"
-                icon={<AlertCircle className="h-6 w-6" />}
-                title="Unable to load campus events"
-                description="Please try again."
-                action={
-                  <Button
-                    size="sm"
-                    onClick={() => void eventsQuery.refetch()}
-                  >
-                    Try again
-                  </Button>
-                }
-              />
-            ) : filteredEvents.length === 0 ? (
-              <InlineState
-                icon={
-                  search ? (
-                    <Search className="h-6 w-6" />
-                  ) : (
-                    <CalendarDays className="h-6 w-6" />
-                  )
-                }
-                title={
-                  search
-                    ? "No matching events"
-                    : "No upcoming events"
-                }
-                description={
-                  search
-                    ? "Try searching with a different keyword."
-                    : "New campus events will appear here when available."
-                }
-              />
-            ) : (
-              <div className="space-y-3">
-                {filteredEvents.slice(0, 4).map((event) => (
-                  <EventRow
-                    key={event.id}
-                    title={event.title}
-                    clubName={event.clubName}
-                    startTime={event.startTime}
-                    location={event.location}
-                    description={event.description}
-                  />
-                ))}
-              </div>
-            )}
-          </Card>
-
-          <Card padding="lg" className="flex flex-col">
+          <Card padding="lg" className="flex flex-col rounded-3xl">
             <div className="mb-5">
-              <h2 className="text-subheading font-extrabold text-text">
-                My memberships
-              </h2>
-
-              <p className="mt-1 text-label text-text-muted">
-                Your latest club application statuses.
-              </p>
+              <h2 className="text-subheading font-extrabold text-text">My memberships</h2>
+              <p className="mt-1 text-label text-text-muted">Your latest club application statuses.</p>
             </div>
 
             <div className="flex-1">
@@ -855,16 +725,11 @@ export default function StudentDashboard() {
           </Card>
         </section>
 
-        {/* Discover clubs */}
         <section>
           <SectionHeader
             title="Discover campus clubs"
             description="Meet people who share your interests."
-            action={
-              <TextLink href="/student">
-                Explore all clubs
-              </TextLink>
-            }
+            action={<TextLink href="/student">Explore all clubs</TextLink>}
           />
 
           {clubsQuery.isPending ? (
@@ -901,19 +766,19 @@ export default function StudentDashboard() {
                 </Button>
               }
             />
-          ) : clubs.length === 0 ? (
+          ) : filteredClubs.length === 0 ? (
             <InlineState
-              icon={<Inbox className="h-6 w-6" />}
-              title="No clubs are available yet"
-              description="Available campus clubs will appear here."
+              icon={normalizedSearch ? <Search className="h-6 w-6" /> : <Inbox className="h-6 w-6" />}
+              title={normalizedSearch ? "No matching clubs" : "No clubs are available yet"}
+              description={normalizedSearch ? "Try a different search term." : "Available campus clubs will appear here."}
             />
           ) : (
             <ul className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
-              {clubs.slice(0, 3).map((club) => (
+              {filteredClubs.slice(0, 3).map((club) => (
                 <li key={club.id}>
                   <Card
                     padding="lg"
-                    className="group relative flex h-full flex-col gap-4 transition-all duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+                    className="group relative flex h-full flex-col gap-4 rounded-3xl transition-all duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg motion-reduce:transition-none motion-reduce:hover:translate-y-0"
                   >
                     <div className="flex items-center gap-4">
                       <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-primary-subtle text-subheading font-extrabold text-primary transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
@@ -946,40 +811,22 @@ export default function StudentDashboard() {
           )}
         </section>
 
-        {/* Quick actions */}
         <section>
-          <SectionHeader
-            title="Quick actions"
-            description="Jump straight to what you need."
-          />
-
+          <SectionHeader title="Quick actions" description="Jump straight to what you need." />
           <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {studentQuickActions.map((action) => {
               const Icon = action.icon;
-
               return (
                 <li key={action.title}>
-                  <Link
-                    href={action.href}
-                    className={`group block h-full rounded-2xl ${focusRing}`}
-                  >
-                    <Card className="flex h-full items-center gap-4 transition-all duration-200 group-hover:-translate-y-0.5 group-hover:border-primary/30 group-hover:shadow-lg motion-reduce:transition-none motion-reduce:group-hover:translate-y-0">
-                      <div
-                        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${action.iconClassName}`}
-                      >
+                  <Link href={action.href} className={`group block h-full rounded-3xl ${focusRing}`}>
+                    <Card className="flex h-full items-center gap-4 rounded-3xl transition-all duration-200 group-hover:-translate-y-0.5 group-hover:border-primary/30 group-hover:shadow-lg motion-reduce:transition-none motion-reduce:group-hover:translate-y-0">
+                      <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${action.iconClassName}`}>
                         <Icon className="h-6 w-6" />
                       </div>
-
                       <div className="min-w-0 flex-1">
-                        <h3 className="text-label font-bold text-text">
-                          {action.title}
-                        </h3>
-
-                        <p className="mt-0.5 text-caption text-text-muted">
-                          {action.description}
-                        </p>
+                        <h3 className="text-label font-bold text-text">{action.title}</h3>
+                        <p className="mt-0.5 text-caption text-text-muted">{action.description}</p>
                       </div>
-
                       <ArrowRight className="h-4 w-4 shrink-0 text-text-subtle transition-transform group-hover:translate-x-1 group-hover:text-primary" />
                     </Card>
                   </Link>
@@ -988,31 +835,6 @@ export default function StudentDashboard() {
             })}
           </ul>
         </section>
-
-        {/* Footer */}
-        <footer className="flex flex-col items-center justify-between gap-3 border-t border-border py-6 text-center text-caption text-text-subtle sm:flex-row sm:text-left">
-          <p>
-            © {new Date().getFullYear()} EduNex. Built for a better campus
-            experience.
-          </p>
-
-          <div className="flex items-center gap-4">
-            <Link
-              href="/student/profile"
-              className="transition-colors hover:text-primary"
-            >
-              My profile
-            </Link>
-
-            <Link
-              href="/student/my-memberships"
-              className="transition-colors hover:text-primary"
-            >
-              My memberships
-            </Link>
-          </div>
-        </footer>
-      </div>
-    </div>
+      </PageContainer>
   );
 }

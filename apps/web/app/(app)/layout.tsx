@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 
 import { useAccess } from "@/lib/navigation/access";
 import { ModeSwitch } from "@/components/layout/mode-switch";
+import PortalHeader from "@/components/layout/portal-header";
 import LogoutButton from "@/features/auth/components/logout-button";
 import { NotificationBell } from "@/features/notifications/api/components/notification-bell"; // NOTIFICATION
 
@@ -124,25 +125,15 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       <div className="min-w-0 flex-1">
-        <header className="sticky top-0 z-30 flex items-center gap-4 border-b border-border bg-surface px-4 py-4 sm:px-6">
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(true)}
-            aria-label="Open navigation menu"
-            className="rounded-lg border border-border px-3 py-2 md:hidden"
-          >
-            ☰
-          </button>
-
-          <div className="flex-1">
-            <p className="font-semibold">{me.user?.name ?? "User"}</p>
-<p className="text-xs text-text-muted">{me.user?.email ?? ""}</p>
-          </div>
-
-          <NotificationBell role={notificationRole} /> {/* NOTIFICATION */}
-
-          <ModeSwitch />
-        </header>
+        <PortalHeader
+          title={me.user?.name ?? "User"}
+          subtitle={me.user?.email ?? undefined}
+          breadcrumb={portalLabel}
+          onOpenMobileMenu={() => setMobileMenuOpen(true)}
+          mobileMenuExpanded={mobileMenuOpen}
+          notifications={<NotificationBell role={notificationRole} />}
+          switchButton={<ModeSwitch />}
+        />
 
         <div className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">{children}</div>
       </div>
