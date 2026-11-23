@@ -14,6 +14,7 @@ import { db } from "../../config/database.js";
 import { departments } from "../../db/schema/others-schema.js";
 import { staff } from "../../db/schema/staff-schema.js";
 import { user } from "../../db/schema/auth-schema.js";
+import { StudentProfile } from "../../db/schema/student-profile.js";
 import {
   classSessions,
   facultySubjects,
@@ -65,9 +66,26 @@ export async function resolveSubjectScope(
     .where(and(eq(staff.userId, access.userId), eq(staff.isActive, true)))
     .limit(1);
 
-  return member?.departmentId
-    ? { kind: "department", departmentId: member.departmentId }
-    : { kind: "all" };
+  if (member?.departmentId) {
+    return { kind: "department", departmentId: member.departmentId };
+  }
+
+  const [studentProfile] = await db
+    .select({ departmentId: StudentProfile.departmentId })
+    .from(StudentProfile)
+    .where(
+      and(
+        eq(StudentProfile.userId, access.userId),
+        eq(StudentProfile.isDeleted, false),
+      ),
+    )
+    .limit(1);
+
+  if (studentProfile?.departmentId) {
+    return { kind: "department", departmentId: studentProfile.departmentId };
+  }
+
+  throw new Error("SUBJECT_SCOPE_NOT_FOUND");
 }
 
 export const getScopeDepartmentId = (scope: SubjectScope) =>

@@ -53,7 +53,7 @@ export default function RegisterPage() {
       setIsSuccess(true);
       setMessage("Account created successfully!");
 
-      router.push("/studentprofile");
+      router.push("/student/profile");
     } catch {
       setMessage("Unable to connect to the server. Please try again.");
     }

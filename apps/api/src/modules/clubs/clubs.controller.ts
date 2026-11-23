@@ -448,6 +448,28 @@ export const GetStudentClubAnnouncements = asyncHandler(
       });
     }
 
+    const departmentId = await resolveHodDepartmentScope(
+      res.locals.access as Access,
+    );
+
+    if (departmentId === null) {
+      return res.status(403).json({
+        success: false,
+        message: "No department is assigned to your account.",
+      });
+    }
+
+    if (departmentId !== undefined) {
+      const club = await getClubById(clubId);
+
+      if (!club || club.departmentId !== departmentId) {
+        return res.status(404).json({
+          success: false,
+          message: "Club not found.",
+        });
+      }
+    }
+
     const { page, limit } = validation.data;
     const result = await getClubAnnouncements(
       clubId,

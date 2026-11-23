@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 
 import { useAccess } from "@/lib/navigation/access";
+import { RouteGuard } from "@/features/auth/components/route-guard";
 import { NotificationBell } from "@/features/notifications/api/components/notification-bell";
 
 export default function FacultyAttendanceLayout({
@@ -51,6 +52,7 @@ export default function FacultyAttendanceLayout({
   }
 
   return (
+    <RouteGuard roles={["faculty", "super-admin"]}>
     <div className="min-h-screen bg-background text-text">
       {/* Desktop Sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[250px] border-r border-border bg-surface lg:block">
@@ -182,5 +184,6 @@ export default function FacultyAttendanceLayout({
         </main>
       </div>
     </div>
+    </RouteGuard>
   );
 }

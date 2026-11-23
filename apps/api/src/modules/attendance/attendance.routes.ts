@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { requireAuth } from "../../middleware/auth.middleware.js";
 import { rbac } from "../../middleware/rbac.middleware.js";
-import {attendanceParamsSchema,saveAttendanceSchema} from "./attendance.validation.js";
+import {attendanceParamsSchema,attendanceQuerySchema,saveAttendanceSchema} from "./attendance.validation.js";
 import validate from "../../middleware/validate.middleware.js";
 import {getEventAttendanceController,GetHodAttendanceEvents,getStudentAttendanceController,saveAttendanceController} from "./attendance.controller.js";
 
@@ -12,6 +12,7 @@ attendanceRouter.get(
   requireAuth,
   rbac("attendance", "view"),
   validate(attendanceParamsSchema, "params"),
+  validate(attendanceQuerySchema, "query"),
   getEventAttendanceController,
 );
 
@@ -36,6 +37,7 @@ attendanceRouter.get(
   "/events",
   requireAuth,
   rbac("attendance", "view"),
+  validate(attendanceQuerySchema, "query"),
   GetHodAttendanceEvents,
 );
 
