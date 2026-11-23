@@ -1,6 +1,6 @@
 "use client";
 
-import StudentRouteLayout from "@/app/(student)/layout";
+import StudentRouteLayout from "@/app/(student)/student/layout";
 
 export default function AnnouncementStudentLayout({
   children,

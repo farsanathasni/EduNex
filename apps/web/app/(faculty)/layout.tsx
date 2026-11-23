@@ -42,6 +42,21 @@ function TeacherLayoutContent({
 
   const isActive = (href: string) => href === activeHref;
 
+  const pageTitleMap: Record<string, string> = {
+    "/teacher/issues": "Issues",
+    "/teacher/issues/new": "New Issue",
+    "/teacher/issues/detail": "Issue Thread",
+  };
+
+  const headerTitle = pageTitleMap[pathname]
+    ?? (pathname.startsWith("/teacher/issues/")
+      ? pageTitleMap["/teacher/issues/detail"]
+      : null)
+    ?? (pathname === "/teacher/notifications"
+      ? "Notifications"
+      : navigation.find((item) => item.href === activeHref)?.label
+        ?? "Teacher Portal");
+
   if (isPending) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -122,11 +137,7 @@ function TeacherLayoutContent({
               EduNex / Teacher Workspace
             </p>
 
-            <h2 className="font-semibold">
-  {pathname === "/teacher/notifications"
-    ? "Notifications"
-    : navigation.find((item) => item.href === activeHref)?.label ?? "Teacher Portal"}
-</h2>
+            <h2 className="font-semibold">{headerTitle}</h2>
           </div>
 
 <div className="flex items-center gap-3">

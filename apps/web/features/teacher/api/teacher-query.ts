@@ -52,6 +52,10 @@ export interface StudyMaterial {
   description: string | null;
   fileUrl: string;
   fileType: string | null;
+  filePublicId: string | null;
+  fileResourceType: string | null;
+  fileSize: number | null;
+  fileName: string | null;
   visibility: "department" | "campus";
   createdAt: string;
 }
@@ -62,6 +66,42 @@ export interface CreateMaterialInput {
   fileUrl: string;
   fileType?: string;
   visibility: "department" | "campus";
+}
+
+type MaterialFields = {
+  title?: string;
+  description?: string;
+  visibility?: "department" | "campus";
+  fileType?: string;
+};
+
+export type UploadMaterialInput = MaterialFields & {
+  title: string;
+  visibility: "department" | "campus";
+  file: File;
+};
+
+export type UpdateMaterialInput = MaterialFields & {
+  fileUrl?: string;
+  file?: File;
+};
+
+type ProgressCallback = (percent: number) => void;
+
+function toMaterialFormData(input: MaterialFields & { file?: File }) {
+  const formData = new FormData();
+
+  if (input.file) formData.append("file", input.file);
+  if (input.title !== undefined) formData.append("title", input.title);
+  if (input.description !== undefined) {
+    formData.append("description", input.description);
+  }
+  if (input.visibility !== undefined) {
+    formData.append("visibility", input.visibility);
+  }
+  if (input.fileType !== undefined) formData.append("fileType", input.fileType);
+
+  return formData;
 }
 
 interface ApiResponse<T> {
@@ -135,6 +175,47 @@ export const teacherApi = {
     );
     return response.data.data;
   },
+
+  uploadMaterial: async (
+    input: UploadMaterialInput,
+    onProgress?: ProgressCallback
+  ) => {
+    const response = await api.post<ApiResponse<StudyMaterial>>(
+      "/teacher/study-materials/upload",
+      toMaterialFormData(input),
+      {
+        headers: { "Content-Type": undefined },
+        timeout: 120000,
+        onUploadProgress: (event) => {
+          if (event.progress !== undefined) {
+            onProgress?.(Math.round(event.progress * 100));
+          }
+        },
+      }
+    );
+    return response.data.data;
+  },
+
+  updateMaterial: async (
+    id: number,
+    input: UpdateMaterialInput,
+    onProgress?: ProgressCallback
+  ) => {
+    const response = await api.patch<ApiResponse<StudyMaterial>>(
+      `/teacher/study-materials/${id}`,
+      toMaterialFormData(input),
+      {
+        headers: { "Content-Type": undefined },
+        timeout: 120000,
+        onUploadProgress: (event) => {
+          if (event.progress !== undefined) {
+            onProgress?.(Math.round(event.progress * 100));
+          }
+        },
+      }
+    );
+    return response.data.data;
+  },
 };
 
 // Query keys
@@ -191,6 +272,46 @@ export function useCreateTeacherMaterialMutation() {
 
   return useMutation({
     mutationFn: teacherApi.createMaterial,
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: teacherKeys.all,
+      });
+    },
+  });
+}
+
+export function useUploadTeacherMaterialMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      input,
+      onProgress,
+    }: {
+      input: UploadMaterialInput;
+      onProgress?: ProgressCallback;
+    }) => teacherApi.uploadMaterial(input, onProgress),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: teacherKeys.all,
+      });
+    },
+  });
+}
+
+export function useUpdateTeacherMaterialMutation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      id,
+      input,
+      onProgress,
+    }: {
+      id: number;
+      input: UpdateMaterialInput;
+      onProgress?: ProgressCallback;
+    }) => teacherApi.updateMaterial(id, input, onProgress),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: teacherKeys.all,

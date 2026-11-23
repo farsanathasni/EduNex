@@ -128,6 +128,13 @@ export const NAV: NavItem[] = [
     roles: ADMIN,
     permission: ["role", "view"],
   },
+  {
+    label: "Issues",
+    href: "/principal/issues",
+    icon: "✉",
+    roles: ADMIN,
+    permission: ["issue", "view"],
+  },
 
   // Head of Department
   {
@@ -188,9 +195,16 @@ export const NAV: NavItem[] = [
     label: "Event Approvals",
     href: "/hod/approvals",
     icon: "✓",
-   
+    
     roles: HOD,
     permission: ["event", "approve"],
+  },
+  {
+    label: "Issues",
+    href: "/hod/issues",
+    icon: "✉",
+    roles: HOD,
+    permission: ["issue", "view"],
   },
 
   // Faculty
@@ -247,6 +261,13 @@ export const NAV: NavItem[] = [
   
     roles: FACULTY,
   },
+  {
+    label: "Issues",
+    href: "/teacher/issues",
+    icon: "✉",
+    roles: FACULTY,
+    permission: ["issue", "view"],
+  },
 
 {
   label: "Event Attendance Reports",
@@ -260,7 +281,7 @@ export const NAV: NavItem[] = [
   // Student view
 {
   label: "Dashboard",
-  href: "/student-dashboard",
+  href: "/student/dashboard",
   icon: "\u2302",
  
   roles: ["student"],
@@ -268,7 +289,7 @@ export const NAV: NavItem[] = [
 },
 {
   label: "Events",
-  href: "/studentEvents",
+  href: "/student/events",
   icon: "▣",
  
   roles: ["student"],
@@ -299,6 +320,32 @@ export const NAV: NavItem[] = [
   mode: "student",
 },
 {
+  label: "My Attendance",
+  href: "/student/class-attendance",
+  icon: "✓",
+  
+  roles: ["student"],
+  permission: ["class_attendance", "view_own"],
+  mode: "student",
+},
+{
+  label: "Study Materials",
+  href: "/student/study-materials",
+  icon: "▤",
+  
+  roles: ["student"],
+  permission: ["resource", "view"],
+  mode: "student",
+},
+{
+  label: "Issues",
+  href: "/student/issues",
+  icon: "✉",
+  roles: ["student"],
+  permission: ["issue", "view"],
+  mode: "student",
+},
+{
   label: "Event Attendance",
   href: "/attendance/student",
   icon: "✓",
@@ -308,17 +355,8 @@ export const NAV: NavItem[] = [
   mode: "student",
 },
 {
-  label: "My Attendance",
-  href: "/studentClassAttendance",
-  icon: "✓",
-  
-  roles: ["student"],
-  permission: ["class_attendance", "view_own"],
-  mode: "student",
-},
-{
   label: "My Profile",
-  href: "/studentprofile",
+  href: "/student/profile",
   icon: "☺",
 
   roles: ["student"],

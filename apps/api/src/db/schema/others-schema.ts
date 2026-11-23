@@ -219,6 +219,10 @@ export const resources = pgTable("resources", {
     description: text(),
     fileUrl: text("file_url").notNull(),
     fileType: varchar("file_type", { length: 50 }),
+    filePublicId: text("file_public_id"),
+    fileResourceType: varchar("file_resource_type", { length: 20 }),
+    fileSize: integer("file_size"),
+    fileName: text("file_name"),
     // You can use { mode: "bigint" } if numbers are exceeding js number limitations
     departmentId: bigint("department_id", { mode: "number" }),
     // You can use { mode: "bigint" } if numbers are exceeding js number limitations
@@ -265,22 +269,64 @@ publishedBy: text("published_by")
 ]);
 
 export const issues = pgTable("issues", {
-    // You can use { mode: "bigint" } if numbers are exceeding js number limitations
     id: bigint({ mode: "number" }).primaryKey().generatedAlwaysAsIdentity({ name: "issues_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 9223372036854775807, cache: 1 }),
     title: varchar({ length: 200 }).notNull(),
     description: text().notNull(),
     category: varchar({ length: 100 }),
     status: varchar({ length: 20 }).default('open').notNull(),
-    // You can use { mode: "bigint" } if numbers are exceeding js number limitations
-    reportedBy: bigint("reported_by", { mode: "number" }).notNull(),
-    // You can use { mode: "bigint" } if numbers are exceeding js number limitations
-    assignedTo: bigint("assigned_to", { mode: "number" }),
+    reportedBy: text("reported_by").notNull(),
+    assignedTo: text("assigned_to"),
+    departmentId: bigint("department_id", { mode: "number" }),
     response: text(),
     createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
-    updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true, mode: 'string' }).defaultNow().$onUpdate(() => new Date().toISOString()).notNull(),
     resolvedAt: timestamp("resolved_at", { withTimezone: true, mode: 'string' }),
+    resolvedBy: text("resolved_by"),
 }, (table) => [
+    foreignKey({
+        columns: [table.reportedBy],
+        foreignColumns: [user.id],
+        name: "issues_reported_by_fkey",
+    }).onDelete("cascade"),
+    foreignKey({
+        columns: [table.assignedTo],
+        foreignColumns: [user.id],
+        name: "issues_assigned_to_fkey",
+    }).onDelete("set null"),
+    foreignKey({
+        columns: [table.departmentId],
+        foreignColumns: [departments.id],
+        name: "issues_department_id_fkey",
+    }).onDelete("set null"),
+    foreignKey({
+        columns: [table.resolvedBy],
+        foreignColumns: [user.id],
+        name: "issues_resolved_by_fkey",
+    }).onDelete("set null"),
+    index("issues_recipient_status_idx").on(table.assignedTo, table.status),
+    index("issues_reporter_idx").on(table.reportedBy),
+    index("issues_department_status_idx").on(table.departmentId, table.status),
     check("issues_status_check", sql`(status)::text = ANY ((ARRAY['open'::character varying, 'in_progress'::character varying, 'resolved'::character varying, 'rejected'::character varying])::text[])`),
+]);
+
+export const issueResponses = pgTable("issue_responses", {
+    id: bigint({ mode: "number" }).primaryKey().generatedAlwaysAsIdentity({ name: "issue_responses_id_seq", startWith: 1, increment: 1, minValue: 1, maxValue: 9223372036854775807, cache: 1 }),
+    issueId: bigint("issue_id", { mode: "number" }).notNull(),
+    authorId: text("author_id").notNull(),
+    body: text().notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true, mode: 'string' }).defaultNow().notNull(),
+}, (table) => [
+    foreignKey({
+        columns: [table.issueId],
+        foreignColumns: [issues.id],
+        name: "issue_responses_issue_id_fkey",
+    }).onDelete("cascade"),
+    foreignKey({
+        columns: [table.authorId],
+        foreignColumns: [user.id],
+        name: "issue_responses_author_id_fkey",
+    }).onDelete("cascade"),
+    index("issue_responses_issue_id_idx").on(table.issueId),
 ]);
 
 export const studyGroups = pgTable("study_groups", {

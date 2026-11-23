@@ -7,24 +7,86 @@ import { eq } from "drizzle-orm";
 import { db } from "../config/database.js";
 import { staff } from "../db/schema/staff-schema.js";
 
-export const requireAuth =asyncHandler(async(
-    req:Request,res:Response,next:NextFunction)=>{
-        const session=await auth.api.getSession({
-            headers:fromNodeHeaders(req.headers)
-        })
+const isDatabaseConnectionError = (error: unknown): boolean => {
+  if (!(error instanceof Error)) return false;
 
-        if(!session){
-            return res.status(401).json({
-                success: false,
-                message: "Unauthorized. Please log in.",
-            })
-        }
+  const code = (error as NodeJS.ErrnoException).code;
+  const message = error.message.toLowerCase();
 
-        res.locals.user=session.user
-        return next()
-})
+  return (
+    code === "ECONNRESET" ||
+    code === "ETIMEDOUT" ||
+    code === "ECONNREFUSED" ||
+    code === "ENOTFOUND" ||
+    code === "EPIPE" ||
+    message.includes("econnreset") ||
+    message.includes("econnrefused") ||
+    message.includes("enotfound") ||
+    message.includes("connection terminated") ||
+    message.includes("socket hang up") ||
+    message.includes("timeout")
+  );
+};
 
+export const requireAuth = asyncHandler(
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { headers, response: session } = await auth.api.getSession({
+        headers: fromNodeHeaders(req.headers),
+        returnHeaders: true,
+      });
 
+      if (!session) {
+        return res.status(401).json({
+          success: false,
+          message: "Unauthorized. Please log in.",
+        });
+      }
+
+      for (const cookie of headers.getSetCookie?.() ?? []) {
+        res.appendHeader("Set-Cookie", cookie);
+      }
+
+      const authUser = session.user as typeof session.user & {
+        banned?: boolean | null;
+        banExpires?: Date | string | null;
+      };
+
+      if (
+        authUser.banned &&
+        (!authUser.banExpires ||
+          new Date(authUser.banExpires).getTime() > Date.now())
+      ) {
+        return res.status(403).json({
+          success: false,
+          message: "Account is banned.",
+        });
+      }
+
+      const [staffMember] = await db
+        .select({ isActive: staff.isActive })
+        .from(staff)
+        .where(eq(staff.userId, session.user.id))
+        .limit(1);
+
+      if (staffMember && !staffMember.isActive) {
+        return res.status(403).json({
+          success: false,
+          message: "Account is deactivated.",
+        });
+      }
+
+      res.locals.user = session.user;
+      return next();
+    } catch (error) {
+      if (isDatabaseConnectionError(error)) {
+        res.setHeader("Retry-After", "5");
+        return next(new Error("DB_UNAVAILABLE"));
+      }
+      throw error;
+    }
+  },
+);
 
 type StaffRole = "principal" | "hod" | "faculty";
 

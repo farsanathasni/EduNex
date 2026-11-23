@@ -70,7 +70,7 @@ const studentQuickActions = [
     title: "Browse events",
     description: "Discover campus activities",
     icon: CalendarDays,
-    href: "/studentEvents",
+    href: "/student/events",
     iconClassName: "bg-accent-subtle text-accent",
   },
   {
@@ -84,7 +84,7 @@ const studentQuickActions = [
     title: "My profile",
     description: "View your student profile",
     icon: User,
-    href: "/studentprofile",
+    href: "/student/profile",
     iconClassName: "bg-secondary text-secondary-foreground",
   },
 ];
@@ -602,7 +602,7 @@ export default function StudentDashboard() {
           : String(upcomingEvents.length),
       description: "Events scheduled for campus",
       icon: CalendarDays,
-      href: "/studentEvents",
+      href: "/student/events",
       iconClassName: "bg-primary-subtle text-primary",
     },
     {
@@ -658,7 +658,7 @@ export default function StudentDashboard() {
             description="Explore communities, discover upcoming events and make every college day count."
           >
             <Link
-              href="/studentEvents"
+              href="/student/events"
               className={`inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-5 py-3 text-label font-semibold text-accent-foreground shadow-sm transition-colors hover:bg-accent-hover ${focusRing}`}
             >
               Explore events
@@ -697,7 +697,7 @@ export default function StudentDashboard() {
                 </p>
               </div>
 
-              <TextLink href="/studentEvents">
+              <TextLink href="/student/events">
                 View all
               </TextLink>
             </div>
@@ -998,7 +998,7 @@ export default function StudentDashboard() {
 
           <div className="flex items-center gap-4">
             <Link
-              href="/studentprofile"
+              href="/student/profile"
               className="transition-colors hover:text-primary"
             >
               My profile

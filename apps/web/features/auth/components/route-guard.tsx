@@ -74,7 +74,7 @@ const roleHome = me ? getDashboardPath(me) : null;
 const deniedAccessDestination = isPrincipalAdmin
   ? "/principal"
   : coordinatorOnly && hasAnyRole(["student"])
-    ? "/student-dashboard"
+    ? "/student/dashboard"
     : roleHome && roleHome !== pathname
       ? roleHome
       : "/dashboard";
@@ -84,19 +84,6 @@ const deniedAccessDestination = isPrincipalAdmin
     : !isPending && !isError && me && !routeAllowed
       ? deniedAccessDestination
       : null;
-
-      console.log("RouteGuard Debug:", {
-  pathname,
-  isPending,
-  isError,
-  me,
-  roleAllowed,
-  permissionAllowed,
-  coordinatorAllowed,
-  routeAllowed,
-  deniedAccessDestination,
-  redirectTo,
-});
 
   useEffect(() => {
     if (redirectTo) {

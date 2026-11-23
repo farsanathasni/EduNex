@@ -15,14 +15,17 @@ export const attachAccess: RequestHandler = async (
     const userId = res.locals.user?.id as string | undefined;
 
     if (!userId) {
-      res.status(401).json({ message: "Authentication required" });
+      res.status(401).json({ success: false, message: "Authentication required" });
       return;
     }
 
     const access = await loadAccess(userId);
 
     if (!access) {
-      res.status(403).json({ message: "Your account is deactivated." });
+      res.status(403).json({
+        success: false,
+        message: "Your account is deactivated.",
+      });
       return;
     }
 
@@ -42,6 +45,7 @@ export const rbac = (resource: string, action: string): RequestHandler => {
 
       if (!can(res.locals.access as Access, resource, action)) {
         res.status(403).json({
+          success: false,
           message: "You do not have permission to perform this action",
         });
         return;
@@ -65,6 +69,7 @@ export const rbacAny = (
 
       if (!pairs.some(([resource, action]) => can(access, resource, action))) {
         res.status(403).json({
+          success: false,
           message: "You do not have permission to perform this action",
         });
         return;
@@ -92,6 +97,7 @@ export const rbacMembershipDecision: RequestHandler = (
     action = "reject";
   } else {
     res.status(400).json({
+      success: false,
       message: "Invalid membership decision",
     });
     return;
@@ -105,6 +111,7 @@ export const rbacMembershipDecision: RequestHandler = (
 
     if (!can(access, "membership", action)) {
       res.status(403).json({
+        success: false,
         message: "You do not have permission to perform this action",
       });
       return;

@@ -332,7 +332,7 @@ export default function StudentProfile() {
       },
       {
         onSuccess: () => {
-          router.push("/student-dashboard");
+          router.push("/student/dashboard");
         },
 
         onError: (error: unknown) => {

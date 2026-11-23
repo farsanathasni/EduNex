@@ -22,6 +22,8 @@ import teacherRouter from "./modules/teacher/teacher.routes.js";
 import subjectsRouter from "./modules/subjects/subjects.routes.js";
 import classAttendanceRouter from "./modules/class-attendence/class-attendance.routes.js";
 import attendanceReportsRouter from "./modules/attendance-reports/attendance-reports.routes.js";
+import resourcesRouter from "./modules/resources/resources.routes.js";
+import issuesRouter from "./modules/issues/issues.routes.js";
 
 const app = express();
 const PORT = 5000;
@@ -54,11 +56,18 @@ app.use("/api/announcements", announcementsRouter);
 app.use("/api/subjects", subjectsRouter);
 app.use("/api/class-attendance", classAttendanceRouter);
 app.use("/api/attendance-reports", attendanceReportsRouter);
+app.use("/api/resources", resourcesRouter);
+app.use("/api/issues", issuesRouter);
 
 
 app.use("/api/me", meRouter);
 app.use("/api/roles", rolesRouter);
 app.use("/api/teacher", teacherRouter);
+
+app.use("/api", (_req, res) => {
+  res.status(404).json({ success: false, message: "Not found" });
+});
+
 app.use(errorHandler);
 
 app.listen(PORT, () => {

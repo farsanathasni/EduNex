@@ -14,6 +14,12 @@ export const pool = new Pool({
   connectionString,
   max: 10,
   connectionTimeoutMillis: 10000,
-})
+  idleTimeoutMillis: 30000,
+  keepAlive: true,
+});
 
-export const db = drizzle(pool, { schema })
+pool.on("error", (error) => {
+  console.error("Unexpected database pool error", error);
+});
+
+export const db = drizzle(pool, { schema });

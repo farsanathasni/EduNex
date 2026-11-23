@@ -60,6 +60,8 @@ const permissionCatalog: Record<string, string[]> = {
   certificate: CRUD,
   subject: ["view", "create", "update", "delete", "assign"],
   class_attendance: ["view", "mark", "view_own", "report"],
+  resource: ["view", "create", "update", "delete"],
+  issue: ["view", "create", "respond", "resolve"],
 };
 
 const rolePermissionMap: Record<string, string[]> = {
@@ -92,6 +94,11 @@ const rolePermissionMap: Record<string, string[]> = {
     "announcement:delete",
     "certificate:view",
     "class_attendance:report",
+    "resource:view",
+    "issue:view",
+    "issue:create",
+    "issue:respond",
+    "issue:resolve",
   ],
 
   faculty: [
@@ -106,7 +113,9 @@ const rolePermissionMap: Record<string, string[]> = {
     "certificate:view",
     "certificate:create",
      "subject:view",
-     "class_attendance:view", "class_attendance:mark"
+      "class_attendance:view", "class_attendance:mark",
+      "resource:view", "resource:create", "resource:update", "resource:delete",
+      "issue:view", "issue:create", "issue:respond", "issue:resolve"
   ],
 
   student: [
@@ -117,7 +126,10 @@ const rolePermissionMap: Record<string, string[]> = {
     "announcement:view",
     "certificate:view",
     "subject:view",
-    "class_attendance:view_own"
+    "class_attendance:view_own",
+    "resource:view",
+    "issue:view",
+    "issue:create"
   ],
 
   "club-coordinator": [
