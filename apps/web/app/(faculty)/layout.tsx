@@ -3,12 +3,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useAccess } from "@/lib/navigation/access";
+import { useState } from "react";
 import { RouteGuard } from "@/features/auth/components/route-guard";
 import LogoutButton from "@/features/auth/components/logout-button";
+import { useAccess } from "@/lib/navigation/access";
 import { NotificationBell } from "@/features/notifications/api/components/notification-bell";
-
-
 
 function TeacherLayoutContent({
   children,
@@ -16,31 +15,70 @@ function TeacherLayoutContent({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const { navItems, isPending, unauthorized } = useAccess();
 
-  const {
-    navItems,
-    isPending,
-    unauthorized,
-  } = useAccess();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const navigation = navItems.filter(
-  (item) =>
-    item.href.startsWith("/teacher") ||
-    item.href === "/attendance/faculty"||
-    item.href === "/announcement/faculty"
-);
+  const menuItems = navItems.filter(
+    (item) =>
+      item.href.startsWith("/teacher") ||
+      item.href === "/attendance/faculty" ||
+      item.href === "/announcement/faculty",
+  );
 
-  const matchesHref = (href: string) =>
-    href === "/teacher"
-      ? pathname === href
-      : pathname.startsWith(href);
+  const activeHref = menuItems.reduce<string | null>(
+    (best, item) => {
+      const matches =
+        item.href === "/teacher"
+          ? pathname === item.href
+          : pathname === item.href ||
+            pathname.startsWith(`${item.href}/`);
 
-  const activeHref = navigation.reduce<string | null>((best, item) => {
-    if (!matchesHref(item.href)) return best;
-    return !best || item.href.length > best.length ? item.href : best;
-  }, null);
+      if (!matches) return best;
 
-  const isActive = (href: string) => href === activeHref;
+      return !best || item.href.length > best.length
+        ? item.href
+        : best;
+    },
+    null,
+  );
+
+  const getPageTitle = () => {
+    if (pathname === "/teacher/notifications") {
+      return {
+        title: "Notifications",
+        description: "Stay up to date with campus activity",
+      };
+    }
+
+    if (pathname === "/attendance/faculty") {
+      return {
+        title: "Event Attendance Reports",
+        description: "View event attendance records",
+      };
+    }
+
+    if (pathname.startsWith("/attendance/faculty/")) {
+      return {
+        title: "Event Attendance",
+        description: "View event attendance details",
+      };
+    }
+
+    if (pathname === "/announcement/faculty") {
+      return {
+        title: "Announcements",
+        description: "Stay informed with campus announcements",
+      };
+    }
+
+    return {
+      title:
+        menuItems.find((item) => item.href === activeHref)
+          ?.label ?? "Teacher Portal",
+      description: "Teacher workspace and academic activities",
+    };
+  };
 
   const pageTitleMap: Record<string, string> = {
     "/teacher/issues": "Issues",
@@ -52,21 +90,24 @@ function TeacherLayoutContent({
     "/teacher/lost-found/detail": "Item Details",
   };
 
-  const headerTitle = pageTitleMap[pathname]
-    ?? (pathname.startsWith("/teacher/issues/")
-      ? pageTitleMap["/teacher/issues/detail"]
-      : pathname.startsWith("/teacher/lost-found/")
-        ? pageTitleMap["/teacher/lost-found/detail"]
-        : null)
-    ?? (pathname === "/teacher/notifications"
-      ? "Notifications"
-      : navigation.find((item) => item.href === activeHref)?.label
-        ?? "Teacher Portal");
+  const headerTitle =
+  pageTitleMap[pathname] ??
+  (pathname.startsWith("/teacher/issues/")
+    ? pageTitleMap["/teacher/issues/detail"]
+    : pathname.startsWith("/teacher/lost-found/")
+      ? pageTitleMap["/teacher/lost-found/detail"]
+      : null) ??
+  (pathname === "/teacher/notifications"
+    ? "Notifications"
+    : menuItems.find((item) => item.href === activeHref)?.label ??
+      "Teacher Portal");
 
   if (isPending) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-muted">Loading teacher workspace...</p>
+        <p className="text-text-muted">
+          Loading teacher workspace...
+        </p>
       </div>
     );
   }
@@ -74,115 +115,125 @@ function TeacherLayoutContent({
   if (unauthorized) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-muted">
+        <p className="text-text-muted">
           Please sign in to access your workspace.
         </p>
       </div>
     );
   }
 
+  const pageInfo = getPageTitle();
+
   return (
-    <div className="min-h-screen bg-background text-text">
+    <div className="min-h-screen bg-background text-text md:flex">
+
+      {/* Mobile overlay */}
+      {mobileMenuOpen && (
+        <button
+          type="button"
+          aria-label="Close navigation menu"
+          onClick={() => setMobileMenuOpen(false)}
+          className="fixed inset-0 z-40 bg-black/40 md:hidden"
+        />
+      )}
 
       {/* Sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[250px] border-r border-border bg-surface lg:block">
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex w-72 flex-col border-r border-border bg-surface transition-transform duration-300 md:sticky md:top-0 md:h-screen md:translate-x-0 ${
+          mobileMenuOpen
+            ? "translate-x-0"
+            : "-translate-x-full"
+        }`}
+      >
+        {/* Branding */}
+        <div className="border-b border-border p-6">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-xl font-extrabold text-primary-foreground shadow-sm">
+              E
+            </div>
 
-        <div className="flex h-20 items-center gap-3 border-b border-border px-6">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-lg font-bold text-white">
-            E
-          </div>
-          
+            <div>
+              <h1 className="text-2xl font-bold text-primary">
+                EduNex
+              </h1>
 
-          <div>
-            <h1 className="text-lg font-bold">EduNex</h1>
-            <p className="text-xs text-muted">Teacher Portal</p>
+              <p className="mt-0.5 text-sm text-text-muted">
+                Teacher Workspace
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="px-4 py-7">
-          <p className="mb-4 px-3 text-xs font-semibold uppercase tracking-wider text-muted">
-            Workspace
+        {/* Navigation */}
+        <nav className="flex-1 space-y-1 overflow-y-auto p-4">
+          <p className="mb-3 px-3 text-xs font-semibold uppercase tracking-wider text-text-muted">
+            Teacher Workspace
           </p>
 
-          <nav className="space-y-1">
-            {navigation.map((item) => {
-              const active = isActive(item.href);
+          {menuItems.map((item) => {
+            const active = item.href === activeHref;
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition ${
-                    active
-                      ? "bg-primary-subtle text-primary"
-                      : "text-muted hover:bg-background hover:text-text"
-                  }`}
-                >
-                  <span className="w-5 text-center text-lg">
-                    {item.icon}
-                  </span>
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setMobileMenuOpen(false)}
+                className={`flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
+                  active
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-text-muted hover:bg-background hover:text-text"
+                }`}
+              >
+                <span className="flex w-5 items-center justify-center text-lg">
+                  {item.icon}
+                </span>
 
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
 
-          <div className="mt-6 border-t border-border pt-4">
-            <LogoutButton className="w-full rounded-lg border border-border px-4 py-3 text-left text-sm font-medium transition hover:bg-background disabled:opacity-50" />
-          </div>
+        {/* Logout */}
+        <div className="border-t border-border p-4">
+          <LogoutButton className="w-full rounded-xl border border-border px-4 py-3 text-left text-sm font-medium text-text transition hover:bg-background disabled:opacity-50" />
         </div>
       </aside>
 
-      {/* Main content */}
-      <div className="lg:pl-[250px]">
+      {/* Main workspace */}
+      <div className="min-w-0 flex-1">
 
-        <header className="sticky top-0 z-20 flex h-20 items-center justify-between border-b border-border bg-surface px-5 sm:px-8">
-          <div>
-            <p className="text-xs text-muted">
-              EduNex / Teacher Workspace
+        {/* Header */}
+        <header className="sticky top-0 z-30 flex items-center gap-4 border-b border-border bg-surface/95 px-4 py-4 backdrop-blur-md sm:px-6">
+
+          {/* Mobile menu button */}
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(true)}
+            aria-label="Open navigation menu"
+            className="rounded-lg border border-border px-3 py-2 text-lg transition hover:bg-background md:hidden"
+          >
+            ☰
+          </button>
+
+          {/* Page information */}
+          <div className="min-w-0 flex-1">
+            <p className="truncate font-semibold text-text">
+              {pageInfo.title}
             </p>
 
             <h2 className="font-semibold">{headerTitle}</h2>
+            <p className="truncate text-xs text-text-muted">
+              {pageInfo.description}
+            </p>
           </div>
 
-<div className="flex items-center gap-3">
-  <NotificationBell role="faculty" />
-
-  <div className="hidden text-right sm:block">
-    <p className="text-sm font-medium">Faculty</p>
-    <p className="text-xs text-muted">Teacher Account</p>
-  </div>
-
-  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-subtle font-semibold text-primary">
-    T
-  </div>
-</div>
+          {/* Notifications */}
+          <NotificationBell role="faculty" />
         </header>
 
-        {/* Mobile navigation */}
-        <nav className="flex gap-2 overflow-x-auto border-b border-border bg-surface px-4 py-3 lg:hidden">
-          {navigation.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm ${
-                isActive(item.href)
-                  ? "bg-primary-subtle font-medium text-primary"
-                  : "text-muted hover:bg-background"
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
-
-          <LogoutButton
-            className="ml-auto shrink-0 whitespace-nowrap rounded-lg border border-border px-3 py-2 text-sm font-medium transition hover:bg-background disabled:opacity-50"
-            label="Log out"
-          />
-        </nav>
-
-        <main className="mx-auto max-w-[1500px] p-5 sm:p-8">
+        {/* Page content */}
+        <main className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
           {children}
         </main>
       </div>
@@ -197,7 +248,9 @@ export default function TeacherLayout({
 }) {
   return (
     <RouteGuard roles={["faculty"]}>
-      <TeacherLayoutContent>{children}</TeacherLayoutContent>
+      <TeacherLayoutContent>
+        {children}
+      </TeacherLayoutContent>
     </RouteGuard>
   );
 }

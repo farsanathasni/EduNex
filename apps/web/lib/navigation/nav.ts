@@ -384,6 +384,15 @@ export const NAV: NavItem[] = [
   mode: "student",
 },
 {
+  label: "My Attendance",
+  href: "/student/class-attendance",
+  icon: "✓",
+  
+  roles: ["student"],
+  permission: ["class_attendance", "view_own"],
+  mode: "student",
+},
+{
   label: "My Profile",
   href: "/student/profile",
   icon: "☺",

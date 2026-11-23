@@ -1,53 +1,67 @@
-import { Notification } from "../api/notifications";
 
+import type { Notification } from "../api/notifications";
 
-export type NotificationRole = "student" | "coordinator" | "hod" | "principal" | "faculty" ;
+export type NotificationRole =
+  | "student"
+  | "coordinator"
+  | "hod"
+  | "principal"
+  | "faculty";
 
 const LINKS: Record<NotificationRole, Record<string, string>> = {
   student: {
     event: "/student/events",
     membership: "/student/my-memberships",
-    announcement: "/student/dashboard",
+    announcement: "/announcement/student",
     issue: "/student/issues",
     lost_found: "/student/lost-found",
   },
+
   coordinator: {
     event: "/club-coordinator/events",
     membership_request: "/club-coordinator/membership-requests",
+    announcement: "/announcement/coordinator",
   },
+
   faculty: {
-    event: "/teacher/events",        // adjust to a real teacher page
-    announcement: "/teacher",
+    event: "/teacher/events",
+    announcement: "/announcement/faculty",
     issue: "/teacher/issues",
     lost_found: "/teacher/lost-found",
   },
+
   hod: {
     event_approval: "/hod/approvals",
     issue: "/hod/issues",
     lost_found: "/hod/lost-found",
+    announcement: "/announcement/hod",
   },
+
   principal: {
     event_approval: "/principal/approvals",
     event: "/principal/events",
     issue: "/principal/issues",
     lost_found: "/principal/lost-found",
+    announcement: "/announcement/principal",
   },
 };
 
 export function getNotificationHref(
   role: NotificationRole,
-  n: Notification,
+  notification: Notification,
 ): string | null {
-  if (!n.referenceType) return null;
+  if (!notification.referenceType) return null;
 
-  const href = LINKS[role][n.referenceType] ?? null;
+  const href = LINKS[role][notification.referenceType] ?? null;
+
   if (!href) return null;
 
   if (
-    (n.referenceType === "issue" || n.referenceType === "lost_found") &&
-    n.referenceId != null
+    (notification.referenceType === "issue" ||
+      notification.referenceType === "lost_found") &&
+    notification.referenceId != null
   ) {
-    return `${href}/${n.referenceId}`;
+    return `${href}/${notification.referenceId}`;
   }
 
   return href;
