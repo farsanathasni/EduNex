@@ -24,6 +24,7 @@ import classAttendanceRouter from "./modules/class-attendence/class-attendance.r
 import attendanceReportsRouter from "./modules/attendance-reports/attendance-reports.routes.js";
 import resourcesRouter from "./modules/resources/resources.routes.js";
 import issuesRouter from "./modules/issues/issues.routes.js";
+import lostFoundRouter from "./modules/lost-and-found/lost-found.routes.js";
 
 const app = express();
 const PORT = 5000;
@@ -58,6 +59,7 @@ app.use("/api/class-attendance", classAttendanceRouter);
 app.use("/api/attendance-reports", attendanceReportsRouter);
 app.use("/api/resources", resourcesRouter);
 app.use("/api/issues", issuesRouter);
+app.use("/api/lost-found", lostFoundRouter);
 
 
 app.use("/api/me", meRouter);

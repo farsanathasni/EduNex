@@ -66,6 +66,22 @@ function handleSwitchMode() {
       title: "Issue Thread",
       subtitle: "Review replies and updates",
     },
+    "/student/lost-found": {
+      title: "Lost & Found",
+      subtitle: "Browse campus lost and found items",
+    },
+    "/student/lost-found/new": {
+      title: "Report Found Item",
+      subtitle: "Add photos and verification questions",
+    },
+    "/student/lost-found/my-claims": {
+      title: "My Claims",
+      subtitle: "Track claims you submitted",
+    },
+    "/student/lost-found/detail": {
+      title: "Item Details",
+      subtitle: "Review the item and claim activity",
+    },
     "/student/attendance": {
       title: "Event Attendance",
       subtitle: "View your event attendance records",
@@ -88,10 +104,12 @@ function handleSwitchMode() {
     pageDetails[pathname] ??
     (pathname.startsWith("/student/issues/")
       ? pageDetails["/student/issues/detail"]
-      : {
-          title: "Student Portal",
-          subtitle: "Your personal campus space",
-        });
+      : pathname.startsWith("/student/lost-found/")
+        ? pageDetails["/student/lost-found/detail"]
+        : {
+            title: "Student Portal",
+            subtitle: "Your personal campus space",
+          });
   return (
     <div className="min-h-screen bg-background">
       

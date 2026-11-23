@@ -67,6 +67,7 @@ function toPublicId(fileName: string): string {
 
 export async function uploadResourceFile(
   file: UploadedResourceFile,
+  folder = "edunex/resources",
 ): Promise<StoredResourceFile> {
   const client = getClient();
   const extension = getExtension(file.originalname);
@@ -75,7 +76,7 @@ export async function uploadResourceFile(
   return new Promise((resolve, reject) => {
     const stream = client.uploader.upload_stream(
       {
-        folder: "edunex/resources",
+        folder,
         public_id: toPublicId(file.originalname),
         resource_type: resourceType,
         overwrite: false,

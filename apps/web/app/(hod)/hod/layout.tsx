@@ -64,6 +64,22 @@ export default function HodLayout({
       title: "Issue Thread",
       subtitle: "Review replies and updates",
     },
+    "/hod/lost-found": {
+      title: "Lost & Found",
+      subtitle: "Campus-wide lost and found items",
+    },
+    "/hod/lost-found/new": {
+      title: "Report Found Item",
+      subtitle: "Add photos and verification questions",
+    },
+    "/hod/lost-found/my-claims": {
+      title: "My Claims",
+      subtitle: "Track claims you submitted",
+    },
+    "/hod/lost-found/detail": {
+      title: "Item Details",
+      subtitle: "Review the item and claim activity",
+    },
   };
 
   const currentPage =
@@ -75,10 +91,12 @@ export default function HodLayout({
         }
       : pathname.startsWith("/hod/issues/")
         ? pageDetails["/hod/issues/detail"]
-        : {
-            title: "HOD Portal",
-            subtitle: "Department management and administration",
-          });
+        : pathname.startsWith("/hod/lost-found/")
+          ? pageDetails["/hod/lost-found/detail"]
+          : {
+              title: "HOD Portal",
+              subtitle: "Department management and administration",
+            });
 
   return (
     <RouteGuard roles={["hod"]}>
