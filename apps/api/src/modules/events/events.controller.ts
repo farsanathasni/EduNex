@@ -1,15 +1,10 @@
 
 import type { Request, Response } from "express";
-
 import asyncHandler from "../../middleware/asyncHandler.js";
-import {
-  resolveHodDepartmentScope,
-  type Access,
-} from "../rbac/rbac.access.js";
-// import { getAllEvents, getMyEvents } from "./events.service.js";
-// import { eventsQuerySchema } from "./events.validation.js";
+import {resolveHodDepartmentScope,type Access,} from "../rbac/rbac.access.js";
 import { createEventRequest, getAllEvents, getMyEventRequests, getMyEvents } from "./events.service.js";
 import { createEventRequestSchema, eventsQuerySchema } from "./events.validation.js";
+
 
 export const getAllEventsController = asyncHandler(
   async (req: Request, res: Response) => {

@@ -102,6 +102,11 @@ if (assignments.length > 0) {
   granted.add("membership:reject");
 
   granted.add("member:view");
+
+  granted.add("announcement:view");
+  granted.add("announcement:create");
+  granted.add("announcement:update");
+  granted.add("announcement:delete");
 }
 }
 

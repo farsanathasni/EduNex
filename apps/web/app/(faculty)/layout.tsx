@@ -26,7 +26,8 @@ function TeacherLayoutContent({
   const navigation = navItems.filter(
   (item) =>
     item.href.startsWith("/teacher") ||
-    item.href === "/attendance/faculty"
+    item.href === "/attendance/faculty"||
+    item.href === "/announcement/faculty"
 );
 
   const matchesHref = (href: string) =>

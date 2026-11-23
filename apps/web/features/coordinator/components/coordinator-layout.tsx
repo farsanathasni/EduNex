@@ -35,7 +35,8 @@ export default function CoordinatorLayout({
     .filter(
       (item) =>
         item.href === "/dashboard" ||
-        item.href.startsWith("/club-coordinator/"),
+        item.href.startsWith("/club-coordinator/")||
+    item.href === "/announcement/coordinator",
     )
     .map((item) => ({
       ...item,
