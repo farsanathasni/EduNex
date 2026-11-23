@@ -23,13 +23,38 @@ export default function PrincipalLayout({
       item.href.startsWith("/principal") ||
       item.href.startsWith("/attendance/principal"),
   )
-  .map((item) => ({
-    ...item,
-    label:
-      item.href === "/principal/students"
-        ? "Student Management"
-        : item.label,
-  }));
+    .map((item) => ({
+      ...item,
+      label:
+        item.href === "/principal/students"
+          ? "Student Management"
+          : item.label,
+    }));
+
+  const pageDetails: Record<string, { title: string; subtitle: string }> = {
+    "/principal/issues": {
+      title: "Issues",
+      subtitle: "Track issues sent across the college",
+    },
+    "/principal/issues/new": {
+      title: "New Issue",
+      subtitle: "Raise a concern with the right person",
+    },
+    "/principal/issues/detail": {
+      title: "Issue Thread",
+      subtitle: "Review replies and updates",
+    },
+  };
+
+  const currentPage =
+    pageDetails[pathname]
+    ?? (pathname.startsWith("/principal/issues/")
+      ? pageDetails["/principal/issues/detail"]
+      : {
+          title: "Principal Portal",
+          subtitle: "College administration and management",
+        });
+
   return (
     <RouteGuard roles={["super-admin"]}>
     <div className="min-h-screen bg-background text-text md:flex">
@@ -105,10 +130,8 @@ export default function PrincipalLayout({
   </button>
 
   <div className="min-w-0 flex-1">
-    <p className="font-semibold">Principal Portal</p>
-    <p className="text-xs text-text-muted">
-      College administration and management
-    </p>
+    <p className="font-semibold">{currentPage.title}</p>
+    <p className="text-xs text-text-muted">{currentPage.subtitle}</p>
   </div>
 
   <NotificationBell role="principal" />

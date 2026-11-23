@@ -15,6 +15,7 @@ export {
   resources,
   announcements,
   issues,
+  issueResponses,
   studyGroups,
   studyGroupMembers,
   lostAndFound,

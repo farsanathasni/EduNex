@@ -34,7 +34,7 @@ function handleSwitchMode() {
     string,
     { title: string; subtitle: string }
   > = {
-    "/student-dashboard": {
+    "/student/dashboard": {
       title: "Student dashboard",
       subtitle: "Your personal campus space",
     },
@@ -42,7 +42,7 @@ function handleSwitchMode() {
       title: "Explore Clubs",
       subtitle: "Discover and join campus clubs",
     },
-    "/studentEvents": {
+    "/student/events": {
       title: "Campus Events",
       subtitle: "Explore upcoming campus events",
     },
@@ -50,28 +50,48 @@ function handleSwitchMode() {
       title: "My Memberships",
       subtitle: "Manage your club memberships",
     },
+    "/student/study-materials": {
+      title: "Study Materials",
+      subtitle: "Resources shared by your faculty",
+    },
+    "/student/issues": {
+      title: "My Issues",
+      subtitle: "Raise a concern and track the response",
+    },
+    "/student/issues/new": {
+      title: "New Issue",
+      subtitle: "Raise a concern with the right person",
+    },
+    "/student/issues/detail": {
+      title: "Issue Thread",
+      subtitle: "Review replies and updates",
+    },
     "/student/attendance": {
       title: "Event Attendance",
       subtitle: "View your event attendance records",
     },
-    "/studentClassAttendance": {
+    "/student/class-attendance": {
       title: "My Attendance",
       subtitle: "View your class attendance records",
     },
-    "/studentNotifications": {
+    "/student/notifications": {
       title: "Notifications",
       subtitle: "Stay up to date with campus activity",
     },
-    "/studentprofile": {
+    "/student/profile": {
       title: "My Profile",
       subtitle: "View and manage your profile",
     },
   };
 
-  const currentPage = pageDetails[pathname] ?? {
-    title: "Student Portal",
-    subtitle: "Your personal campus space",
-  };
+  const currentPage =
+    pageDetails[pathname] ??
+    (pathname.startsWith("/student/issues/")
+      ? pageDetails["/student/issues/detail"]
+      : {
+          title: "Student Portal",
+          subtitle: "Your personal campus space",
+        });
   return (
     <div className="min-h-screen bg-background">
       

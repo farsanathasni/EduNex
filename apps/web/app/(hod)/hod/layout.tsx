@@ -37,7 +37,45 @@ export default function HodLayout({
           : item.href === "/hod/clubs"
             ? "\u25a6"
             : item.icon,
-    }));
+      }));
+
+  const pageDetails: Record<string, { title: string; subtitle: string }> = {
+    "/hod/notifications": {
+      title: "Notifications",
+      subtitle: "Stay up to date with campus activity",
+    },
+    "/attendance/hod": {
+      title: "Event Attendance Reports",
+      subtitle: "View department event attendance",
+    },
+    "/hod/issues": {
+      title: "Issues",
+      subtitle: "Track issues raised by your department",
+    },
+    "/hod/issues/new": {
+      title: "New Issue",
+      subtitle: "Raise a concern with the right person",
+    },
+    "/hod/issues/detail": {
+      title: "Issue Thread",
+      subtitle: "Review replies and updates",
+    },
+  };
+
+  const currentPage =
+    pageDetails[pathname]
+    ?? (pathname.startsWith("/attendance/hod/")
+      ? {
+          title: "Event Attendance",
+          subtitle: "View department event attendance",
+        }
+      : pathname.startsWith("/hod/issues/")
+        ? pageDetails["/hod/issues/detail"]
+        : {
+            title: "HOD Portal",
+            subtitle: "Department management and administration",
+          });
+
   return (
     <RouteGuard roles={["hod"]}>
     <div className="min-h-screen bg-background text-text md:flex">
@@ -113,23 +151,8 @@ export default function HodLayout({
   </button>
 
   <div className="min-w-0 flex-1">
-    <p className="font-semibold">
-      {pathname === "/hod/notifications"
-        ? "Notifications"
-        : pathname === "/attendance/hod"
-          ? "Event Attendance Reports"
-          : pathname.startsWith("/attendance/hod/")
-            ? "Event Attendance"
-            : "HOD Portal"}
-    </p>
-
-    <p className="text-xs text-text-muted">
-      {pathname === "/hod/notifications"
-        ? "Stay up to date with campus activity"
-        : pathname.startsWith("/attendance/hod")
-          ? "View department event attendance"
-          : "Department management and administration"}
-    </p>
+    <p className="font-semibold">{currentPage.title}</p>
+    <p className="text-xs text-text-muted">{currentPage.subtitle}</p>
   </div>
 
   <NotificationBell role="hod" />
