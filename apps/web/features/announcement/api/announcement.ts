@@ -16,16 +16,30 @@ export interface Announcement {
   updatedAt: string;
 }
 
+export interface AnnouncementPagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export interface AnnouncementsParams {
+  search?: string;
+  page?: number;
+  limit?: number;
+  audience?: "campus" | "department" | "club";
+}
+
 interface ApiResponse<T> {
   success: boolean;
   data: T;
   message: string;
-  pagination?: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
+  pagination?: AnnouncementPagination;
+}
+
+export interface AnnouncementsResponse {
+  announcements: Announcement[];
+  pagination: AnnouncementPagination;
 }
 
 export type CreateAnnouncementInput = {
@@ -41,39 +55,34 @@ export type UpdateAnnouncementInput = {
   content?: string;
 };
 
-const getAllAnnouncementPages = async (
-  search = "",
-): Promise<Announcement[]> => {
-  const limit = 100;
-  const announcements: Announcement[] = [];
-
-  let page = 1;
-  let totalPages = 1;
-
-  do {
-    const response = await api.get<ApiResponse<Announcement[]>>(
-      "/announcements",
-      {
-        params: { page, limit, search },
-      },
-    );
-
-    announcements.push(...response.data.data);
-
-    totalPages =
-      response.data.pagination?.totalPages ??
-      (response.data.data.length === limit ? page + 1 : page);
-
-    page += 1;
-  } while (page <= totalPages);
-
-  return announcements;
-};
-
 export const getAnnouncements = async (
-  search = "",
-): Promise<Announcement[]> => {
-  return getAllAnnouncementPages(search);
+  params: AnnouncementsParams = {},
+): Promise<AnnouncementsResponse> => {
+  const { data } = await api.get<ApiResponse<Announcement[]>>(
+    "/announcements",
+    {
+      params: {
+        page: params.page ?? 1,
+        limit: params.limit ?? 6,
+        search: params.search?.trim() ?? "",
+        ...(params.audience ? { audience: params.audience } : {}),
+      },
+    },
+  );
+
+  if (!data.success) {
+    throw new Error(data.message || "Failed to fetch announcements.");
+  }
+
+  return {
+    announcements: data.data,
+    pagination: data.pagination ?? {
+      page: params.page ?? 1,
+      limit: params.limit ?? 6,
+      total: data.data.length,
+      totalPages: data.data.length > 0 ? 1 : 0,
+    },
+  };
 };
 
 export const createAnnouncement = async (
