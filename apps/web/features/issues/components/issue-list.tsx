@@ -67,19 +67,25 @@ export default function IssueList({
   defaultBox,
   canCreate,
   isReady,
+  search: controlledSearch,
+  onSearchChange,
+  showSearchInput = true,
 }: {
   portal: IssuePortal;
   allowedBoxes: IssueBox[];
   defaultBox: IssueBox;
   canCreate: boolean;
   isReady: boolean;
+  search?: string;
+  onSearchChange?: (value: string) => void;
+  showSearchInput?: boolean;
 }) {
   const [selectedBox, setSelectedBox] = useState<IssueBox | null>(null);
-  const box = selectedBox && allowedBoxes.includes(selectedBox)
-    ? selectedBox
-    : defaultBox;
+  const box = selectedBox && allowedBoxes.includes(selectedBox) ? selectedBox : defaultBox;
   const [status, setStatus] = useState<IssueStatus | "">("");
-  const [search, setSearch] = useState("");
+  const [internalSearch, setInternalSearch] = useState("");
+  const search = controlledSearch ?? internalSearch;
+  const setSearch = onSearchChange ?? setInternalSearch;
   const [page, setPage] = useState(1);
 
   const query = useIssuesQuery({
@@ -167,34 +173,39 @@ export default function IssueList({
           </div>
         )}
 
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <Input
-            type="search"
-            aria-label="Search issues"
-            value={search}
-            onChange={(event) => {
-              setSearch(event.target.value);
-              setPage(1);
-            }}
-            placeholder="Search title or description"
-            className="sm:w-64"
-          />
-          <select
-            aria-label="Filter issues by status"
-            value={status}
-            onChange={(event) => {
-              setStatus(event.target.value as IssueStatus | "");
-              setPage(1);
-            }}
-            className={`${selectClass} sm:w-44`}
-          >
-            <option value="">All statuses</option>
-            {STATUSES.map((value) => (
-              <option key={value} value={value}>
-                {ISSUE_STATUS_LABELS[value]}
-              </option>
-            ))}
-          </select>
+        <div className="flex flex-wrap gap-3">
+          {showSearchInput && (
+            <div className="min-w-0 flex-1 basis-full sm:basis-[260px] sm:max-w-sm">
+              <Input
+                type="search"
+                aria-label="Search issues"
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setPage(1);
+                }}
+                placeholder="Search title or description"
+              />
+            </div>
+          )}
+          <div className="min-w-0 flex-1 basis-full sm:basis-[180px] sm:max-w-[220px]">
+            <select
+              aria-label="Filter issues by status"
+              value={status}
+              onChange={(event) => {
+                setStatus(event.target.value as IssueStatus | "");
+                setPage(1);
+              }}
+              className={`${selectClass} min-h-11`}
+            >
+              <option value="">All statuses</option>
+              {STATUSES.map((value) => (
+                <option key={value} value={value}>
+                  {ISSUE_STATUS_LABELS[value]}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 

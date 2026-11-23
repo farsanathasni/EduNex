@@ -40,7 +40,7 @@ const CATEGORIES: IssueCategory[] = [
   "other",
 ];
 
-export default function IssueForm({ portal }: { portal: IssuePortal }) {
+export default function IssueForm({ portal, studentStyle = false }: { portal: IssuePortal; studentStyle?: boolean }) {
   const router = useRouter();
   const recipientsQuery = useIssueRecipientsQuery();
   const createMutation = useCreateIssueMutation();
@@ -139,7 +139,7 @@ export default function IssueForm({ portal }: { portal: IssuePortal }) {
   }
 
   return (
-    <Card padding="lg">
+    <Card padding="lg" className={studentStyle ? "rounded-3xl" : undefined}>
       <form onSubmit={handleSubmit} className="space-y-5">
         {formError && (
           <div
@@ -165,21 +165,16 @@ export default function IssueForm({ portal }: { portal: IssuePortal }) {
           />
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
-            <label
-              htmlFor="issue-category"
-              className="text-label font-medium text-text"
-            >
+            <label htmlFor="issue-category" className="text-label font-medium text-text">
               Category
             </label>
             <select
               id="issue-category"
               value={category}
-              onChange={(event) =>
-                setCategory(event.target.value as IssueCategory)
-              }
-              className={selectClass}
+              onChange={(event) => setCategory(event.target.value as IssueCategory)}
+              className={`${selectClass} min-h-11`}
             >
               {CATEGORIES.map((item) => (
                 <option key={item} value={item}>
@@ -190,17 +185,14 @@ export default function IssueForm({ portal }: { portal: IssuePortal }) {
           </div>
 
           <div className="space-y-2">
-            <label
-              htmlFor="issue-recipient"
-              className="text-label font-medium text-text"
-            >
+            <label htmlFor="issue-recipient" className="text-label font-medium text-text">
               Recipient
             </label>
             <select
               id="issue-recipient"
               value={recipientId}
               onChange={(event) => setRecipientId(event.target.value)}
-              className={selectClass}
+              className={`${selectClass} min-h-11`}
               required
             >
               <option value="">Choose a recipient</option>
@@ -239,18 +231,18 @@ export default function IssueForm({ portal }: { portal: IssuePortal }) {
           />
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className={`flex flex-col gap-3 ${studentStyle ? "sm:flex-row sm:justify-end" : "sm:flex-row sm:items-center"}`}>
           <Button
             type="submit"
             disabled={createMutation.isPending || !recipientId}
-            className={focusRing}
+            className={`min-h-11 w-full sm:w-auto ${focusRing}`}
           >
             {createMutation.isPending ? "Submitting…" : "Submit issue"}
           </Button>
           <Button
             variant="outline"
             onClick={() => router.push(`/${portal}/issues`)}
-            className={focusRing}
+            className={`min-h-11 w-full sm:w-auto ${focusRing}`}
           >
             Cancel
           </Button>
