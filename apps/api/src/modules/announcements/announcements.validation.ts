@@ -20,6 +20,11 @@ export const announcementsQuerySchema = z.object({
     .trim()
     .max(150, "Search cannot exceed 150 characters.")
     .default(""),
+
+    audience: z
+    .enum(["campus", "department", "club"], {
+      message: "Invalid announcement audience.",
+    }).optional(),
 });
 
 export const createAnnouncementSchema = z.object({

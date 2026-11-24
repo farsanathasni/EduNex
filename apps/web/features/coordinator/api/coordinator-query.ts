@@ -127,10 +127,11 @@ export const useDeactivateCoordinator = () => {
 };
 
 // Coordinator status
-export const useCoordinatorStatusQuery = () => {
+export const useCoordinatorStatusQuery = (enabled = true) => {
   return useQuery({
     queryKey: ["coordinator", "status"],
     queryFn: getCoordinatorStatus,
+    enabled,
     retry: retryUnlessAuthError,
   });
 };
