@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, type KeyboardEvent } from "react";
 import Link from "next/link";
 import { AlertCircle, Inbox } from "lucide-react";
 
@@ -67,19 +67,25 @@ export default function IssueList({
   defaultBox,
   canCreate,
   isReady,
+  search: controlledSearch,
+  onSearchChange,
+  showSearchInput = true,
 }: {
   portal: IssuePortal;
   allowedBoxes: IssueBox[];
   defaultBox: IssueBox;
   canCreate: boolean;
   isReady: boolean;
+  search?: string;
+  onSearchChange?: (value: string) => void;
+  showSearchInput?: boolean;
 }) {
   const [selectedBox, setSelectedBox] = useState<IssueBox | null>(null);
-  const box = selectedBox && allowedBoxes.includes(selectedBox)
-    ? selectedBox
-    : defaultBox;
+  const box = selectedBox && allowedBoxes.includes(selectedBox) ? selectedBox : defaultBox;
   const [status, setStatus] = useState<IssueStatus | "">("");
-  const [search, setSearch] = useState("");
+  const [internalSearch, setInternalSearch] = useState("");
+  const search = controlledSearch ?? internalSearch;
+  const setSearch = onSearchChange ?? setInternalSearch;
   const [page, setPage] = useState(1);
 
   const query = useIssuesQuery({
@@ -93,6 +99,40 @@ export default function IssueList({
   const { data } = query;
   const pagination = data?.pagination;
   const emptyState = EMPTY_STATES[box];
+  const hasTabs = allowedBoxes.length > 1;
+  const tabId = (value: IssueBox) => `issue-tab-${value}`;
+
+  useEffect(() => {
+    if (pagination && page > pagination.totalPages) {
+      setPage(Math.max(1, pagination.totalPages));
+    }
+  }, [pagination?.totalPages, page]);
+
+  const handleTabKeyDown = (
+    event: KeyboardEvent<HTMLButtonElement>,
+    current: IssueBox,
+  ) => {
+    const currentIndex = allowedBoxes.indexOf(current);
+    let nextIndex: number | null = null;
+
+    if (event.key === "ArrowRight") {
+      nextIndex = (currentIndex + 1) % allowedBoxes.length;
+    } else if (event.key === "ArrowLeft") {
+      nextIndex = (currentIndex - 1 + allowedBoxes.length) % allowedBoxes.length;
+    } else if (event.key === "Home") {
+      nextIndex = 0;
+    } else if (event.key === "End") {
+      nextIndex = allowedBoxes.length - 1;
+    }
+
+    if (nextIndex === null) return;
+
+    event.preventDefault();
+    const nextBox = allowedBoxes[nextIndex];
+    setSelectedBox(nextBox);
+    setPage(1);
+    document.getElementById(tabId(nextBox))?.focus();
+  };
 
   return (
     <div className="space-y-5">
@@ -106,13 +146,17 @@ export default function IssueList({
             {allowedBoxes.map((value) => (
               <button
                 key={value}
+                id={tabId(value)}
                 type="button"
                 role="tab"
+                aria-controls="issue-box-panel"
                 aria-selected={box === value}
+                tabIndex={box === value ? 0 : -1}
                 onClick={() => {
                   setSelectedBox(value);
                   setPage(1);
                 }}
+                onKeyDown={(event) => handleTabKeyDown(event, value)}
                 className={`rounded-lg px-4 py-2 text-sm font-medium capitalize transition ${focusRing} ${
                   box === value
                     ? "bg-primary text-primary-foreground"
@@ -129,38 +173,48 @@ export default function IssueList({
           </div>
         )}
 
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <Input
-            type="search"
-            aria-label="Search issues"
-            value={search}
-            onChange={(event) => {
-              setSearch(event.target.value);
-              setPage(1);
-            }}
-            placeholder="Search title or description"
-            className="sm:w-64"
-          />
-          <select
-            aria-label="Filter issues by status"
-            value={status}
-            onChange={(event) => {
-              setStatus(event.target.value as IssueStatus | "");
-              setPage(1);
-            }}
-            className={`${selectClass} sm:w-44`}
-          >
-            <option value="">All statuses</option>
-            {STATUSES.map((value) => (
-              <option key={value} value={value}>
-                {ISSUE_STATUS_LABELS[value]}
-              </option>
-            ))}
-          </select>
+        <div className="flex flex-wrap gap-3">
+          {showSearchInput && (
+            <div className="min-w-0 flex-1 basis-full sm:basis-[260px] sm:max-w-sm">
+              <Input
+                type="search"
+                aria-label="Search issues"
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setPage(1);
+                }}
+                placeholder="Search title or description"
+              />
+            </div>
+          )}
+          <div className="min-w-0 flex-1 basis-full sm:basis-[180px] sm:max-w-[220px]">
+            <select
+              aria-label="Filter issues by status"
+              value={status}
+              onChange={(event) => {
+                setStatus(event.target.value as IssueStatus | "");
+                setPage(1);
+              }}
+              className={`${selectClass} min-h-11`}
+            >
+              <option value="">All statuses</option>
+              {STATUSES.map((value) => (
+                <option key={value} value={value}>
+                  {ISSUE_STATUS_LABELS[value]}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
-      {!isReady || query.isLoading ? (
+      <div
+        role={hasTabs ? "tabpanel" : undefined}
+        id={hasTabs ? "issue-box-panel" : undefined}
+        aria-labelledby={hasTabs ? tabId(box) : undefined}
+      >
+        {!isReady || query.isLoading ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {Array.from({ length: 6 }).map((_, index) => (
             <Card key={index} padding="lg" className="space-y-4">
@@ -265,7 +319,7 @@ export default function IssueList({
           </div>
 
           {pagination && pagination.totalPages > 1 && (
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm text-text-muted">
                 Page {pagination.page} of {pagination.totalPages} ·{" "}
                 {pagination.total} issues
@@ -294,6 +348,7 @@ export default function IssueList({
           )}
         </>
       )}
+      </div>
     </div>
   );
 }

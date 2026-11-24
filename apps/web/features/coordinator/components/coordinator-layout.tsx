@@ -6,13 +6,11 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
-import {
-  Menu,
-  X,
-} from "lucide-react";
+import { X } from "lucide-react";
 
 import { useAccess } from "@/lib/navigation/access";
 import { ModeSwitch } from "@/components/layout/mode-switch";
+import PortalHeader from "@/components/layout/portal-header";
 import LogoutButton from "@/features/auth/components/logout-button";
 import { NotificationBell } from "@/features/notifications/api/components/notification-bell";
 
@@ -60,6 +58,8 @@ export default function CoordinatorLayout({
 const currentPage =
   pathname === "/club-coordinator/notifications"
     ? "Notifications"
+    : pathname === "/announcement/coordinator"
+      ? "Announcements"
     : navigation.find(
         (item) =>
           pathname === item.href ||
@@ -183,60 +183,31 @@ const currentPage =
       {/* Main content */}
       <div className="min-w-0 md:ml-64">
 
-        {/* Header */}
-        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-slate-200 bg-white/95 px-4 py-4 backdrop-blur sm:px-8">
-
-          <div className="flex min-w-0 items-center gap-3">
-
-            {/* Mobile menu button */}
-            <button
-              type="button"
-              onClick={() => setIsSidebarOpen(true)}
-              aria-label="Open navigation menu"
-              aria-expanded={isSidebarOpen}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 text-slate-600 transition hover:bg-slate-100 md:hidden"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-
-            <div className="min-w-0">
-              <p className="truncate text-xs text-slate-500">
-                Club Coordinator / {currentPage}
-              </p>
-
-              <h2 className="mt-1 truncate text-lg font-semibold text-slate-900">
-                {currentPage}
-              </h2>
-            </div>
-          </div>
-
-          {/* Header actions */}
-          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-            <NotificationBell role="coordinator" />
-            <ModeSwitch />
-
-            {(mode === "coordinator" || isSuperAdmin) && (
+        <PortalHeader
+          title={currentPage}
+          breadcrumb={`Club Coordinator / ${currentPage}`}
+          onOpenMobileMenu={() => setIsSidebarOpen(true)}
+          mobileMenuExpanded={isSidebarOpen}
+          notifications={<NotificationBell role="coordinator" />}
+          switchButton={<ModeSwitch />}
+          userMenu={
+            mode === "coordinator" || isSuperAdmin ? (
               <Link
                 href="/club-coordinator/profile"
-                className="flex items-center gap-2 rounded-xl p-1 transition hover:bg-slate-50 sm:gap-3"
+                className="flex items-center gap-2 rounded-xl p-1 transition hover:bg-secondary sm:gap-3"
               >
                 <div className="hidden text-right sm:block">
-                  <p className="text-sm font-semibold text-slate-800">
-                    Alex Johnson
-                  </p>
-
-                  <p className="text-xs text-slate-500">
-                    Club Coordinator
-                  </p>
+                  <p className="text-sm font-semibold text-text">Alex Johnson</p>
+                  <p className="text-xs text-text-muted">Club Coordinator</p>
                 </div>
 
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 font-bold text-indigo-700">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-subtle font-bold text-primary">
                   AJ
                 </div>
               </Link>
-            )}
-          </div>
-        </header>
+            ) : null
+          }
+        />
 
         {/* Page content */}
         <main className="mx-auto w-full max-w-[1600px] p-4 sm:p-8">

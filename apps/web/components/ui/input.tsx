@@ -1,14 +1,39 @@
+"use client";
 
-import type { InputHTMLAttributes } from "react";
+import type { InputHTMLAttributes, ReactNode } from "react";
+
+import Field, { fieldControlClass } from "@/components/ui/field";
+
+type InputProps = InputHTMLAttributes<HTMLInputElement> & {
+  label?: ReactNode;
+  helperText?: ReactNode;
+  error?: ReactNode;
+  containerClassName?: string;
+};
 
 export default function Input({
+  label,
+  helperText,
+  error,
+  containerClassName = "",
   className = "",
   ...props
-}: InputHTMLAttributes<HTMLInputElement>) {
+}: InputProps) {
   return (
-    <input
-      className={`w-full rounded-lg border border-border bg-surface px-3 py-2 text-label text-text outline-none transition placeholder:text-text-subtle hover:border-primary/50 focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
-      {...props}
-    />
+    <Field
+      id={props.id}
+      label={label}
+      helperText={helperText}
+      error={error}
+      className={`w-full ${containerClassName}`}
+    >
+      {(fieldProps) => (
+        <input
+          {...fieldProps}
+          {...props}
+          className={fieldControlClass(Boolean(error), className)}
+        />
+      )}
+    </Field>
   );
 }

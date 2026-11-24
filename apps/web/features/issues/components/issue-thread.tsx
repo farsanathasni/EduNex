@@ -49,6 +49,23 @@ export default function IssueThread({
   const [closingNote, setClosingNote] = useState("");
   const [actionError, setActionError] = useState("");
 
+  if (!Number.isInteger(issueId) || issueId <= 0) {
+    return (
+      <div
+        role="alert"
+        className="flex flex-col gap-3 rounded-2xl border border-border bg-surface p-5"
+      >
+        <p className="font-semibold text-text">Issue not found</p>
+        <Link
+          href={`/${portal}/issues`}
+          className={`text-sm font-medium text-primary hover:underline ${focusRing}`}
+        >
+          ← Back to issues
+        </Link>
+      </div>
+    );
+  }
+
   if (query.isLoading) {
     return (
       <div className="space-y-5">
@@ -98,7 +115,7 @@ export default function IssueThread({
   const { issue, responses } = query.data;
   const closed = isIssueClosed(issue.status);
 
-  function handleReply(close: boolean) {
+  function handleReply() {
     setActionError("");
 
     const body = reply.trim();
@@ -108,7 +125,7 @@ export default function IssueThread({
     }
 
     replyMutation.mutate(
-      { id: issueId, input: { body, close } },
+      { id: issueId, input: { body } },
       {
         onSuccess: () => setReply(""),
         onError: (error) =>
@@ -255,7 +272,7 @@ export default function IssueThread({
           </div>
           <div className="flex flex-wrap gap-3">
             <Button
-              onClick={() => handleReply(false)}
+              onClick={handleReply}
               disabled={replyMutation.isPending || !reply.trim()}
               className={focusRing}
             >

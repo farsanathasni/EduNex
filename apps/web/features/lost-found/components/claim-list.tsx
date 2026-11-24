@@ -14,7 +14,7 @@ import {
   lostFoundClaimStatusBadgeClass,
 } from "../utils/lost-found-ui";
 
-export default function ClaimList({ portal }: { portal: LostFoundPortal }) {
+export default function ClaimList({ portal, studentStyle = false }: { portal: LostFoundPortal; studentStyle?: boolean }) {
   const { data, isLoading, isError } = useMyClaimsQuery();
   const withdraw = useWithdrawClaimMutation();
 
@@ -36,7 +36,7 @@ export default function ClaimList({ portal }: { portal: LostFoundPortal }) {
       {data?.map((claim) => (
         <div
           key={claim.id}
-          className="rounded-2xl border border-border bg-surface p-4"
+          className={`border border-border bg-surface p-4 ${studentStyle ? "rounded-3xl shadow-subtle" : "rounded-2xl"}`}
         >
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -68,7 +68,7 @@ export default function ClaimList({ portal }: { portal: LostFoundPortal }) {
               type="button"
               disabled={withdraw.isPending}
               onClick={() => withdraw.mutate({ id: claim.id, itemId: claim.itemId })}
-              className="mt-3 rounded-lg border border-border px-3 py-1.5 text-sm text-text disabled:opacity-60"
+              className="mt-3 min-h-11 w-full rounded-xl border border-border px-3 py-1.5 text-sm text-text disabled:opacity-60 sm:w-auto"
             >
               Withdraw claim
             </button>

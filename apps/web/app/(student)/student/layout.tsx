@@ -98,6 +98,10 @@ function handleSwitchMode() {
       title: "Notifications",
       subtitle: "Stay up to date with campus activity",
     },
+    "/announcement/student": {
+      title: "Announcements",
+      subtitle: "Stay updated with campus, department and club news",
+    },
     "/student/profile": {
       title: "My Profile",
       subtitle: "View and manage your profile",

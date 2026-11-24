@@ -44,7 +44,6 @@ export interface CreateIssueInput {
 
 export interface ReplyIssueInput {
   body: string;
-  close: boolean;
 }
 
 export interface ResolveIssueInput {

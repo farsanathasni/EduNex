@@ -1,5 +1,4 @@
-﻿
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -60,13 +59,13 @@ export function NotificationBell({ role }: { role: NotificationRole }) {
           setOpen(false);
           router.push(allPage);
         }}
-        className="relative rounded-full p-2 hover:bg-gray-100"
+        className="relative inline-flex h-11 w-11 items-center justify-center rounded-full hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
         aria-label="Notifications"
       >
         <Bell className="h-5 w-5" />
 
         {unread > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
+          <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
             {unread > 9 ? "9+" : unread}
           </span>
         )}
@@ -74,39 +73,29 @@ export function NotificationBell({ role }: { role: NotificationRole }) {
 
       {open && (
         <div className="absolute right-0 z-50 w-80 pt-2">
-          <div className="overflow-hidden rounded-md border bg-white shadow-lg">
-            <div className="border-b px-4 py-3 font-semibold">
-              Notifications
-            </div>
+          <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-lg">
+            <div className="border-b border-border px-4 py-3 font-semibold text-text">Notifications</div>
 
             {isLoading ? (
               <div className="p-3">
                 <NotificationListSkeleton count={3} />
               </div>
             ) : items.length === 0 ? (
-              <p className="px-4 py-6 text-center text-sm text-gray-500">
-                No notifications yet.
-              </p>
+              <p className="px-4 py-6 text-center text-sm text-text-muted">No notifications yet.</p>
             ) : (
               <ul className="max-h-80 overflow-y-auto">
                 {items.slice(0, PREVIEW_COUNT).map((n) => (
-                  <li key={n.id} className="border-b">
+                  <li key={n.id}>
                     <button
                       type="button"
                       onClick={() => handleItemClick(n)}
-                      className={`w-full cursor-pointer px-4 py-3 text-left hover:bg-gray-50 ${
-                        n.isRead
-                          ? "text-gray-500"
-                          : "bg-blue-50/50 font-medium"
+                      className={`min-h-11 w-full border-b border-border px-4 py-3 text-left hover:bg-secondary/60 ${
+                        n.isRead ? "text-text-muted" : "bg-primary-subtle/20 font-medium text-text"
                       }`}
                     >
                       <div className="text-sm">{n.title}</div>
-
                       <p className="text-xs">{n.message}</p>
-
-                      <p className="mt-1 text-xs text-gray-400">
-                        {timeAgo(n.createdAt)}
-                      </p>
+                      <p className="mt-1 text-xs text-text-muted">{timeAgo(n.createdAt)}</p>
                     </button>
                   </li>
                 ))}
@@ -119,7 +108,7 @@ export function NotificationBell({ role }: { role: NotificationRole }) {
                 setOpen(false);
                 router.push(allPage);
               }}
-              className="w-full border-t py-2 text-sm text-blue-600 hover:bg-gray-50"
+              className="min-h-11 w-full border-t border-border py-2 text-sm font-medium text-primary hover:bg-secondary/60"
             >
               View all notifications
             </button>

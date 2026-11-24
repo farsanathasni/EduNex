@@ -23,7 +23,7 @@ interface QuestionDraft {
 
 const emptyQuestion = (): QuestionDraft => ({ prompt: "", answer: "" });
 
-export default function ItemForm({ portal }: { portal: LostFoundPortal }) {
+export default function ItemForm({ portal, studentStyle = false }: { portal: LostFoundPortal; studentStyle?: boolean }) {
   const router = useRouter();
   const createItem = useCreateLostFoundItemMutation();
 
@@ -107,29 +107,27 @@ export default function ItemForm({ portal }: { portal: LostFoundPortal }) {
   return (
     <form
       onSubmit={onSubmit}
-      className="space-y-6 rounded-2xl border border-border bg-surface p-6"
+      className={`space-y-6 border border-border bg-surface p-5 sm:p-6 ${studentStyle ? "rounded-3xl shadow-subtle" : "rounded-2xl"}`}
     >
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 md:grid-cols-2">
         <label className="space-y-2">
           <span className="text-sm font-medium text-text">Title</span>
-          <input
-            required
-            minLength={3}
-            maxLength={200}
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text"
-          />
+            <input
+              required
+              minLength={3}
+              maxLength={200}
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-text"
+            />
         </label>
 
         <label className="space-y-2">
           <span className="text-sm font-medium text-text">Category</span>
           <select
             value={category}
-            onChange={(event) =>
-              setCategory(event.target.value as LostFoundCategory)
-            }
-            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text"
+            onChange={(event) => setCategory(event.target.value as LostFoundCategory)}
+            className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-text"
           >
             {LOST_FOUND_CATEGORIES.map((value) => (
               <option key={value} value={value}>
@@ -149,7 +147,7 @@ export default function ItemForm({ portal }: { portal: LostFoundPortal }) {
             maxLength={255}
             value={place}
             onChange={(event) => setPlace(event.target.value)}
-            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text"
+            className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-text"
           />
         </label>
 
@@ -161,7 +159,7 @@ export default function ItemForm({ portal }: { portal: LostFoundPortal }) {
             max={new Date().toISOString().slice(0, 10)}
             value={dateFound}
             onChange={(event) => setDateFound(event.target.value)}
-            className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text"
+            className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-text"
           />
         </label>
       </div>
@@ -175,7 +173,7 @@ export default function ItemForm({ portal }: { portal: LostFoundPortal }) {
           rows={4}
           value={description}
           onChange={(event) => setDescription(event.target.value)}
-          className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text"
+          className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-text"
         />
       </label>
 
@@ -193,7 +191,7 @@ export default function ItemForm({ portal }: { portal: LostFoundPortal }) {
             <button
               type="button"
               onClick={() => setQuestions((current) => [...current, emptyQuestion()])}
-              className="rounded-lg border border-border px-3 py-1.5 text-sm text-text hover:bg-background"
+              className="min-h-11 rounded-xl border border-border px-3 py-1.5 text-sm text-text hover:bg-background"
             >
               Add question
             </button>
@@ -214,10 +212,8 @@ export default function ItemForm({ portal }: { portal: LostFoundPortal }) {
                 minLength={3}
                 maxLength={300}
                 value={question.prompt}
-                onChange={(event) =>
-                  updateQuestion(index, "prompt", event.target.value)
-                }
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text"
+                onChange={(event) => updateQuestion(index, "prompt", event.target.value)}
+                className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-text"
               />
             </label>
             <label className="space-y-2">
@@ -228,10 +224,8 @@ export default function ItemForm({ portal }: { portal: LostFoundPortal }) {
                 required
                 maxLength={200}
                 value={question.answer}
-                onChange={(event) =>
-                  updateQuestion(index, "answer", event.target.value)
-                }
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-text"
+                onChange={(event) => updateQuestion(index, "answer", event.target.value)}
+                className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-text"
               />
             </label>
             {questions.length > 1 && (
@@ -267,18 +261,18 @@ export default function ItemForm({ portal }: { portal: LostFoundPortal }) {
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
-      <div className="flex items-center gap-3">
+      <div className={`flex flex-col gap-3 ${studentStyle ? "sm:flex-row sm:justify-end" : "sm:flex-row sm:items-center"}`}>
         <button
           type="submit"
           disabled={createItem.isPending}
-          className="rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60"
+          className="min-h-11 w-full rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground disabled:opacity-60 sm:w-auto"
         >
           {createItem.isPending ? "Posting..." : "Post item"}
         </button>
         <button
           type="button"
           onClick={() => router.push(lostFoundHref(portal))}
-          className="rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-text"
+          className="min-h-11 w-full rounded-xl border border-border px-5 py-2.5 text-sm font-medium text-text sm:w-auto"
         >
           Cancel
         </button>

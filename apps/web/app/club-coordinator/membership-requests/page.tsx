@@ -7,19 +7,14 @@ import {
   CheckCircle2,
   Clock3,
   GraduationCap,
-  Mail,
-  Phone,
   Users,
   XCircle,
-  CalendarDays,
-  Building2,
-  Hash,
-  ShieldCheck,
   Search,
 } from "lucide-react";
 
 import Button from "@/components/ui/button";
 import Card from "@/components/ui/card";
+import DataTable, { type DataTableColumn } from "@/components/ui/data-table";
 
 import {
   useCoordinatorMembershipRequests,
@@ -27,7 +22,6 @@ import {
 } from "@/features/coordinator/api/coordinator-query";
 
 import { useAccess } from "@/lib/navigation/access";
-import { Skeleton } from "@/components/ui/skeleton";
 import Pagination from "@/features/coordinator/components/pagination";
 
 /* -------------------------------------------------------------------------- */
@@ -51,124 +45,6 @@ function formatRequestedDate(date: string | Date) {
 /* -------------------------------------------------------------------------- */
 /* Reusable components                                                        */
 /* -------------------------------------------------------------------------- */
-
-function StatCard({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: number;
-}) {
-  return (
-    <Card
-      padding="lg"
-      className="flex items-center gap-4 border-border-subtle shadow-subtle transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
-    >
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary-subtle text-primary">
-        {icon}
-      </div>
-
-      <div>
-        <p className="text-caption font-medium text-text-muted">{label}</p>
-        <p className="mt-1 text-heading-sm font-extrabold leading-none text-text">
-          {value}
-        </p>
-      </div>
-    </Card>
-  );
-}
-
-function StudentDetail({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string | number | null | undefined;
-}) {
-  const hasValue =
-    value !== null && value !== undefined && value !== "";
-
-  return (
-    <div className="flex min-w-0 items-start gap-3">
-      <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-text-muted">
-        {icon}
-      </div>
-
-      <div className="min-w-0">
-        <p className="text-caption font-medium text-text-subtle">
-          {label}
-        </p>
-
-        <p className="mt-1 break-words text-label font-semibold text-text">
-          {hasValue ? value : "Not provided"}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-function LoadingState() {
-  return (
-    <div className="mt-6 grid gap-5">
-      {[1, 2].map((item) => (
-        <Card
-          key={item}
-          padding="lg"
-          className="overflow-hidden border-border-subtle"
-        >
-          {/* Student heading */}
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <Skeleton className="h-14 w-14 shrink-0 rounded-2xl" />
-
-              <div className="space-y-2">
-                <Skeleton className="h-5 w-40" />
-                <Skeleton className="h-4 w-52" />
-              </div>
-            </div>
-
-            <Skeleton className="h-7 w-28 rounded-full" />
-          </div>
-
-          {/* Student information */}
-          <div className="mt-6 rounded-2xl bg-background p-4 sm:p-5">
-            <div className="mb-5 flex items-center gap-2">
-              <Skeleton className="h-8 w-8 rounded-lg" />
-              <Skeleton className="h-4 w-36" />
-            </div>
-
-            <div className="grid gap-x-6 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
-              {[1, 2, 3, 4, 5, 6].map((field) => (
-                <div key={field} className="flex items-start gap-3">
-                  <Skeleton className="h-9 w-9 shrink-0 rounded-lg" />
-
-                  <div className="min-w-0 flex-1 space-y-2">
-                    <Skeleton className="h-3 w-24" />
-                    <Skeleton className="h-4 w-32" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="mt-6 flex flex-col-reverse gap-3 border-t border-border-subtle pt-5 sm:flex-row sm:items-center sm:justify-between">
-            <Skeleton className="h-4 w-64" />
-
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <Skeleton className="h-10 w-full rounded-xl sm:w-24" />
-              <Skeleton className="h-10 w-full rounded-xl sm:w-36" />
-            </div>
-          </div>
-        </Card>
-      ))}
-    </div>
-  );
-}
 
 function EmptyState({
   title,
@@ -254,6 +130,98 @@ export default function MembershipRequestsPage() {
     (request) =>
       selectedClubId === "all" || request.clubId === selectedClubId,
   );
+
+  const columns: DataTableColumn<(typeof requests)[number]>[] = [
+    {
+      header: "Student",
+      cell: (request) => (
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-subtle text-primary">
+            <GraduationCap className="h-5 w-5" />
+          </div>
+          <div className="min-w-0">
+            <p className="truncate font-semibold text-text">
+              {request.studentName}
+            </p>
+            <p className="truncate text-caption text-text-muted">
+              {request.email}
+            </p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      header: "Admission number",
+      cell: (request) => (
+        <span className="whitespace-nowrap font-medium text-text">
+          {request.admissionNumber}
+        </span>
+      ),
+    },
+    {
+      header: "Club",
+      hidePriority: "medium",
+      cell: (request) => (
+        <span className="font-medium text-primary">{request.clubName}</span>
+      ),
+    },
+    {
+      header: "Department",
+      hidePriority: "medium",
+      cell: (request) => (
+        <span className="text-text">
+          {request.departmentName
+            ? `${request.departmentName}${
+                request.departmentCode
+                  ? ` (${request.departmentCode})`
+                  : ""
+              }`
+            : "Not available"}
+        </span>
+      ),
+    },
+    {
+      header: "Email",
+      hidePriority: "low",
+      cell: (request) => (
+        <span className="break-all text-text-muted">{request.email}</span>
+      ),
+    },
+    {
+      header: "Phone",
+      hidePriority: "low",
+      cell: (request) => (
+        <span className="whitespace-nowrap text-text-muted">
+          {request.phone || "Not provided"}
+        </span>
+      ),
+    },
+    {
+      header: "Semester",
+      hidePriority: "low",
+      cell: (request) => (
+        <span className="text-text">{request.semester}</span>
+      ),
+    },
+    {
+      header: "Requested",
+      hidePriority: "low",
+      cell: (request) => (
+        <span className="whitespace-nowrap text-text-muted">
+          {formatRequestedDate(request.requestedAt)}
+        </span>
+      ),
+    },
+    {
+      header: "Status",
+      cell: () => (
+        <span className="inline-flex w-fit items-center gap-1.5 whitespace-nowrap rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-caption font-semibold text-amber-700">
+          <Clock3 className="h-3.5 w-3.5" />
+          Pending review
+        </span>
+      ),
+    },
+  ];
 
   /* ---------------------------------------------------------------------- */
   /* Mutation                                                               */
@@ -429,8 +397,6 @@ export default function MembershipRequestsPage() {
               title="No clubs assigned"
               description="Membership applications will appear here after a club is assigned to your coordinator account. Contact your HOD for more information."
             />
-          ) : isPending ? (
-            <LoadingState />
           ) : isError ? (
             <>
               <Card
@@ -458,158 +424,53 @@ export default function MembershipRequestsPage() {
                 </Button>
               </Card>
             </>
-          ) : visibleRequests.length === 0 ? (
-            <EmptyState
-              icon={
-                search.trim() ? (
-                  <Search className="h-7 w-7" />
-                ) : (
-                  <Users className="h-7 w-7" />
-                )
-              }
-              title={
-                search.trim()
-                  ? "No matching requests found"
-                  : "No pending requests"
-              }
-              description={
-                search.trim()
-                  ? "Try another student name, admission number or email address."
-                  : "There are no student membership applications to review for this selection. New applications will appear here when students apply."
-              }
-            />
           ) : (
-            <div className="mt-6 space-y-5">
-              {visibleRequests.map((request) => (
-                <Card
-                  key={request.requestId}
-                  padding="lg"
-                  className="overflow-hidden border-border-subtle shadow-subtle transition-all duration-200 hover:border-primary/30 hover:shadow-md"
-                >
-                  {/* Student heading */}
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="flex min-w-0 items-center gap-4">
-                      <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary-subtle text-primary">
-                        <GraduationCap className="h-7 w-7" />
-                      </div>
-
-                      <div className="min-w-0">
-                        <h3 className="break-words text-subheading font-extrabold text-text">
-                          {request.studentName}
-                        </h3>
-
-                        <p className="mt-1 flex flex-wrap items-center gap-1.5 text-label text-text-muted">
-                          Applied to
-                          <span className="font-semibold text-primary">
-                            {request.clubName}
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-
-                    <span className="inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-caption font-semibold text-amber-700">
-                      <Clock3 className="h-3.5 w-3.5" />
-                      Pending review
-                    </span>
-                  </div>
-
-                  {/* Student details */}
-                  <div className="mt-6 rounded-2xl bg-background p-4 sm:p-5">
-                    <div className="mb-5 flex items-center gap-2">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-subtle text-primary">
-                        <ShieldCheck className="h-4 w-4" />
-                      </div>
-
-                      <h4 className="text-label font-bold text-text">
-                        Student information
-                      </h4>
-                    </div>
-
-                    <div className="grid gap-x-6 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">
-                      <StudentDetail
-                        icon={<Hash className="h-4 w-4" />}
-                        label="Admission number"
-                        value={request.admissionNumber}
-                      />
-
-                      <StudentDetail
-                        icon={<Mail className="h-4 w-4" />}
-                        label="Email address"
-                        value={request.email}
-                      />
-
-                      <StudentDetail
-                        icon={<Phone className="h-4 w-4" />}
-                        label="Phone number"
-                        value={request.phone || "Not provided"}
-                      />
-
-                      <StudentDetail
-                        icon={<Building2 className="h-4 w-4" />}
-                        label="Department"
-                        value={
-                          request.departmentName
-                            ? `${request.departmentName}${
-                                request.departmentCode
-                                  ? ` (${request.departmentCode})`
-                                  : ""
-                              }`
-                            : "Not available"
-                        }
-                      />
-
-                      <StudentDetail
-                        icon={<GraduationCap className="h-4 w-4" />}
-                        label="Semester"
-                        value={request.semester}
-                      />
-
-                      <StudentDetail
-                        icon={<CalendarDays className="h-4 w-4" />}
-                        label="Requested date"
-                        value={formatRequestedDate(request.requestedAt)}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="mt-6 flex flex-col-reverse gap-3 border-t border-border-subtle pt-5 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-caption text-text-muted">
-                      Review the application before confirming your decision.
+            <div className="mt-6">
+              <DataTable
+                caption="Pending club membership requests"
+                columns={columns}
+                rows={visibleRequests}
+                loading={isPending}
+                minWidthClassName="min-w-[1100px]"
+                getRowKey={(request) => request.requestId}
+                emptyState={
+                  <div className="flex flex-col items-center gap-2">
+                    {search.trim() ? (
+                      <Search className="h-7 w-7 text-primary" />
+                    ) : (
+                      <Users className="h-7 w-7 text-primary" />
+                    )}
+                    <p className="font-semibold text-text">
+                      {search.trim()
+                        ? "No matching requests found"
+                        : "No pending requests"}
                     </p>
-
-                    <div className="flex flex-col gap-3 sm:flex-row">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        disabled={reviewMutation.isPending}
-                        onClick={() =>
-                          handleReview(request.requestId, "rejected")
-                        }
-                        className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-200 px-5 py-2.5 text-red-600 hover:border-red-300 hover:bg-red-50 disabled:opacity-50"
-                      >
-                        <XCircle className="h-4 w-4" />
-                        Reject
-                      </Button>
-
-                      <Button
-                        type="button"
-                        disabled={reviewMutation.isPending}
-                        onClick={() =>
-                          handleReview(request.requestId, "approved")
-                        }
-                        className="inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 disabled:opacity-50"
-                      >
-                        <CheckCircle2 className="h-4 w-4" />
-
-                        {reviewMutation.isPending
-                          ? "Processing..."
-                          : "Approve request"}
-                      </Button>
-                    </div>
+                    <p className="max-w-md text-label text-text-muted">
+                      {search.trim()
+                        ? "Try another student name, admission number or email address."
+                        : "There are no student membership applications to review for this selection. New applications will appear here when students apply."}
+                    </p>
                   </div>
-                </Card>
-              ))}
+                }
+                rowActions={(request) => [
+                  {
+                    label: "Reject",
+                    ariaLabel: `Reject ${request.studentName}'s membership request`,
+                    icon: <XCircle className="h-4 w-4" />,
+                    disabled: reviewMutation.isPending,
+                    onClick: (row) => handleReview(row.requestId, "rejected"),
+                    className:
+                      "border-red-200 text-red-600 hover:border-red-300 hover:bg-red-50",
+                  },
+                  {
+                    label: reviewMutation.isPending ? "Processing" : "Approve",
+                    ariaLabel: `Approve ${request.studentName}'s membership request`,
+                    icon: <CheckCircle2 className="h-4 w-4" />,
+                    disabled: reviewMutation.isPending,
+                    onClick: (row) => handleReview(row.requestId, "approved"),
+                  },
+                ]}
+              />
             </div>
           )}
 

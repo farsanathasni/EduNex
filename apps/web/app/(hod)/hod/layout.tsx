@@ -8,6 +8,7 @@ import { RouteGuard } from "@/features/auth/components/route-guard";
 import LogoutButton from "@/features/auth/components/logout-button";
 import { useAccess } from "@/lib/navigation/access";
 import { NotificationBell } from "@/features/notifications/api/components/notification-bell";
+import PortalHeader from "@/components/layout/portal-header";
 
 
 export default function HodLayout({
@@ -44,6 +45,10 @@ export default function HodLayout({
       }));
 
   const pageDetails: Record<string, { title: string; subtitle: string }> = {
+    "/announcement/hod": {
+      title: "Announcements",
+      subtitle: "Stay updated with campus, department and club news",
+    },
     "/hod/notifications": {
       title: "Notifications",
       subtitle: "Stay up to date with campus activity",
@@ -162,23 +167,14 @@ export default function HodLayout({
       </aside>
 
       <div className="min-w-0 flex-1">
-        <header className="sticky top-0 z-30 flex items-center gap-4 border-b border-border bg-surface px-4 py-4 sm:px-6">
-  <button
-    type="button"
-    onClick={() => setMobileMenuOpen(true)}
-    aria-label="Open navigation menu"
-    className="rounded-lg border border-border px-3 py-2 md:hidden"
-  >
-    ☰
-  </button>
-
-  <div className="min-w-0 flex-1">
-    <p className="font-semibold">{currentPage.title}</p>
-    <p className="text-xs text-text-muted">{currentPage.subtitle}</p>
-  </div>
-
-  <NotificationBell role="hod" />
-</header>
+        <PortalHeader
+          title={currentPage.title}
+          subtitle={currentPage.subtitle}
+          breadcrumb="HOD Portal"
+          onOpenMobileMenu={() => setMobileMenuOpen(true)}
+          mobileMenuExpanded={mobileMenuOpen}
+          notifications={<NotificationBell role="hod" />}
+        />
 
         <main className="mx-auto max-w-7xl p-4 sm:p-6 lg:p-8">
           {children}

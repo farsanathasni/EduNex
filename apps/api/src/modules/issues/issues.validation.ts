@@ -23,7 +23,6 @@ export const issueParamsSchema = z.object({
 
 export const createIssueResponseSchema = z.object({
   body: z.string().trim().min(1).max(2000),
-  close: z.boolean().optional().default(false),
 });
 
 export const resolveIssueSchema = z.object({

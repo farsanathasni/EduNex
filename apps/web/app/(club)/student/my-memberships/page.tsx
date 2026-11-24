@@ -15,10 +15,15 @@ import {
   XCircle,
 } from "lucide-react";
 
-import { useMyStudentMembershipRequestsQuery } from "@/features/clubs/api/club-query";
-import Card from "@/components/ui/card";
+import { useRegisterHeaderSearch } from "@/components/layout/header-search";
+import Badge from "@/components/ui/badge";
 import Button from "@/components/ui/button";
+import Card from "@/components/ui/card";
+import PageContainer from "@/components/ui/page-container";
+import PageHeader from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
+import Tabs from "@/components/ui/tabs";
+import { useMyStudentMembershipRequestsQuery } from "@/features/clubs/api/club-query";
 
 type StatusKey = "pending" | "approved" | "rejected";
 type FilterKey = "all" | StatusKey;
@@ -226,361 +231,183 @@ function StatePanel({
 
 export default function MyMembershipsPage() {
   const [filter, setFilter] = useState<FilterKey>("all");
+  const [search, setSearch] = useState("");
 
-  const {
-    data: memberships = [],
-    isLoading,
-    isError,
-    refetch,
-  } = useMyStudentMembershipRequestsQuery();
+  useRegisterHeaderSearch({
+    value: search,
+    onChange: setSearch,
+    placeholder: "Search your membership requests",
+  });
 
-  /* Membership counts */
+  const { data: memberships = [], isLoading, isError, refetch } =
+    useMyStudentMembershipRequestsQuery();
 
   const counts = useMemo(
     () => ({
       all: memberships.length,
-      approved: memberships.filter(
-        (item) => item.status === "approved"
-      ).length,
-      pending: memberships.filter(
-        (item) => item.status === "pending"
-      ).length,
-      rejected: memberships.filter(
-        (item) => item.status === "rejected"
-      ).length,
+      approved: memberships.filter((item) => item.status === "approved").length,
+      pending: memberships.filter((item) => item.status === "pending").length,
+      rejected: memberships.filter((item) => item.status === "rejected").length,
     }),
-    [memberships]
+    [memberships],
   );
 
-  /* Filter membership requests */
+  const visibleMemberships = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+    return memberships.filter((item) => {
+      const matchesFilter = filter === "all" ? true : item.status === filter;
+      const clubName = (item.clubName || `Club #${item.clubId}`).toLowerCase();
+      const matchesSearch = normalizedSearch ? clubName.includes(normalizedSearch) : true;
+      return matchesFilter && matchesSearch;
+    });
+  }, [filter, memberships, search]);
 
-  const visibleMemberships = useMemo(
-    () =>
-      filter === "all"
-        ? memberships
-        : memberships.filter(
-            (item) => item.status === filter
-          ),
-    [memberships, filter]
-  );
+  const hasMemberships = !isLoading && !isError && memberships.length > 0;
+  const hasSearch = search.trim().length > 0;
 
-  const hasMemberships =
-    !isLoading && !isError && memberships.length > 0;
-
-  const filters: { key: FilterKey; label: string }[] = [
-    { key: "all", label: "All" },
-    { key: "pending", label: "Pending" },
-    { key: "approved", label: "Approved" },
-    { key: "rejected", label: "Rejected" },
+  const filters = [
+    { value: "all" as const, label: `All (${counts.all})` },
+    { value: "pending" as const, label: `Pending (${counts.pending})` },
+    { value: "approved" as const, label: `Approved (${counts.approved})` },
+    { value: "rejected" as const, label: `Rejected (${counts.rejected})` },
   ];
-
-  /* Loading State */
 
   if (isLoading) {
     return <MyMembershipsPageSkeleton />;
   }
 
-  /* Error State */
-
   if (isError) {
     return (
-      <main className="flex min-h-[70vh] items-center justify-center bg-background px-4">
+      <PageContainer className="space-y-6 py-6 sm:py-8">
+        <PageHeader title="My Memberships" description="Track your club applications." />
         <StatePanel
           role="alert"
           tone="error"
           icon={<AlertCircle className="h-6 w-6" />}
           title="Unable to load membership requests"
           description="Something went wrong while fetching your requests. Check your connection and try again."
-          action={
-            <Button onClick={() => void refetch()}>
-              Try again
-            </Button>
-          }
+          action={<Button onClick={() => void refetch()}>Try again</Button>}
         />
-      </main>
+      </PageContainer>
     );
   }
 
-  /* Main Page */
-
   return (
-    <main className="min-h-full bg-background text-text">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-
-        {/* Hero section */}
-
-        <section
-          aria-labelledby="membership-hero-title"
-          className={`relative overflow-hidden rounded-3xl bg-brand px-6 pt-12 text-text-on-primary shadow-lg sm:px-10 sm:pt-16 ${
-            hasMemberships
-              ? "pb-24 sm:pb-28"
-              : "pb-12 sm:pb-16"
-          }`}
-        >
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 opacity-[0.12]"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)",
-              backgroundSize: "24px 24px",
-            }}
-          />
-
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full border-[40px] border-white/10"
-          />
-
-          <div className="relative z-10 flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
-            <div className="max-w-2xl">
-              <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-caption font-semibold text-white/90">
-                <FileText className="h-4 w-4" />
-                Campus life · Club community
-              </span>
-
-              <h1
-                id="membership-hero-title"
-                className="mt-5 text-display-sm font-extrabold tracking-tight sm:text-display"
-              >
-                My memberships
-              </h1>
-
-              <p className="mt-4 max-w-xl text-body leading-relaxed text-white/80">
-                Track your club applications, manage your
-                membership requests and see where each
-                application stands.
-              </p>
-            </div>
-
-            <Link
-              href="/student"
-              className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-accent px-5 py-3 text-label font-semibold text-accent-foreground shadow-sm transition-colors hover:bg-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
-            >
-              Browse clubs
-              <ArrowRight className="h-4 w-4" />
-            </Link>
-          </div>
-        </section>
-
-        {/* Statistics cards */}
-
-        {hasMemberships && (
-          <section
-            aria-label="Membership summary"
-            className="relative z-10 -mt-12 grid gap-4 px-3 sm:grid-cols-3 sm:px-8"
+    <PageContainer className="space-y-8 py-6 sm:py-8">
+      <PageHeader
+        eyebrow="Campus life"
+        title="My Memberships"
+        description="Track your club applications, manage your membership requests and see where each application stands."
+        primaryAction={
+          <Link
+            href="/student"
+            className={`inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-label font-semibold text-primary-foreground transition-colors hover:bg-primary-hover sm:w-auto ${focusRing}`}
           >
-            <SummaryCard
-              icon={<FileText className="h-6 w-6" />}
-              label="Total requests"
-              value={counts.all}
-            />
+            Browse clubs <ArrowRight className="h-4 w-4" />
+          </Link>
+        }
+      />
 
-            <SummaryCard
-              icon={<CheckCircle2 className="h-6 w-6" />}
-              label="Approved"
-              value={counts.approved}
-              iconClassName={statusConfig.approved.iconTint}
-            />
+      <section aria-labelledby="membership-hero-title" className={`relative overflow-hidden rounded-3xl bg-brand px-6 pt-10 text-text-on-primary shadow-lg sm:px-10 sm:pt-12 ${hasMemberships ? "pb-24 sm:pb-28" : "pb-10 sm:pb-12"}`}>
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-[0.12]" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)", backgroundSize: "24px 24px" }} />
+        <div aria-hidden="true" className="pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full border-[40px] border-white/10" />
+        <div className="relative z-10 max-w-2xl">
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-caption font-semibold text-white/90">
+            <FileText className="h-4 w-4" /> Club community
+          </span>
+          <h2 id="membership-hero-title" className="mt-5 text-display-sm font-extrabold tracking-tight sm:text-display">Your club journey</h2>
+          <p className="mt-4 max-w-xl text-body leading-relaxed text-white/80">
+            See where each request stands and keep exploring communities that fit you.
+          </p>
+        </div>
+      </section>
 
-            <SummaryCard
-              icon={<Clock3 className="h-6 w-6" />}
-              label="Pending"
-              value={counts.pending}
-              iconClassName={statusConfig.pending.iconTint}
-            />
-          </section>
-        )}
+      {hasMemberships && (
+        <section aria-label="Membership summary" className="relative z-10 -mt-12 grid gap-4 px-2 sm:grid-cols-3 sm:px-6">
+          <SummaryCard icon={<FileText className="h-6 w-6" />} label="Total requests" value={counts.all} />
+          <SummaryCard icon={<CheckCircle2 className="h-6 w-6" />} label="Approved" value={counts.approved} iconClassName={statusConfig.approved.iconTint} />
+          <SummaryCard icon={<Clock3 className="h-6 w-6" />} label="Pending" value={counts.pending} iconClassName={statusConfig.pending.iconTint} />
+        </section>
+      )}
 
-        {/* Membership listing */}
-
-        <section
-          aria-labelledby="membership-list-heading"
-          className={`${hasMemberships ? "mt-14" : "mt-10"}`}
-        >
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2
-                id="membership-list-heading"
-                className="text-heading-lg font-extrabold tracking-tight text-text"
-              >
-                Your club applications
-              </h2>
-
-              <p className="mt-1.5 text-label text-text-muted">
-                Check the latest status of your membership requests.
-              </p>
-            </div>
-
-            {hasMemberships && (
-              <p className="text-label text-text-muted">
-                <span className="font-semibold text-text">
-                  {memberships.length}
-                </span>{" "}
-                {memberships.length === 1
-                  ? "request"
-                  : "requests"}{" "}
-                found
-              </p>
-            )}
+      <section aria-labelledby="membership-list-heading" className="space-y-6">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 id="membership-list-heading" className="text-heading-lg font-extrabold tracking-tight text-text">Your club applications</h2>
+            <p className="mt-1.5 text-label text-text-muted">Check the latest status of your membership requests.</p>
           </div>
+          {hasMemberships && (
+            <p className="text-label text-text-muted"><span className="font-semibold text-text">{visibleMemberships.length}</span> shown</p>
+          )}
+        </div>
 
-          {/* Empty state */}
-
-          {memberships.length === 0 && (
-            <div className="mt-7">
+        {memberships.length === 0 ? (
+          <StatePanel
+            icon={<Inbox className="h-6 w-6" />}
+            title="No membership requests yet"
+            description="Browse campus clubs and send a request to join the ones that interest you."
+            action={
+              <Link
+                href="/student"
+                className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-label font-semibold text-primary-foreground transition-colors hover:bg-primary-hover ${focusRing}`}
+              >
+                Explore clubs <ArrowRight className="h-4 w-4" />
+              </Link>
+            }
+          />
+        ) : (
+          <>
+            <Tabs items={filters} value={filter} onValueChange={setFilter} ariaLabel="Filter requests by status" className="w-full sm:w-fit" />
+            {visibleMemberships.length === 0 ? (
               <StatePanel
                 icon={<Inbox className="h-6 w-6" />}
-                title="No membership requests yet"
-                description="Browse campus clubs and send a request to join the ones that interest you."
+                title={hasSearch ? "No matching requests" : `No ${filter} requests`}
+                description={hasSearch ? "Try a different search or clear the filter." : `You don't have any ${filter} membership requests right now.`}
                 action={
-                  <Link
-                    href="/student"
-                    className={`inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-label font-semibold text-primary-foreground transition-colors hover:bg-primary-hover ${focusRing}`}
-                  >
-                    Explore clubs
-                    <ArrowRight className="h-4 w-4" />
-                  </Link>
+                  <Button variant="outline" onClick={() => { setFilter("all"); setSearch(""); }}>
+                    {hasSearch ? "Clear search and filters" : "Show all requests"}
+                  </Button>
                 }
               />
-            </div>
-          )}
-
-          {/* Filters */}
-
-          {hasMemberships && (
-            <>
-              <div
-                role="group"
-                aria-label="Filter requests by status"
-                className="mt-7 flex flex-wrap items-center gap-2"
-              >
-                {filters.map(({ key, label }) => {
-                  const active = filter === key;
-
+            ) : (
+              <ul className="grid gap-5 lg:grid-cols-2">
+                {visibleMemberships.map((membership) => {
+                  const status = resolveStatus(membership.status);
+                  const StatusIcon = status.icon;
+                  const clubName = membership.clubName || `Club #${membership.clubId}`;
                   return (
-                    <button
-                      key={key}
-                      type="button"
-                      aria-pressed={active}
-                      onClick={() => setFilter(key)}
-                      className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-label font-semibold transition-colors ${focusRing} ${
-                        active
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border bg-surface text-text-muted hover:bg-secondary hover:text-text"
-                      }`}
-                    >
-                      {label}
-
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-caption ${
-                          active
-                            ? "bg-white/20 text-primary-foreground"
-                            : "bg-secondary text-text-muted"
-                        }`}
-                      >
-                        {counts[key]}
-                      </span>
-                    </button>
+                    <li key={membership.id}>
+                      <Card padding="lg" className="relative h-full overflow-hidden rounded-3xl transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg motion-reduce:transition-none motion-reduce:hover:translate-y-0">
+                        <span aria-hidden="true" className={`absolute inset-y-0 left-0 w-1 ${status.accentBar}`} />
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex min-w-0 items-center gap-4">
+                            <div aria-hidden="true" className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-primary-subtle text-heading-sm font-extrabold text-primary">
+                              {clubName.trim().charAt(0).toUpperCase() || "#"}
+                            </div>
+                            <div className="min-w-0">
+                              <h3 className="truncate text-body-lg font-bold text-text">{clubName}</h3>
+                              <p className="mt-1 text-caption text-text-muted">Request ID: #{membership.id}</p>
+                            </div>
+                          </div>
+                          <Badge className={status.badge}>
+                            <span className="inline-flex items-center gap-1.5"><StatusIcon className="h-4 w-4" />{status.label}</span>
+                          </Badge>
+                        </div>
+                        <div className="mt-5 rounded-2xl bg-secondary px-4 py-3">
+                          <p className="flex items-start gap-2.5 text-label leading-relaxed text-text-muted">
+                            <StatusIcon className="mt-0.5 h-4 w-4 shrink-0" />
+                            {status.message}
+                          </p>
+                        </div>
+                      </Card>
+                    </li>
                   );
                 })}
-              </div>
-
-              {/* Filter empty state */}
-
-              {visibleMemberships.length === 0 && (
-                <div className="mt-7">
-                  <StatePanel
-                    icon={<Inbox className="h-6 w-6" />}
-                    title={`No ${filter} requests`}
-                    description={`You don't have any ${filter} membership requests right now.`}
-                    action={
-                      <Button
-                        variant="outline"
-                        onClick={() => setFilter("all")}
-                      >
-                        Show all requests
-                      </Button>
-                    }
-                  />
-                </div>
-              )}
-
-              {/* Membership cards */}
-
-              {visibleMemberships.length > 0 && (
-                <ul className="mt-7 grid gap-5 lg:grid-cols-2">
-                  {visibleMemberships.map((membership) => {
-                    const status = resolveStatus(membership.status);
-                    const StatusIcon = status.icon;
-
-                    const clubName =
-                      membership.clubName ||
-                      `Club #${membership.clubId}`;
-
-                    return (
-                      <li key={membership.id}>
-                        <Card
-                          padding="lg"
-                          className="relative h-full overflow-hidden transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg motion-reduce:transition-none motion-reduce:hover:translate-y-0"
-                        >
-                          <span
-                            aria-hidden="true"
-                            className={`absolute inset-y-0 left-0 w-1 ${status.accentBar}`}
-                          />
-
-                          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                            <div className="flex min-w-0 items-center gap-4">
-                              <div
-                                aria-hidden="true"
-                                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-primary-subtle text-heading-sm font-extrabold text-primary"
-                              >
-                                {clubName.trim().charAt(0).toUpperCase() || "#"}
-                              </div>
-
-                              <div className="min-w-0">
-                                <h3 className="truncate text-body-lg font-bold text-text">
-                                  {clubName}
-                                </h3>
-
-                                <p className="mt-1 text-caption text-text-muted">
-                                  Request ID: #{membership.id}
-                                </p>
-                              </div>
-                            </div>
-
-                            <span
-                              className={`inline-flex w-fit shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-caption font-semibold ${status.badge}`}
-                            >
-                              <StatusIcon className="h-4 w-4" />
-                              {status.label}
-                            </span>
-                          </div>
-
-                          <div className="mt-5 rounded-xl bg-secondary px-4 py-3">
-                            <p className="flex items-start gap-2.5 text-label leading-relaxed text-text-muted">
-                              <StatusIcon
-                                className={`mt-0.5 h-4 w-4 shrink-0 ${
-                                  status.badge
-                                    .split(" ")
-                                    .filter((c) => c.startsWith("text-"))
-                                    .join(" ")
-                                }`}
-                              />
-
-                              {status.message}
-                            </p>
-                          </div>
-                        </Card>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </>
-          )}
-        </section>
-      </div>
-    </main>
+              </ul>
+            )}
+          </>
+        )}
+      </section>
+    </PageContainer>
   );
 }

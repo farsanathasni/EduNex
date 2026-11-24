@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -43,44 +42,28 @@ function TeacherLayoutContent({
     null,
   );
 
-  const getPageTitle = () => {
+  const getPageDescription = () => {
     if (pathname === "/teacher/notifications") {
-      return {
-        title: "Notifications",
-        description: "Stay up to date with campus activity",
-      };
+      return "Stay up to date with campus activity";
     }
 
     if (pathname === "/attendance/faculty") {
-      return {
-        title: "Event Attendance Reports",
-        description: "View event attendance records",
-      };
+      return "View event attendance records";
     }
 
     if (pathname.startsWith("/attendance/faculty/")) {
-      return {
-        title: "Event Attendance",
-        description: "View event attendance details",
-      };
+      return "View event attendance details";
     }
 
     if (pathname === "/announcement/faculty") {
-      return {
-        title: "Announcements",
-        description: "Stay informed with campus announcements",
-      };
+      return "Stay informed with campus announcements";
     }
 
-    return {
-      title:
-        menuItems.find((item) => item.href === activeHref)
-          ?.label ?? "Teacher Portal",
-      description: "Teacher workspace and academic activities",
-    };
+    return "Teacher workspace and academic activities";
   };
 
   const pageTitleMap: Record<string, string> = {
+    "/announcement/faculty": "Announcements",
     "/teacher/issues": "Issues",
     "/teacher/issues/new": "New Issue",
     "/teacher/issues/detail": "Issue Thread",
@@ -91,16 +74,20 @@ function TeacherLayoutContent({
   };
 
   const headerTitle =
-  pageTitleMap[pathname] ??
-  (pathname.startsWith("/teacher/issues/")
-    ? pageTitleMap["/teacher/issues/detail"]
-    : pathname.startsWith("/teacher/lost-found/")
-      ? pageTitleMap["/teacher/lost-found/detail"]
-      : null) ??
-  (pathname === "/teacher/notifications"
-    ? "Notifications"
-    : menuItems.find((item) => item.href === activeHref)?.label ??
-      "Teacher Portal");
+    pageTitleMap[pathname] ??
+    (pathname.startsWith("/teacher/issues/")
+      ? pageTitleMap["/teacher/issues/detail"]
+      : pathname.startsWith("/teacher/lost-found/")
+        ? pageTitleMap["/teacher/lost-found/detail"]
+        : null) ??
+    (pathname === "/teacher/notifications"
+      ? "Notifications"
+      : pathname === "/attendance/faculty"
+        ? "Event Attendance Reports"
+        : pathname.startsWith("/attendance/faculty/")
+          ? "Event Attendance"
+          : (menuItems.find((item) => item.href === activeHref)
+              ?.label ?? "Teacher Portal"));
 
   if (isPending) {
     return (
@@ -122,7 +109,7 @@ function TeacherLayoutContent({
     );
   }
 
-  const pageInfo = getPageTitle();
+  const pageDescription = getPageDescription();
 
   return (
     <div className="min-h-screen bg-background text-text md:flex">
@@ -218,13 +205,12 @@ function TeacherLayoutContent({
 
           {/* Page information */}
           <div className="min-w-0 flex-1">
-            <p className="truncate font-semibold text-text">
-              {pageInfo.title}
-            </p>
+            <h2 className="truncate font-semibold text-text">
+              {headerTitle}
+            </h2>
 
-            <h2 className="font-semibold">{headerTitle}</h2>
             <p className="truncate text-xs text-text-muted">
-              {pageInfo.description}
+              {pageDescription}
             </p>
           </div>
 

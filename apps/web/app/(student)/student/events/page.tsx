@@ -12,14 +12,15 @@ import {
   MapPin,
   Search,
   Tag,
-  X,
 } from "lucide-react";
 
-import { useAllEventsQuery } from "@/features/events/api/event-query";
-import Card from "@/components/ui/card";
+import { useRegisterHeaderSearch } from "@/components/layout/header-search";
 import Button from "@/components/ui/button";
-import Input from "@/components/ui/input";
+import Card from "@/components/ui/card";
+import PageContainer from "@/components/ui/page-container";
+import PageHeader from "@/components/ui/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAllEventsQuery } from "@/features/events/api/event-query";
 
 type CampusEvent = {
   id: string | number;
@@ -304,23 +305,21 @@ function EventSkeleton() {
 /* -------------------------------------------------------------------------- */
 
 export default function StudentEventsPage() {
-  const { data, isPending, isError, refetch } =
-    useAllEventsQuery();
-
+  const { data, isPending, isError, refetch } = useAllEventsQuery();
   const [search, setSearch] = useState("");
 
-  // Handle both array and object API responses
+  useRegisterHeaderSearch({
+    value: search,
+    onChange: setSearch,
+    placeholder: "Search events, categories, venues",
+  });
+
   const events: CampusEvent[] = Array.isArray(data)
     ? data
-    : (
-        (data as { events?: CampusEvent[] } | undefined)
-          ?.events ?? []
-      );
+    : ((data as { events?: CampusEvent[] } | undefined)?.events ?? []);
 
-  // Search events
   const filteredEvents = useMemo(() => {
     const query = search.trim().toLowerCase();
-
     if (!query) return events;
 
     return events.filter((event) =>
@@ -340,299 +339,167 @@ export default function StudentEventsPage() {
     );
   }, [events, search]);
 
-  // Upcoming events count
   const upcomingCount = events.filter((event) => {
     const date = getEventDate(event);
-
     if (!date) return false;
-
     const time = new Date(date).getTime();
-
     return Number.isFinite(time) && time >= Date.now();
   }).length;
 
-  // Unique category count
   const categoryCount = new Set(
-    events
-      .map((event) => getEventCategory(event))
-      .filter(Boolean),
+    events.map((event) => getEventCategory(event)).filter(Boolean),
   ).size;
 
   const hasSearch = search.trim().length > 0;
 
-  /* ------------------------------ Loading ------------------------------ */
-
   if (isPending) {
     return (
-      <main className="min-h-screen bg-background">
-        <div
-          role="status"
-          aria-label="Loading events"
-          className="mx-auto max-w-7xl space-y-8 px-4 py-8 sm:px-6 lg:px-8"
-        >
-          <Skeleton className="h-5 w-32" />
-
-          {/* Hero skeleton */}
-          <div className="rounded-3xl bg-surface p-8 sm:p-10">
-            <Skeleton className="h-6 w-48" />
-            <Skeleton className="mt-6 h-10 w-80 max-w-full" />
-            <Skeleton className="mt-4 h-4 w-full max-w-xl" />
-            <Skeleton className="mt-3 h-4 w-2/3" />
-            <Skeleton className="mt-8 h-11 w-40 rounded-lg" />
-          </div>
-
-          {/* Statistics skeleton */}
-          <div className="relative z-10 -mt-12 grid gap-4 px-3 sm:grid-cols-3 sm:px-8">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <Card
-                key={i}
-                padding="lg"
-                className="flex items-center gap-4"
-              >
-                <Skeleton className="h-12 w-12 shrink-0 rounded-xl" />
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-3 w-24" />
-                  <Skeleton className="h-6 w-12" />
-                </div>
-              </Card>
-            ))}
-          </div>
-
-          {/* Events heading and search */}
-          <div className="mt-14 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-            <div className="space-y-2">
-              <Skeleton className="h-7 w-56" />
-              <Skeleton className="h-4 w-72 max-w-full" />
-            </div>
-            <Skeleton className="h-12 w-full rounded-xl sm:max-w-md" />
-          </div>
-
-          {/* Event cards */}
-          <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, item) => (
-              <EventSkeleton key={item} />
-            ))}
-          </div>
+      <PageContainer className="space-y-8 py-6 sm:py-8">
+        <PageHeader
+          eyebrow="Campus life"
+          title="Campus Events"
+          description="Discover workshops, celebrations, competitions and opportunities around campus."
+        />
+        <div className="rounded-3xl bg-surface p-8 sm:p-10" aria-hidden="true">
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="mt-6 h-10 w-80 max-w-full" />
+          <Skeleton className="mt-4 h-4 w-full max-w-xl" />
+          <Skeleton className="mt-8 h-11 w-40 rounded-lg" />
         </div>
-      </main>
+        <div className="grid gap-4 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i} padding="lg" className="flex items-center gap-4">
+              <Skeleton className="h-12 w-12 shrink-0 rounded-xl" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-6 w-12" />
+              </div>
+            </Card>
+          ))}
+        </div>
+        <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3" role="status" aria-label="Loading events">
+          {Array.from({ length: 6 }).map((_, item) => (
+            <EventSkeleton key={item} />
+          ))}
+        </div>
+      </PageContainer>
     );
   }
 
-  // Error state
   if (isError) {
     return (
-      <main className="flex min-h-[70vh] items-center justify-center bg-background px-4">
+      <PageContainer className="space-y-6 py-6 sm:py-8">
+        <PageHeader title="Campus Events" description="Discover upcoming campus events." />
         <StatePanel
           role="alert"
           tone="error"
           icon={<AlertCircle className="h-6 w-6" />}
           title="We couldn't load the events"
           description="Please check your connection and try again."
-          action={
-            <Button onClick={() => void refetch()}>
-              Try again
-            </Button>
-          }
+          action={<Button onClick={() => void refetch()}>Try again</Button>}
         />
-      </main>
+      </PageContainer>
     );
   }
 
   return (
-    <main className="min-h-screen bg-background text-text">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Hero section */}
-        <section
-          aria-labelledby="events-hero-title"
-          className="relative overflow-hidden rounded-3xl bg-brand px-6 pb-24 pt-12 text-text-on-primary shadow-lg sm:px-10 sm:pb-28 sm:pt-16"
-        >
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-0 opacity-[0.12]"
-            style={{
-              backgroundImage:
-                "radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)",
-              backgroundSize: "24px 24px",
-            }}
-          />
+    <PageContainer className="space-y-8 py-6 sm:py-8">
+      <PageHeader
+        eyebrow="Student community"
+        title="Campus Events"
+        description="Discover workshops, cultural celebrations, competitions and opportunities to connect with your campus community."
+        action={
+          <p className="text-label text-text-muted" aria-live="polite">
+            <span className="font-semibold text-text">{filteredEvents.length}</span>{" "}
+            {filteredEvents.length === 1 ? "event" : "events"} found
+          </p>
+        }
+      />
 
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full border-[40px] border-white/10"
-          />
+      <section
+        aria-labelledby="events-hero-title"
+        className="relative overflow-hidden rounded-3xl bg-brand px-6 pb-24 pt-10 text-text-on-primary shadow-lg sm:px-10 sm:pb-28 sm:pt-12"
+      >
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 opacity-[0.12]"
+          style={{
+            backgroundImage: "radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)",
+            backgroundSize: "24px 24px",
+          }}
+        />
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute -right-24 -top-28 h-80 w-80 rounded-full border-[40px] border-white/10"
+        />
+        <div className="relative z-10 max-w-2xl">
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-caption font-semibold text-white/90">
+            <GraduationCap className="h-4 w-4" />
+            Campus life
+          </span>
+          <h2 id="events-hero-title" className="mt-5 text-display-sm font-extrabold tracking-tight sm:text-display">
+            Make campus unforgettable
+          </h2>
+          <p className="mt-4 max-w-xl text-body leading-relaxed text-white/80">
+            Find your next workshop, celebration, or competition and make every college day count.
+          </p>
+          <button
+            type="button"
+            onClick={() =>
+              document.getElementById("event-list")?.scrollIntoView({ behavior: "smooth", block: "start" })
+            }
+            className={`mt-8 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 text-label font-semibold text-accent-foreground shadow-sm transition-colors hover:bg-accent-hover ${onBrandFocusRing}`}
+          >
+            Explore all events
+            <ArrowDown className="h-4 w-4" />
+          </button>
+        </div>
+      </section>
 
-          <div className="relative z-10 max-w-2xl">
-            <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-caption font-semibold text-white/90">
-              <GraduationCap className="h-4 w-4" />
-              Campus life · Student community
-            </span>
+      <section aria-label="Event overview" className="relative z-10 -mt-12 grid gap-4 px-2 sm:grid-cols-3 sm:px-6">
+        <StatCard icon={<CalendarDays className="h-6 w-6" />} label="Total events" value={events.length} />
+        <StatCard icon={<CalendarDays className="h-6 w-6" />} label="Upcoming events" value={upcomingCount} />
+        <StatCard icon={<Tag className="h-6 w-6" />} label="Categories" value={categoryCount} />
+      </section>
 
-            <h1
-              id="events-hero-title"
-              className="mt-5 text-display-sm font-extrabold tracking-tight sm:text-display"
-            >
-              Make campus unforgettable
-            </h1>
-
-            <p className="mt-4 max-w-xl text-body leading-relaxed text-white/80">
-              Discover workshops, cultural celebrations,
-              competitions and opportunities to connect with
-              your campus community.
+      <section id="event-list" aria-labelledby="events-heading" className="scroll-mt-8 space-y-6">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <h2 id="events-heading" className="text-heading-lg font-extrabold tracking-tight text-text">
+              Explore campus events
+            </h2>
+            <p className="mt-1.5 text-label text-text-muted">
+              Something exciting is happening. Find your place in it.
             </p>
-
-            <button
-              type="button"
-              onClick={() =>
-                document
-                  .getElementById("event-list")
-                  ?.scrollIntoView({
-                    behavior: "smooth",
-                    block: "start",
-                  })
-              }
-              className={`mt-8 inline-flex items-center justify-center gap-2 rounded-lg bg-accent px-5 py-3 text-label font-semibold text-accent-foreground shadow-sm transition-colors hover:bg-accent-hover ${onBrandFocusRing}`}
-            >
-              Explore all events
-              <ArrowDown className="h-4 w-4" />
-            </button>
           </div>
-        </section>
+          {hasSearch && (
+            <Button variant="outline" size="sm" onClick={() => setSearch("")}>
+              Clear search
+            </Button>
+          )}
+        </div>
 
-        {/* Event statistics */}
-        <section
-          aria-label="Event overview"
-          className="relative z-10 -mt-12 grid gap-4 px-3 sm:grid-cols-3 sm:px-8"
-        >
-          <StatCard
-            icon={<CalendarDays className="h-6 w-6" />}
-            label="Total events"
-            value={events.length}
+        {filteredEvents.length === 0 ? (
+          <StatePanel
+            icon={hasSearch ? <Search className="h-6 w-6" /> : <CalendarDays className="h-6 w-6" />}
+            title={hasSearch ? "No matching events" : "No events available yet"}
+            description={
+              hasSearch
+                ? "Try another keyword or clear your search."
+                : "New campus events will appear here when available."
+            }
+            action={hasSearch ? <Button variant="outline" onClick={() => setSearch("")}>Clear search</Button> : undefined}
           />
-
-          <StatCard
-            icon={<CalendarDays className="h-6 w-6" />}
-            label="Upcoming events"
-            value={upcomingCount}
-          />
-
-          <StatCard
-            icon={<Tag className="h-6 w-6" />}
-            label="Categories"
-            value={categoryCount}
-          />
-        </section>
-
-        {/* Events listing */}
-        <section
-          id="event-list"
-          aria-labelledby="events-heading"
-          className="mt-14 scroll-mt-8"
-        >
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-            <div>
-              <h2
-                id="events-heading"
-                className="text-heading-lg font-extrabold tracking-tight text-text"
-              >
-                Explore campus events
-              </h2>
-
-              <p className="mt-1.5 text-label text-text-muted">
-                Something exciting is happening. Find your place
-                in it.
-              </p>
-            </div>
-
-            {/* Search input */}
-            <div className="w-full lg:max-w-md">
-              <div className="relative">
-                <Search
-                  aria-hidden="true"
-                  className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-subtle"
-                />
-
-                <Input
-                  type="search"
-                  value={search}
-                  onChange={(event) =>
-                    setSearch(event.target.value)
-                  }
-                  placeholder="Search events, categories, venues"
-                  aria-label="Search campus events"
-                  className="rounded-xl py-3 pl-10 pr-10 shadow-sm [&::-webkit-search-cancel-button]:hidden"
-                />
-
-                {hasSearch && (
-                  <button
-                    type="button"
-                    onClick={() => setSearch("")}
-                    aria-label="Clear search"
-                    className={`${focusRing} absolute right-2.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-md text-text-subtle transition-colors hover:bg-secondary hover:text-text`}
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-
-              <p
-                className="mt-2 text-right text-caption text-text-muted"
-                aria-live="polite"
-              >
-                <span className="font-semibold text-text">
-                  {filteredEvents.length}
-                </span>{" "}
-                {filteredEvents.length === 1
-                  ? "event"
-                  : "events"}{" "}
-                found
-              </p>
-            </div>
-          </div>
-
-          {/* Event cards or empty state */}
-          <div className="mt-7">
-            {filteredEvents.length === 0 ? (
-              <StatePanel
-                icon={
-                  hasSearch ? (
-                    <Search className="h-6 w-6" />
-                  ) : (
-                    <CalendarDays className="h-6 w-6" />
-                  )
-                }
-                title={
-                  hasSearch
-                    ? "No matching events"
-                    : "No events available yet"
-                }
-                description={
-                  hasSearch
-                    ? "Try another keyword or clear your search."
-                    : "New campus events will appear here when available."
-                }
-                action={
-                  hasSearch ? (
-                    <Button
-                      variant="outline"
-                      onClick={() => setSearch("")}
-                    >
-                      Clear search
-                    </Button>
-                  ) : undefined
-                }
-              />
-            ) : (
-              <ul className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-                {filteredEvents.map((event) => (
-                  <li key={event.id}>
-                    <EventCard event={event} />
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </section>
-      </div>
-    </main>
+        ) : (
+          <ul className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
+            {filteredEvents.map((event) => (
+              <li key={event.id}>
+                <EventCard event={event} />
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </PageContainer>
   );
 }

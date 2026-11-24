@@ -25,7 +25,7 @@ import AuditTimeline from "./audit-timeline";
 import ClaimForm from "./claim-form";
 import ClaimReviewPanel from "./claim-review-panel";
 
-export default function ItemDetail({ itemId }: { itemId: number }) {
+export default function ItemDetail({ itemId, studentStyle = false }: { itemId: number; studentStyle?: boolean }) {
   const { data: item, isLoading, isError } = useLostFoundItemQuery(itemId);
   const { canClaim } = useLostFoundUiAccess();
 
@@ -69,13 +69,13 @@ export default function ItemDetail({ itemId }: { itemId: number }) {
                   width={800}
                   height={600}
                   unoptimized
-                  className="h-64 w-full rounded-2xl border border-border object-cover"
+                    className={`${studentStyle ? "h-72 sm:h-80" : "h-64"} w-full rounded-3xl border border-border object-cover`}
                 />
               ))}
             </div>
           )}
 
-          <div className="rounded-2xl border border-border bg-surface p-6">
+          <div className={`border border-border bg-surface p-6 ${studentStyle ? "rounded-3xl shadow-subtle" : "rounded-2xl"}`}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h2 className="text-xl font-bold text-text">{item.title}</h2>
@@ -239,7 +239,7 @@ export default function ItemDetail({ itemId }: { itemId: number }) {
             !item.isFinder &&
             item.status === "active" &&
             !item.myClaim && (
-              <ClaimForm itemId={item.id} questions={item.verificationQuestions} />
+              <ClaimForm itemId={item.id} questions={item.verificationQuestions} studentStyle={studentStyle} />
             )}
 
           {error && <p className="text-sm text-red-600">{error}</p>}

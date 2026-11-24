@@ -29,6 +29,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import Card from "@/components/ui/card";
 import Button from "@/components/ui/button";
 import Input from "@/components/ui/input";
+import PageContainer from "@/components/ui/page-container";
+import PageHeader from "@/components/ui/page-header";
 
 const semesters = ["1", "2", "3", "4", "5", "6", "7", "8"];
 
@@ -175,8 +177,7 @@ function Required() {
 
 function StudentProfileSkeleton() {
   return (
-    <main className="min-h-screen bg-background px-4 py-8 font-roobert sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-4xl space-y-6">
+    <PageContainer className="space-y-6 py-6 sm:py-8">
         {/* Profile banner */}
         <section className="rounded-3xl bg-brand px-6 py-8 sm:px-10 sm:py-10">
           <Skeleton className="h-4 w-28 bg-white/20" />
@@ -218,13 +219,11 @@ function StudentProfileSkeleton() {
           ))}
         </div>
 
-        {/* Action buttons */}
-        <div className="flex justify-end gap-3">
-          <Skeleton className="h-11 w-36 rounded-lg" />
-          <Skeleton className="h-11 w-40 rounded-lg" />
-        </div>
+      <div className="flex justify-end gap-3">
+        <Skeleton className="h-11 w-36 rounded-lg" />
+        <Skeleton className="h-11 w-40 rounded-lg" />
       </div>
-    </main>
+    </PageContainer>
   );
 }
 
@@ -421,122 +420,59 @@ export default function StudentProfile() {
       .toUpperCase();
 
     return (
-      <div className="min-h-full bg-background px-4 py-8 font-roobert text-text sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-5xl space-y-6">
-          <Banner className="px-6 py-8 sm:px-10 sm:py-10">
-            <p className="mb-5 text-label font-semibold text-white/80">
-              Student portal
-            </p>
-
-            <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
-              <div
-                aria-hidden="true"
-                className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-heading font-extrabold backdrop-blur-sm"
-              >
-                {initials || "ST"}
-              </div>
-
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-3">
-                  <h1 className="break-words text-display-sm font-extrabold tracking-tight">
-                    {profile.name}
-                  </h1>
-
-                  <span className="rounded-full border border-white/25 bg-white/10 px-3 py-1 text-caption font-semibold text-white">
-                    Active student
-                  </span>
-                </div>
-
-                <p className="mt-1.5 break-all text-label text-white/80">
-                  {profile.email}
-                </p>
-
-                <p className="mt-1 text-caption text-white/70">
-                  Admission no. {profile.admissionNumber}
-                </p>
-              </div>
-
-              <div className="w-fit shrink-0 rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-center backdrop-blur-sm">
-                <p className="text-caption text-white/80">
-                  Current semester
-                </p>
-
-                <p className="mt-1 text-heading font-extrabold leading-none">
-                  {profile.semester ?? "—"}
-                </p>
-              </div>
-            </div>
-          </Banner>
-
-          <div className="grid gap-6 lg:grid-cols-2">
-            <SectionCard
-              icon={<User className="h-5 w-5" />}
-              title="Personal information"
-              description="Your registered contact details"
-            >
-              <ProfileDetail label="Full name" value={profile.name} />
-
-              <ProfileDetail
-                label="Email address"
-                value={profile.email}
-              />
-
-              <ProfileDetail
-                label="Phone number"
-                value={profile.phone}
-              />
-            </SectionCard>
-
-            <SectionCard
-              icon={<GraduationCap className="h-5 w-5" />}
-              title="Academic information"
-              description="Your college and department details"
-            >
-              <ProfileDetail
-                label="Department"
-                value={profile.departmentName}
-              />
-
-              <ProfileDetail
-                label="Current semester"
-                value={
-                  profile.semester
-                    ? `Semester ${profile.semester}`
-                    : null
-                }
-              />
-
-              <ProfileDetail
-                label="Admission number"
-                value={profile.admissionNumber}
-              />
-            </SectionCard>
-          </div>
-
-          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => profileQuery.refetch()}
-            >
+      <PageContainer className="space-y-6 py-6 sm:py-8">
+        <PageHeader
+          eyebrow="Student portal"
+          title="My Profile"
+          description="View and manage your student profile."
+          action={
+            <Button type="button" variant="outline" onClick={() => profileQuery.refetch()} className="min-h-11 w-full sm:w-auto">
               <RefreshCw className="h-4 w-4" />
               Refresh profile
             </Button>
-
-            <Button
-              type="button"
-              onClick={() => router.push("/shboard")}
-            >
+          }
+          primaryAction={
+            <Button type="button" onClick={() => router.push("/student/dashboard")} className="min-h-11 w-full sm:w-auto">
               Go to dashboard
               <ArrowRight className="h-4 w-4" />
             </Button>
-          </div>
+          }
+        />
 
-          <p className="pb-4 text-center text-caption text-text-subtle">
-            EduNex · Connecting students, faculty and campus life.
-          </p>
+        <Banner className="px-6 py-8 sm:px-10 sm:py-10">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
+            <div aria-hidden="true" className="flex h-20 w-20 shrink-0 items-center justify-center rounded-3xl border border-white/20 bg-white/10 text-heading font-extrabold backdrop-blur-sm">
+              {initials || "ST"}
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-3">
+                <h2 className="break-words text-display-sm font-extrabold tracking-tight">{profile.name}</h2>
+                <span className="rounded-full border border-white/25 bg-white/10 px-3 py-1 text-caption font-semibold text-white">Active student</span>
+              </div>
+              <p className="mt-1.5 break-all text-label text-white/80">{profile.email}</p>
+              <p className="mt-1 text-caption text-white/70">Admission no. {profile.admissionNumber}</p>
+            </div>
+            <div className="w-fit shrink-0 rounded-3xl border border-white/20 bg-white/10 px-5 py-3 text-center backdrop-blur-sm">
+              <p className="text-caption text-white/80">Current semester</p>
+              <p className="mt-1 text-heading font-extrabold leading-none">{profile.semester ?? "—"}</p>
+            </div>
+          </div>
+        </Banner>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          <SectionCard icon={<User className="h-5 w-5" />} title="Personal information" description="Your registered contact details">
+            <ProfileDetail label="Full name" value={profile.name} />
+            <ProfileDetail label="Email address" value={profile.email} />
+            <ProfileDetail label="Phone number" value={profile.phone} />
+          </SectionCard>
+
+          <SectionCard icon={<GraduationCap className="h-5 w-5" />} title="Academic information" description="Your college and department details">
+            <ProfileDetail label="Department" value={profile.departmentName} />
+            <ProfileDetail label="Current semester" value={profile.semester ? `Semester ${profile.semester}` : null} />
+            <ProfileDetail label="Admission number" value={profile.admissionNumber} />
+          </SectionCard>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
@@ -545,27 +481,23 @@ export default function StudentProfile() {
   /* ------------------------------------------------------------------------ */
 
   return (
-    <div className="min-h-full bg-background px-4 py-8 font-roobert text-text sm:px-6">
+    <PageContainer className="space-y-6 py-6 sm:py-8">
+      <PageHeader
+        eyebrow="Student profile"
+        title="Complete your student profile"
+        description="Just a few more details to get your campus journey started."
+      />
       <div className="mx-auto w-full max-w-2xl">
         <Banner className="px-6 pb-20 pt-8 sm:px-10 sm:pt-10">
           <p className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-caption font-semibold text-white/90">
             <GraduationCap className="h-4 w-4" />
             EduNex · Student profile
           </p>
-
-          <h1 className="mt-4 text-display-sm font-extrabold tracking-tight">
-            Complete your student profile
-          </h1>
-
-          <p className="mt-3 text-body leading-relaxed text-white/80">
-            Just a few more details to get your campus journey started.
-          </p>
+          <h2 className="mt-4 text-display-sm font-extrabold tracking-tight">Welcome aboard</h2>
+          <p className="mt-3 text-body leading-relaxed text-white/80">Enter your official college details below.</p>
         </Banner>
 
-        <Card
-          padding="lg"
-          className="relative z-10 -mt-12 mx-3 shadow-lg sm:mx-6"
-        >
+        <Card padding="lg" className="relative z-10 -mt-12 mx-2 rounded-3xl shadow-lg sm:mx-6">
           <div className="mb-5 border-b border-border-subtle pb-4">
             <h2 className="text-subheading font-bold text-text">
               Academic details
@@ -781,10 +713,11 @@ export default function StudentProfile() {
 
             {/* Submit */}
 
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
             <Button
               type="submit"
               disabled={createProfile.isPending}
-              className="w-full"
+              className="min-h-11 w-full sm:w-auto"
               size="lg"
             >
               {createProfile.isPending ? (
@@ -799,17 +732,14 @@ export default function StudentProfile() {
                 </>
               )}
             </Button>
+            </div>
 
             <p className="text-center text-caption leading-relaxed text-text-subtle">
               Your information will be saved to your EduNex student profile.
             </p>
           </form>
         </Card>
-
-        <p className="mt-6 text-center text-caption text-text-subtle">
-          EduNex · Connecting students, faculty and campus life.
-        </p>
       </div>
-    </div>
+    </PageContainer>
   );
 }

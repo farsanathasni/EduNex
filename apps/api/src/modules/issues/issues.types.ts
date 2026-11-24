@@ -93,7 +93,7 @@ export interface AddIssueResponseParams {
   issueId: number;
   viewerId: string;
   body: string;
-  close: boolean;
+  close?: boolean;
 }
 
 export interface ResolveIssueParams {

@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
-import EditStaffModal from "@/features/staff/components/edit-staff-modal";
+import { useRegisterHeaderSearch } from "@/components/layout/header-search";
+import Badge from "@/components/ui/badge";
+import Button from "@/components/ui/button";
+import { ResponsiveDataTable, type DataTableColumn } from "@/components/ui/data-table";
+import Select from "@/components/ui/select";
 import DeactivateStaffDialog from "@/features/staff/components/deactivate-staff-dialog";
+import EditStaffModal from "@/features/staff/components/edit-staff-modal";
 import { useStaff } from "@/features/staff/api/staff-query";
 import type { StaffListItem, StaffType } from "@/features/staff/api/staff";
-import StaffDirectorySkeleton from "@/features/staff/components/staff-directory-skeleton";
 
 type Department = {
   id: number;
@@ -45,6 +49,15 @@ export default function StaffDirectory({
   const [deactivatingStaff, setDeactivatingStaff] = useState<StaffListItem | null>(null);
   const [updatedMessage, setUpdatedMessage] = useState("");
 
+  useRegisterHeaderSearch({
+    value: search,
+    onChange: (value) => {
+      setSearch(value);
+      setPage(1);
+    },
+    placeholder: "Name, employee ID, or email",
+  });
+
   const staffQuery = useStaff({
     type: fixedStaffType ?? type,
     ...(canChangeDepartment && selectedDepartment
@@ -63,80 +76,144 @@ export default function StaffDirectory({
     update();
   };
 
+  const columns = useMemo<DataTableColumn<StaffListItem>[]>(
+    () => [
+      {
+        header: "Name",
+        cell: (member) => <span className="font-medium">{member.name}</span>,
+        mobileLabel: "Name",
+        mobilePriority: "primary",
+      },
+      {
+        header: "Employee ID",
+        cell: (member) => member.employeeId,
+        mobileLabel: "Employee ID",
+        mobilePriority: "secondary",
+      },
+      {
+        header: "Email",
+        cell: (member) => member.email,
+        mobileLabel: "Email",
+        mobilePriority: "secondary",
+      },
+      {
+        header: "Staff Type",
+        cell: (member) => (
+          <Badge tone={member.role === "hod" ? "primary" : "neutral"}>
+            {member.role === "hod" ? "HOD" : "Faculty"}
+          </Badge>
+        ),
+        mobileLabel: "Staff Type",
+        mobilePriority: "secondary",
+        mobileIsStatus: true,
+      },
+      {
+        header: "Department",
+        cell: (member) =>
+          member.departmentName
+            ? `${member.departmentName}${member.departmentCode ? ` (${member.departmentCode})` : ""}`
+            : "—",
+        mobileLabel: "Department",
+        mobilePriority: "secondary",
+      },
+      {
+        header: "Designation",
+        cell: (member) => member.designation || "—",
+        mobileLabel: "Designation",
+        mobilePriority: "secondary",
+      },
+    ],
+    [],
+  );
+
+  const rowActions = (member: StaffListItem) => {
+    const actions: {
+      label: string;
+      ariaLabel: string;
+      className?: string;
+      onClick: (row: StaffListItem) => void;
+    }[] = [
+      {
+        label: "Edit",
+        ariaLabel: `Edit ${member.name}`,
+        onClick: (row: StaffListItem) => {
+          setUpdatedMessage("");
+          setEditingStaff(row);
+        },
+      },
+    ];
+
+    if (canDeactivateStaff) {
+      actions.push({
+        label: "Deactivate",
+        ariaLabel: `Deactivate ${member.name}`,
+        className: "border-red-200 text-red-700 hover:bg-red-50",
+        onClick: (row: StaffListItem) => {
+          setUpdatedMessage("");
+          setDeactivatingStaff(row);
+        },
+      });
+    }
+
+    return actions;
+  };
+
   return (
     <section className="space-y-6">
-      <section className="rounded-xl border border-border bg-surface p-5">
-        <div className={`grid gap-4 ${canChangeDepartment ? "md:grid-cols-3" : showTypeFilter ? "md:grid-cols-2" : "md:grid-cols-1"}`}>
-          <div>
-            <label htmlFor="staff-directory-search" className="mb-2 block text-sm font-medium">
-              Search Staff
-            </label>
-            <input
-              id="staff-directory-search"
-              type="search"
-              value={search}
-              onChange={(event) => resetPageAnd(() => setSearch(event.target.value))}
-              placeholder="Name, employee ID, or email"
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-primary"
-            />
+      {(showTypeFilter || canChangeDepartment) && (
+        <section className="rounded-xl border border-border bg-surface p-5">
+          <div className="flex flex-wrap gap-4">
+            {showTypeFilter && (
+              <div className="min-w-0 flex-1 basis-full sm:basis-[220px]">
+                <Select
+                  id="staff-directory-type"
+                  label="Staff Type"
+                  value={type}
+                  onChange={(event) =>
+                    resetPageAnd(() => setType(event.target.value as StaffType))
+                  }
+                >
+                  <option value="all">All Staff</option>
+                  <option value="hod">HODs</option>
+                  <option value="faculty">Faculty</option>
+                </Select>
+              </div>
+            )}
+
+            {canChangeDepartment && (
+              <div className="min-w-0 flex-1 basis-full sm:basis-[260px]">
+                <Select
+                  id="staff-directory-department"
+                  label="Department"
+                  value={selectedDepartment}
+                  onChange={(event) =>
+                    resetPageAnd(() => setSelectedDepartment(event.target.value))
+                  }
+                  disabled={isLoadingDepartments || !!departmentsError}
+                >
+                  <option value="">All Departments</option>
+                  {departments.map((department) => (
+                    <option key={department.id} value={department.id}>
+                      {department.name} ({department.code})
+                    </option>
+                  ))}
+                </Select>
+                {isLoadingDepartments && (
+                  <p className="mt-2 text-sm text-text-muted">Loading departments...</p>
+                )}
+                {departmentsError && (
+                  <p className="mt-2 text-sm text-red-600">
+                    {departmentsError}{" "}
+                    <button type="button" onClick={onRetryDepartments} className="underline">
+                      Try again
+                    </button>
+                  </p>
+                )}
+              </div>
+            )}
           </div>
-
-          {showTypeFilter && (
-            <div>
-              <label htmlFor="staff-directory-type" className="mb-2 block text-sm font-medium">
-                Staff Type
-              </label>
-              <select
-                id="staff-directory-type"
-                value={type}
-                onChange={(event) =>
-                  resetPageAnd(() => setType(event.target.value as StaffType))
-                }
-                className="w-full rounded-lg border border-border bg-background px-3 py-2"
-              >
-                <option value="all">All Staff</option>
-                <option value="hod">HODs</option>
-                <option value="faculty">Faculty</option>
-              </select>
-            </div>
-          )}
-
-          {canChangeDepartment && (
-            <div>
-              <label htmlFor="staff-directory-department" className="mb-2 block text-sm font-medium">
-                Department
-              </label>
-              <select
-                id="staff-directory-department"
-                value={selectedDepartment}
-                onChange={(event) =>
-                  resetPageAnd(() => setSelectedDepartment(event.target.value))
-                }
-                disabled={isLoadingDepartments || !!departmentsError}
-                className="w-full rounded-lg border border-border bg-background px-3 py-2 disabled:opacity-60"
-              >
-                <option value="">All Departments</option>
-                {departments.map((department) => (
-                  <option key={department.id} value={department.id}>
-                    {department.name} ({department.code})
-                  </option>
-                ))}
-              </select>
-              {isLoadingDepartments && (
-                <p className="mt-2 text-sm text-text-muted">Loading departments...</p>
-              )}
-              {departmentsError && (
-                <p className="mt-2 text-sm text-red-600">
-                  {departmentsError}{" "}
-                  <button type="button" onClick={onRetryDepartments} className="underline">
-                    Try again
-                  </button>
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-      </section>
+        </section>
+      )}
 
       {updatedMessage && (
         <p className="rounded-lg border border-green-200 bg-green-50 p-3 text-sm text-green-800" role="status">
@@ -144,102 +221,52 @@ export default function StaffDirectory({
         </p>
       )}
 
-      <section className="overflow-hidden rounded-xl border border-border bg-surface">
-        {staffQuery.isPending ? (
-  <StaffDirectorySkeleton />
-) : staffQuery.isError ? (
-          <div className="p-6 text-sm text-red-600">
-            <p>{staffQuery.error instanceof Error ? staffQuery.error.message : "Unable to load staff."}</p>
-            <button type="button" onClick={() => void staffQuery.refetch()} className="mt-2 underline">
-              Try again
-            </button>
-          </div>
-        ) : staff.length === 0 ? (
-          <p className="p-6 text-sm text-text-muted">No staff match the selected search and filters.</p>
-        ) : (
-          <>
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[900px] text-left text-sm">
-                <thead className="border-b border-border bg-background text-text-muted">
-                  <tr>
-                    <th scope="col" className="px-4 py-3 font-medium">Name</th>
-                    <th scope="col" className="px-4 py-3 font-medium">Employee ID</th>
-                    <th scope="col" className="px-4 py-3 font-medium">Email</th>
-                    <th scope="col" className="px-4 py-3 font-medium">Staff Type</th>
-                    <th scope="col" className="px-4 py-3 font-medium">Department</th>
-                    <th scope="col" className="px-4 py-3 font-medium">Designation</th>
-                    <th scope="col" className="px-4 py-3 font-medium">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {staff.map((member) => (
-                    <tr key={member.id} className="border-b border-border last:border-0">
-                      <td className="px-4 py-3 font-medium">{member.name}</td>
-                      <td className="px-4 py-3">{member.employeeId}</td>
-                      <td className="px-4 py-3">{member.email}</td>
-                      <td className="px-4 py-3">{member.role === "hod" ? "HOD" : "Faculty"}</td>
-                      <td className="px-4 py-3">
-                        {member.departmentName
-                          ? `${member.departmentName}${member.departmentCode ? ` (${member.departmentCode})` : ""}`
-                          : "—"}
-                      </td>
-                      <td className="px-4 py-3">{member.designation || "—"}</td>
-                      <td className="px-4 py-3">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setUpdatedMessage("");
-                            setEditingStaff(member);
-                          }}
-                          className="rounded-md border border-border px-3 py-1.5 font-medium hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
-                        >
-                          Edit
-                        </button>
-                        {canDeactivateStaff && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setUpdatedMessage("");
-                              setDeactivatingStaff(member);
-                            }}
-                            className="ml-2 rounded-md border border-red-200 px-3 py-1.5 font-medium text-red-700 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-300"
-                          >
-                            Deactivate
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+      {staffQuery.isError ? (
+        <div className="rounded-xl border border-border bg-surface p-6 text-sm text-red-600">
+          <p>{staffQuery.error instanceof Error ? staffQuery.error.message : "Unable to load staff."}</p>
+          <Button variant="outline" size="sm" onClick={() => void staffQuery.refetch()} className="mt-3">
+            Try again
+          </Button>
+        </div>
+      ) : (
+        <>
+          <ResponsiveDataTable
+            columns={columns}
+            rows={staff}
+            loading={staffQuery.isPending}
+            getRowKey={(member) => member.id}
+            rowActions={rowActions}
+            minWidthClassName="min-w-[900px]"
+            emptyState="No staff match the selected search and filters."
+          />
 
-            <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3 text-sm">
+          {!staffQuery.isPending && (
+            <footer className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3 text-sm">
               <p className="text-text-muted">
                 {pagination?.total ?? 0} staff · Page {pagination?.page ?? page} of {Math.max(totalPages, 1)}
               </p>
               <div className="flex gap-2">
-                <button
-                  type="button"
+                <Button
+                  variant="outline"
+                  size="sm"
                   disabled={page <= 1 || staffQuery.isFetching}
                   onClick={() => setPage((current) => Math.max(1, current - 1))}
-                  className="rounded-lg border border-border px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Previous
-                </button>
-                <button
-                  type="button"
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
                   disabled={page >= totalPages || staffQuery.isFetching}
                   onClick={() => setPage((current) => current + 1)}
-                  className="rounded-lg border border-border px-3 py-2 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Next
-                </button>
+                </Button>
               </div>
             </footer>
-          </>
-        )}
-      </section>
+          )}
+        </>
+      )}
 
       {editingStaff && (
         <EditStaffModal
