@@ -1,20 +1,24 @@
 
 "use client";
 
-import { useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Bell,
-  Search,
-  Megaphone,
-  Plus,
-  CalendarDays,
   Building2,
-  Users,
+  CalendarDays,
+  Megaphone,
   Pencil,
+  Plus,
   Trash2,
+  Users,
   X,
 } from "lucide-react";
 
+import { useRegisterHeaderSearch } from "@/components/layout/header-search";
+import Dialog from "@/components/ui/dialog";
+import PageContainer from "@/components/ui/page-container";
+import PageHeader from "@/components/ui/page-header";
 import { useAccess } from "@/lib/navigation/access";
 
 import type {
@@ -34,14 +38,87 @@ import { useClubsQuery } from "@/features/clubs/api/club-query";
 import { useHodDashboard } from "@/features/hod/api/hod-query";
 import { useCoordinatorStatusQuery } from "@/features/coordinator/api/coordinator-query";
 
-export function AnnouncementsPage() {
+type AnnouncementsPageProps = {
+  variant?: "staff" | "student";
+};
+
+const ANNOUNCEMENT_PARAM = "announcement";
+
+const audienceMeta: Record<
+  AnnouncementAudience,
+  {
+    label: string;
+    badgeClass: string;
+    accentClass: string;
+    icon: typeof Building2;
+    iconClass: string;
+  }
+> = {
+  campus: {
+    label: "Campus",
+    badgeClass: "border-blue-200 bg-blue-50 text-blue-700",
+    accentClass: "bg-blue-500",
+    icon: Building2,
+    iconClass: "bg-blue-50 text-blue-600",
+  },
+  department: {
+    label: "Department",
+    badgeClass: "border-emerald-200 bg-emerald-50 text-emerald-700",
+    accentClass: "bg-emerald-500",
+    icon: Users,
+    iconClass: "bg-emerald-50 text-emerald-600",
+  },
+  club: {
+    label: "Club",
+    badgeClass: "border-orange-200 bg-orange-50 text-orange-700",
+    accentClass: "bg-orange-500",
+    icon: Megaphone,
+    iconClass: "bg-orange-50 text-orange-600",
+  },
+};
+
+function formatDate(date: string | null) {
+  if (!date) return "Not published";
+  return new Date(date).toLocaleDateString("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function isNewAnnouncement(date: string | null) {
+  if (!date) return false;
+  const published = new Date(date).getTime();
+  if (Number.isNaN(published)) return false;
+  const threeDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000;
+  return published >= threeDaysAgo;
+}
+
+function getPreview(content: string) {
+  const normalized = content.replace(/\s+/g, " ").trim();
+  return normalized;
+}
+
+function AnnouncementsPageContent({
+  variant = "staff",
+}: AnnouncementsPageProps) {
   const { can, hasRole, isSuperAdmin } = useAccess();
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const lastFocusedAnnouncementRef = useRef<HTMLElement | null>(null);
 
   // --------------------------------------------------
   // State
   // --------------------------------------------------
 
   const [search, setSearch] = useState("");
+
+  useRegisterHeaderSearch({
+    value: search,
+    onChange: setSearch,
+    placeholder: "Search announcements...",
+  });
 
   const [activeFilter, setActiveFilter] = useState<
     "all" | AnnouncementAudience
@@ -64,6 +141,12 @@ export function AnnouncementsPage() {
   const [selectedClubId, setSelectedClubId] = useState("");
 
   const [formError, setFormError] = useState("");
+
+  const announcementParam = searchParams.get(ANNOUNCEMENT_PARAM);
+  const selectedAnnouncementId =
+    announcementParam && /^\d+$/.test(announcementParam)
+      ? Number(announcementParam)
+      : null;
 
   // --------------------------------------------------
   // Permissions and roles
@@ -159,6 +242,52 @@ export function AnnouncementsPage() {
     );
   }, [announcements, activeFilter]);
 
+  const selectedAnnouncement = useMemo(
+    () =>
+      selectedAnnouncementId === null
+        ? null
+        : announcements.find(
+            (announcement) => announcement.id === selectedAnnouncementId,
+          ) ?? null,
+    [announcements, selectedAnnouncementId],
+  );
+
+  const isDialogOpen = selectedAnnouncementId !== null;
+  const isDialogNotFound =
+    isDialogOpen && !isLoading && !isError && !selectedAnnouncement;
+
+  const openAnnouncementDialog = useCallback(
+    (announcementId: number, target: HTMLElement) => {
+      lastFocusedAnnouncementRef.current = target;
+      const params = new URLSearchParams(searchParams.toString());
+      params.set(ANNOUNCEMENT_PARAM, String(announcementId));
+      const query = params.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname, {
+        scroll: false,
+      });
+    },
+    [pathname, router, searchParams],
+  );
+
+  const closeAnnouncementDialog = useCallback(() => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete(ANNOUNCEMENT_PARAM);
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, {
+      scroll: false,
+    });
+  }, [pathname, router, searchParams]);
+
+  useEffect(() => {
+    if (isDialogOpen) return;
+    const target = lastFocusedAnnouncementRef.current;
+    if (!target) return;
+    lastFocusedAnnouncementRef.current = null;
+    if (document.contains(target)) {
+      target.focus();
+    }
+  }, [isDialogOpen]);
+
   // --------------------------------------------------
   // Statistics
   // --------------------------------------------------
@@ -212,6 +341,9 @@ export function AnnouncementsPage() {
     setAudience(announcement.audience);
     setFormError("");
     setIsFormOpen(true);
+    if (selectedAnnouncementId === announcement.id) {
+      closeAnnouncementDialog();
+    }
   };
 
   const handleAudienceChange = (
@@ -368,23 +500,39 @@ export function AnnouncementsPage() {
 
     try {
       await deleteMutation.mutateAsync(id);
+      if (selectedAnnouncementId === id) {
+        closeAnnouncementDialog();
+      }
     } catch (error) {
       console.error("Announcement deletion failed:", error);
     }
   };
 
-  // --------------------------------------------------
-  // Format date
-  // --------------------------------------------------
+  const departmentNameById = useMemo(
+    () =>
+      new Map(
+        departments.map((department) => [department.id, department.name]),
+      ),
+    [departments],
+  );
 
-  const formatDate = (date: string | null) => {
-    if (!date) return "Not published";
+  const clubNameById = useMemo(
+    () => new Map(clubs.map((club) => [club.id, club.name])),
+    [clubs],
+  );
 
-    return new Date(date).toLocaleDateString("en-IN", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
+  const getAnnouncementSource = (announcement: Announcement) => {
+    if (announcement.audience === "department") {
+      return announcement.departmentId !== null
+        ? departmentNameById.get(announcement.departmentId) ?? "Department"
+        : "Department";
+    }
+    if (announcement.audience === "club") {
+      return announcement.clubId !== null
+        ? clubNameById.get(announcement.clubId) ?? "Club"
+        : "Club";
+    }
+    return "Campus";
   };
 
   const isSaving =
@@ -408,118 +556,43 @@ export function AnnouncementsPage() {
   // UI
   // --------------------------------------------------
 
+  const dialogAnnouncement = selectedAnnouncement;
+  const dialogMeta = dialogAnnouncement
+    ? audienceMeta[dialogAnnouncement.audience]
+    : null;
+  const dialogCanManage = dialogAnnouncement
+    ? canManageAnnouncement(dialogAnnouncement)
+    : false;
+  const showDialogActions =
+    !!dialogAnnouncement && dialogCanManage && (canUpdate || canDelete);
+
   return (
-    <div className="space-y-8">
-
-      {/* Header */}
-
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white sm:p-8">
-        <div className="relative z-10 flex flex-col justify-between gap-5 sm:flex-row sm:items-center">
-          <div>
-            <div className="mb-3 flex items-center gap-2 text-sm font-medium text-blue-100">
-              <Bell size={17} />
-              Communication Center
-            </div>
-
-            <h1 className="text-3xl font-bold sm:text-4xl">
-              Announcements
-            </h1>
-
-            <p className="mt-2 max-w-xl text-sm leading-6 text-blue-100">
-              Stay updated with the latest campus, department and
-              club news.
-            </p>
-          </div>
-
-          {canCreate && (
+    <PageContainer className="space-y-6 py-6 sm:py-8">
+      <PageHeader
+        title="Announcements"
+        description="Stay updated with campus, department and club news."
+        primaryAction={
+          canCreate ? (
             <button
               onClick={openCreateForm}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-blue-700 shadow-sm transition hover:bg-blue-50"
+              className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-primary-hover sm:w-auto"
             >
               <Plus size={18} />
               Create Announcement
             </button>
-          )}
-        </div>
-
-        <Megaphone
-          size={150}
-          className="absolute -bottom-8 -right-5 text-white/10"
-        />
-      </section>
-
-      {/* Statistics */}
-
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {[
-          {
-            label: "Total Announcements",
-            value: stats.total,
-            icon: Bell,
-            color: "text-blue-600",
-            bg: "bg-blue-50",
-          },
-          {
-            label: "Campus",
-            value: stats.campus,
-            icon: Building2,
-            color: "text-indigo-600",
-            bg: "bg-indigo-50",
-          },
-          {
-            label: "Department",
-            value: stats.department,
-            icon: Users,
-            color: "text-emerald-600",
-            bg: "bg-emerald-50",
-          },
-          {
-            label: "Club",
-            value: stats.club,
-            icon: Megaphone,
-            color: "text-orange-600",
-            bg: "bg-orange-50",
-          },
-        ].map((item) => {
-          const Icon = item.icon;
-
-          return (
-            <div
-              key={item.label}
-              className="rounded-2xl border border-border bg-surface p-5"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-text-muted">
-                    {item.label}
-                  </p>
-
-                  <p className="mt-2 text-3xl font-bold text-text">
-                    {item.value}
-                  </p>
-                </div>
-
-                <div className={`rounded-xl p-3 ${item.bg}`}>
-                  <Icon size={23} className={item.color} />
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </section>
-
-      {/* Create / Edit Form */}
+          ) : undefined
+        }
+      />
 
       {isFormOpen && (
         <section className="rounded-2xl border border-border bg-surface p-6 shadow-sm">
-          <div className="mb-6 flex items-center justify-between">
+          <div className="mb-6 flex items-center justify-between gap-4">
             <div>
               <h2 className="text-xl font-bold text-text">
                 {editingAnnouncement
                   ? "Edit Announcement"
                   : "Create Announcement"}
               </h2>
-
               <p className="mt-1 text-sm text-text-muted">
                 Share important updates with your audience.
               </p>
@@ -528,7 +601,8 @@ export function AnnouncementsPage() {
             <button
               type="button"
               onClick={resetForm}
-              className="rounded-lg p-2 text-text-muted hover:bg-primary-subtle"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg p-2 text-text-muted hover:bg-primary-subtle"
+              aria-label="Close form"
               title="Close form"
             >
               <X size={20} />
@@ -536,14 +610,10 @@ export function AnnouncementsPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-
-            {/* Title */}
-
             <div>
               <label className="mb-2 block text-sm font-medium text-text">
                 Announcement Title
               </label>
-
               <input
                 type="text"
                 value={title}
@@ -556,14 +626,11 @@ export function AnnouncementsPage() {
               />
             </div>
 
-            {/* Audience */}
-
             {!editingAnnouncement && (
               <div>
                 <label className="mb-2 block text-sm font-medium text-text">
                   Announcement Audience
                 </label>
-
                 <select
                   value={audience}
                   onChange={(event) =>
@@ -580,7 +647,6 @@ export function AnnouncementsPage() {
                     </option>
                   ))}
                 </select>
-
                 <p className="mt-2 text-xs text-text-muted">
                   {audience === "campus"
                     ? "This announcement will be visible across the campus."
@@ -591,101 +657,79 @@ export function AnnouncementsPage() {
               </div>
             )}
 
-            {/* Department selector */}
-
-            {!editingAnnouncement &&
-              audience === "department" && (
-                <div>
-                  <label className="mb-2 block text-sm font-medium text-text">
-                    Select Department
-                  </label>
-
-                  {isHod ? (
-                    <div className="rounded-xl border border-border bg-background px-4 py-3 text-sm text-text">
-                      {hodDashboard?.department?.name ??
-                        "Loading your department..."}
-                    </div>
-                  ) : (
-                    <select
-                      value={selectedDepartmentId}
-                      onChange={(event) =>
-                        setSelectedDepartmentId(event.target.value)
-                      }
-                      required
-                      disabled={isDepartmentsLoading}
-                      className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-text outline-none focus:border-primary disabled:opacity-50"
-                    >
-                      <option value="">
-                        {isDepartmentsLoading
-                          ? "Loading departments..."
-                          : "Select a department"}
+            {!editingAnnouncement && audience === "department" && (
+              <div>
+                <label className="mb-2 block text-sm font-medium text-text">
+                  Select Department
+                </label>
+                {isHod ? (
+                  <div className="rounded-xl border border-border bg-background px-4 py-3 text-sm text-text">
+                    {hodDashboard?.department?.name ??
+                      "Loading your department..."}
+                  </div>
+                ) : (
+                  <select
+                    value={selectedDepartmentId}
+                    onChange={(event) =>
+                      setSelectedDepartmentId(event.target.value)
+                    }
+                    required
+                    disabled={isDepartmentsLoading}
+                    className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-text outline-none focus:border-primary disabled:opacity-50"
+                  >
+                    <option value="">
+                      {isDepartmentsLoading
+                        ? "Loading departments..."
+                        : "Select a department"}
+                    </option>
+                    {departments.map((department) => (
+                      <option key={department.id} value={department.id}>
+                        {department.name} ({department.code})
                       </option>
-
-                      {departments.map((department) => (
-                        <option
-                          key={department.id}
-                          value={department.id}
-                        >
-                          {department.name} ({department.code})
-                        </option>
-                      ))}
-                    </select>
-                  )}
-                </div>
-              )}
-
-            {/* Club selector */}
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
 
             {!editingAnnouncement && audience === "club" && (
               <div>
                 <label className="mb-2 block text-sm font-medium text-text">
                   Select Club
                 </label>
-
                 <select
                   value={selectedClubId}
-                  onChange={(event) =>
-                    setSelectedClubId(event.target.value)
-                  }
+                  onChange={(event) => setSelectedClubId(event.target.value)}
                   required
                   disabled={isTargetLoading}
                   className="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-text outline-none focus:border-primary disabled:opacity-50"
                 >
                   <option value="">
-                    {isTargetLoading
-                      ? "Loading clubs..."
-                      : "Select a club"}
+                    {isTargetLoading ? "Loading clubs..." : "Select a club"}
                   </option>
-
                   {selectedClubs.map((club) => (
                     <option key={club.id} value={club.id}>
                       {club.name}
                     </option>
                   ))}
                 </select>
-
                 {isCoordinator && (
                   <p className="mt-2 text-xs text-text-muted">
                     Only clubs assigned to you are available.
                   </p>
                 )}
-
-                {!isTargetLoading &&
-                  selectedClubs.length === 0 && (
-                    <p className="mt-2 text-xs text-red-600">
-                      No assigned clubs are available.
-                    </p>
-                  )}
+                {!isTargetLoading && selectedClubs.length === 0 && (
+                  <p className="mt-2 text-xs text-red-600">
+                    No assigned clubs are available.
+                  </p>
+                )}
               </div>
             )}
-
-            {/* Content */}
 
             <div>
               <label className="mb-2 block text-sm font-medium text-text">
                 Announcement Content
               </label>
-
               <textarea
                 value={content}
                 onChange={(event) => setContent(event.target.value)}
@@ -697,26 +741,21 @@ export function AnnouncementsPage() {
               />
             </div>
 
-            {/* Error */}
-
             {formError && (
               <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                 {formError}
               </div>
             )}
 
-            {/* Actions */}
-
             <div className="flex flex-wrap justify-end gap-3">
               <button
                 type="button"
                 onClick={resetForm}
                 disabled={isSaving}
-                className="rounded-xl border border-border px-5 py-3 text-sm font-medium text-text transition hover:bg-primary-subtle disabled:opacity-50"
+                className="min-h-11 rounded-xl border border-border px-5 py-3 text-sm font-medium text-text transition hover:bg-primary-subtle disabled:opacity-50"
               >
                 Cancel
               </button>
-
               <button
                 type="submit"
                 disabled={
@@ -732,7 +771,7 @@ export function AnnouncementsPage() {
                           : !selectedDepartmentId)) ||
                       (audience === "club" && !selectedClubId)))
                 }
-                className="rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                className="min-h-11 rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isSaving
                   ? "Saving..."
@@ -745,38 +784,7 @@ export function AnnouncementsPage() {
         </section>
       )}
 
-      {/* Search and Filters */}
-
       <section className="space-y-4">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-text">
-              Latest Updates
-            </h2>
-
-            <p className="mt-1 text-sm text-text-muted">
-              Browse announcements available to you.
-            </p>
-          </div>
-
-          <div className="relative w-full sm:max-w-sm">
-            <Search
-              size={18}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
-            />
-
-            <input
-              type="text"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search announcements..."
-              className="w-full rounded-xl border border-border bg-surface py-3 pl-10 pr-4 text-sm text-text outline-none transition focus:border-primary"
-            />
-          </div>
-        </div>
-
-        {/* Audience Filters */}
-
         <div className="flex flex-wrap gap-2">
           {[
             { label: "All", value: "all" },
@@ -786,12 +794,11 @@ export function AnnouncementsPage() {
           ].map((filter) => (
             <button
               key={filter.value}
+              type="button"
               onClick={() =>
-                setActiveFilter(
-                  filter.value as "all" | AnnouncementAudience,
-                )
+                setActiveFilter(filter.value as "all" | AnnouncementAudience)
               }
-              className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
+              className={`min-h-11 rounded-xl px-4 py-2 text-sm font-medium transition ${
                 activeFilter === filter.value
                   ? "bg-primary text-white"
                   : "border border-border bg-surface text-text-muted hover:bg-primary-subtle"
@@ -803,102 +810,153 @@ export function AnnouncementsPage() {
         </div>
       </section>
 
-      {/* Announcement List */}
-
-      <section className="space-y-4">
+      <section className={variant === "student" ? "grid gap-4 lg:grid-cols-2" : "space-y-3"}>
         {isLoading ? (
-          <div className="rounded-2xl border border-border bg-surface p-8 text-center text-text-muted">
-            Loading announcements...
+          <div className={variant === "student" ? "grid gap-4 lg:col-span-2 lg:grid-cols-2" : "space-y-3"}>
+            {Array.from({ length: variant === "student" ? 4 : 5 }).map((_, i) => (
+              <div
+                key={i}
+                className={`animate-pulse rounded-2xl border border-border bg-surface ${
+                  variant === "student" ? "h-44" : "h-24"
+                }`}
+              />
+            ))}
           </div>
         ) : isError ? (
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center">
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-8 text-center lg:col-span-2">
             <p className="font-semibold text-red-700">
               Failed to load announcements.
             </p>
-
-            <p className="mt-1 text-sm text-red-600">
-              Please try again later.
-            </p>
+            <p className="mt-1 text-sm text-red-600">Please try again later.</p>
           </div>
         ) : filteredAnnouncements.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border bg-surface px-6 py-14 text-center">
+          <div className="rounded-2xl border border-dashed border-border bg-surface px-6 py-14 text-center lg:col-span-2">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-subtle">
               <Megaphone size={27} className="text-primary" />
             </div>
-
-            <h3 className="font-semibold text-text">
-              No announcements found
-            </h3>
-
+            <h3 className="font-semibold text-text">No announcements found</h3>
             <p className="mt-2 text-sm text-text-muted">
               There are no announcements matching your search.
             </p>
           </div>
         ) : (
           filteredAnnouncements.map((announcement) => {
-            const canManage =
-              canManageAnnouncement(announcement);
+            const canManage = canManageAnnouncement(announcement);
+            const meta = audienceMeta[announcement.audience];
+            const Icon = meta.icon;
+            const source = getAnnouncementSource(announcement);
+            const preview = getPreview(announcement.content);
+            const isNew = isNewAnnouncement(announcement.publishedAt);
+
+            if (variant === "student") {
+              return (
+                <article
+                  key={announcement.id}
+                  className="group relative overflow-hidden rounded-3xl border border-border bg-surface shadow-subtle transition duration-200 hover:-translate-y-0.5 hover:shadow-lg motion-reduce:transform-none"
+                >
+                  <button
+                    type="button"
+                    onClick={(e) => openAnnouncementDialog(announcement.id, e.currentTarget)}
+                    className="flex min-h-[11rem] w-full flex-col p-5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 sm:p-6"
+                    aria-label={`Open announcement: ${announcement.title}`}
+                  >
+                    <div className={`absolute inset-y-0 left-0 w-1.5 ${meta.accentClass}`} />
+                    <div className="flex items-start gap-4 pl-2">
+                      <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${meta.iconClass}`}>
+                        <Icon size={22} aria-hidden="true" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${meta.badgeClass}`}>
+                            {meta.label}
+                          </span>
+                          {isNew && (
+                            <span className="rounded-full border border-accent/30 bg-accent-subtle px-2.5 py-1 text-xs font-semibold text-accent">
+                              New
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="mt-3 line-clamp-2 text-lg font-bold leading-snug text-text">
+                          {announcement.title}
+                        </h3>
+                        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-text-muted">
+                          <span className="inline-flex items-center gap-1.5">
+                            <CalendarDays size={15} aria-hidden="true" />
+                            {formatDate(announcement.publishedAt)}
+                          </span>
+                          <span className="min-w-0 truncate">{source}</span>
+                        </div>
+                        {preview ? (
+                          <p className="mt-3 line-clamp-1 text-sm leading-6 text-text-muted">
+                            {preview}
+                          </p>
+                        ) : null}
+                      </div>
+                    </div>
+                  </button>
+                </article>
+              );
+            }
 
             return (
               <article
                 key={announcement.id}
-                className="rounded-2xl border border-border bg-surface p-5 transition hover:shadow-md sm:p-6"
+                className="rounded-2xl border border-border bg-surface transition hover:border-primary/20 hover:shadow-sm"
               >
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="min-w-0 flex-1">
-                    <div className="mb-3 flex flex-wrap items-center gap-2">
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                          announcement.audience === "campus"
-                            ? "bg-blue-50 text-blue-700"
-                            : announcement.audience === "department"
-                              ? "bg-emerald-50 text-emerald-700"
-                              : "bg-orange-50 text-orange-700"
-                        }`}
-                      >
-                        {announcement.audience.charAt(0).toUpperCase() +
-                          announcement.audience.slice(1)}
+                <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:gap-4">
+                  <button
+                    type="button"
+                    onClick={(e) => openAnnouncementDialog(announcement.id, e.currentTarget)}
+                    className="min-w-0 flex-1 rounded-xl text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30"
+                    aria-label={`Open announcement: ${announcement.title}`}
+                  >
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-text-muted">
+                      <span className={`rounded-full border px-2.5 py-1 font-semibold ${meta.badgeClass}`}>
+                        {meta.label}
                       </span>
-
-                      <span className="flex items-center gap-1 text-xs text-text-muted">
-                        <CalendarDays size={14} />
+                      <span className="inline-flex items-center gap-1">
+                        <CalendarDays size={14} aria-hidden="true" />
                         {formatDate(announcement.publishedAt)}
                       </span>
+                      <span className="min-w-0 truncate">{source}</span>
                     </div>
-
-                    <h3 className="text-lg font-bold text-text">
+                    <h3 className="mt-2 line-clamp-2 text-base font-semibold text-text sm:text-lg">
                       {announcement.title}
                     </h3>
-
-                    <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-text-muted">
-                      {announcement.content}
-                    </p>
-                  </div>
-
-                  {/* Edit and Delete */}
+                    {preview ? (
+                      <p className="mt-1 line-clamp-1 text-sm text-text-muted">
+                        {preview}
+                      </p>
+                    ) : null}
+                  </button>
 
                   {canManage && (canUpdate || canDelete) && (
-                    <div className="flex shrink-0 items-center gap-2">
+                    <div className="flex shrink-0 items-center gap-2 sm:pt-1">
                       {canUpdate && (
                         <button
-                          onClick={() =>
-                            openEditForm(announcement)
-                          }
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEditForm(announcement);
+                          }}
                           title="Edit announcement"
-                          className="rounded-lg border border-border p-2 text-text-muted transition hover:bg-primary-subtle hover:text-primary"
+                          aria-label={`Edit announcement: ${announcement.title}`}
+                          className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-border p-2 text-text-muted transition hover:bg-primary-subtle hover:text-primary"
                         >
                           <Pencil size={17} />
                         </button>
                       )}
-
                       {canDelete && (
                         <button
-                          onClick={() =>
-                            handleDelete(announcement.id)
-                          }
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleDelete(announcement.id);
+                          }}
                           disabled={deleteMutation.isPending}
                           title="Delete announcement"
-                          className="rounded-lg border border-border p-2 text-text-muted transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                          aria-label={`Delete announcement: ${announcement.title}`}
+                          className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg border border-border p-2 text-text-muted transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
                         >
                           <Trash2 size={17} />
                         </button>
@@ -911,6 +969,93 @@ export function AnnouncementsPage() {
           })
         )}
       </section>
-    </div>
+
+      <Dialog
+        open={isDialogOpen}
+        onClose={closeAnnouncementDialog}
+        title={dialogAnnouncement?.title ?? "Announcement"}
+        size="lg"
+        footer={
+          showDialogActions ? (
+            <>
+              {canUpdate && dialogAnnouncement && (
+                <button
+                  type="button"
+                  onClick={() => openEditForm(dialogAnnouncement)}
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-border px-4 py-2 text-sm font-medium text-text transition hover:bg-primary-subtle"
+                >
+                  <Pencil size={16} />
+                  Edit
+                </button>
+              )}
+              {canDelete && dialogAnnouncement && (
+                <button
+                  type="button"
+                  onClick={() => void handleDelete(dialogAnnouncement.id)}
+                  disabled={deleteMutation.isPending}
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-red-200 px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                >
+                  <Trash2 size={16} />
+                  Delete
+                </button>
+              )}
+            </>
+          ) : undefined
+        }
+      >
+        {isLoading && !dialogAnnouncement ? (
+          <div className="space-y-3">
+            <div className="h-5 w-32 animate-pulse rounded bg-border/60" />
+            <div className="h-4 w-full animate-pulse rounded bg-border/60" />
+            <div className="h-4 w-5/6 animate-pulse rounded bg-border/60" />
+            <div className="h-4 w-4/6 animate-pulse rounded bg-border/60" />
+          </div>
+        ) : isError && !dialogAnnouncement ? (
+          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            Failed to load this announcement. Please try again later.
+          </div>
+        ) : isDialogNotFound ? (
+          <div className="rounded-xl border border-dashed border-border bg-background p-6 text-center">
+            <p className="font-semibold text-text">Announcement not found</p>
+            <p className="mt-2 text-sm text-text-muted">
+              This announcement may have been removed or is not available.
+            </p>
+          </div>
+        ) : dialogAnnouncement && dialogMeta ? (
+          <div className="space-y-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${dialogMeta.badgeClass}`}>
+                {dialogMeta.label}
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-sm text-text-muted">
+                <CalendarDays size={15} aria-hidden="true" />
+                {formatDate(dialogAnnouncement.publishedAt)}
+              </span>
+              <span className="text-sm text-text-muted">
+                {getAnnouncementSource(dialogAnnouncement)}
+              </span>
+            </div>
+            <div className="whitespace-pre-wrap break-words text-sm leading-7 text-text sm:text-base">
+              {dialogAnnouncement.content}
+            </div>
+          </div>
+        ) : null}
+      </Dialog>
+    </PageContainer>
+  );
+}
+
+export function AnnouncementsPage(props: AnnouncementsPageProps) {
+  return (
+    <Suspense
+      fallback={
+        <PageContainer className="space-y-6 py-6 sm:py-8">
+          <div className="h-20 animate-pulse rounded-2xl border border-border bg-surface" />
+          <div className="h-24 animate-pulse rounded-2xl border border-border bg-surface" />
+        </PageContainer>
+      }
+    >
+      <AnnouncementsPageContent {...props} />
+    </Suspense>
   );
 }

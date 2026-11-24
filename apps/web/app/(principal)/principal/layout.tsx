@@ -34,6 +34,10 @@ export default function PrincipalLayout({
     }));
 
   const pageDetails: Record<string, { title: string; subtitle: string }> = {
+    "/announcement/principal": {
+      title: "Announcements",
+      subtitle: "Stay updated with campus, department and club news",
+    },
     "/principal/issues": {
       title: "Issues",
       subtitle: "Track issues sent across the college",

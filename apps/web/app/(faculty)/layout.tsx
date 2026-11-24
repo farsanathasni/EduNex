@@ -44,6 +44,7 @@ function TeacherLayoutContent({
   const isActive = (href: string) => href === activeHref;
 
   const pageTitleMap: Record<string, string> = {
+    "/announcement/faculty": "Announcements",
     "/teacher/issues": "Issues",
     "/teacher/issues/new": "New Issue",
     "/teacher/issues/detail": "Issue Thread",

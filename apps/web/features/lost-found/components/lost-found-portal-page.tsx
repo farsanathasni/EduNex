@@ -4,16 +4,18 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 
+import { useRegisterHeaderSearch } from "@/components/layout/header-search";
+import Button from "@/components/ui/button";
+import PageContainer from "@/components/ui/page-container";
+import PageHeader from "@/components/ui/page-header";
+
 import {
   getLostFoundErrorMessage,
   useLostFoundAuditQuery,
 } from "../api/lost-found-query";
 import { lostFoundHref, type LostFoundPortal } from "../portal";
 import { useLostFoundUiAccess } from "../use-lost-found-access";
-import {
-  auditActionLabel,
-  formatLostFoundDateTime,
-} from "../utils/lost-found-ui";
+import { auditActionLabel, formatLostFoundDateTime } from "../utils/lost-found-ui";
 import ClaimList from "./claim-list";
 import ItemDetail from "./item-detail";
 import ItemForm from "./item-form";
@@ -21,12 +23,8 @@ import ItemList from "./item-list";
 
 type View = "list" | "new" | "detail" | "claims" | "audit";
 
-const CONTAINER_CLASS: Record<LostFoundPortal, string> = {
-  student: "mx-auto w-full max-w-6xl space-y-6 p-6",
-  teacher: "space-y-6",
-  hod: "space-y-6",
-  principal: "space-y-6",
-};
+const focusRing =
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30";
 
 const PAGE_META: Record<View, { title: string; subtitle: string }> = {
   list: {
@@ -128,8 +126,14 @@ export default function LostFoundPortalPage({
   const params = useParams<{ id?: string }>();
   const router = useRouter();
   const itemId = Number(params?.id);
-  const { isReady, canCreate, canClaim, canModerate } =
-    useLostFoundUiAccess();
+  const { isReady, canCreate, canClaim, canModerate } = useLostFoundUiAccess();
+  const [search, setSearch] = useState("");
+
+  useRegisterHeaderSearch(
+    portal === "student" && view === "list"
+      ? { value: search, onChange: setSearch, placeholder: "Search items or places" }
+      : null,
+  );
 
   useEffect(() => {
     if (!isReady) return;
@@ -139,50 +143,78 @@ export default function LostFoundPortalPage({
   }, [isReady, canCreate, canClaim, canModerate, view, portal, router]);
 
   const meta = PAGE_META[view];
+  const content = (
+    <>
+      {view === "list" && (
+        <ItemList
+          portal={portal}
+          search={search}
+          onSearchChange={setSearch}
+          showSearchInput={portal !== "student"}
+          studentStyle={portal === "student"}
+        />
+      )}
+      {view === "new" && isReady && canCreate && <ItemForm portal={portal} studentStyle={portal === "student"} />}
+      {view === "detail" && <ItemDetail itemId={itemId} studentStyle={portal === "student"} />}
+      {view === "claims" && isReady && canClaim && <ClaimList portal={portal} studentStyle={portal === "student"} />}
+      {view === "audit" && isReady && canModerate && <AuditPage />}
+    </>
+  );
+
+  if (portal === "student") {
+    return (
+      <PageContainer className="space-y-6 py-6 sm:py-8">
+        <PageHeader
+          eyebrow="Campus community"
+          title={meta.title}
+          description={meta.subtitle}
+          primaryAction={
+            view === "list" && canCreate ? (
+              <Link
+                href={lostFoundHref(portal, "new")}
+                className={`inline-flex min-h-11 w-full items-center justify-center rounded-xl bg-primary px-5 py-3 text-label font-semibold text-primary-foreground transition hover:bg-primary-hover sm:w-auto ${focusRing}`}
+              >
+                Report item
+              </Link>
+            ) : undefined
+          }
+          action={
+            view === "list" ? (
+              <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                {canClaim && (
+                  <Link href={lostFoundHref(portal, "my-claims")} className={`inline-flex min-h-11 items-center justify-center rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-medium text-text transition hover:bg-secondary ${focusRing}`}>
+                    My claims
+                  </Link>
+                )}
+              </div>
+            ) : (
+              <Link href={lostFoundHref(portal)} className={`inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-border bg-surface px-4 py-2.5 text-sm font-medium text-text transition hover:bg-secondary sm:w-auto ${focusRing}`}>
+                Back to Lost &amp; Found
+              </Link>
+            )
+          }
+        />
+        {content}
+      </PageContainer>
+    );
+  }
 
   return (
-    <div className={CONTAINER_CLASS[portal]}>
+    <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-text">{meta.title}</h1>
           <p className="mt-1 text-sm text-text-muted">{meta.subtitle}</p>
         </div>
-
         {view === "list" && (
           <div className="flex flex-wrap gap-2">
-            {canClaim && (
-              <Link
-                href={lostFoundHref(portal, "my-claims")}
-                className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-text"
-              >
-                My claims
-              </Link>
-            )}
-            {canModerate && (
-              <Link
-                href={lostFoundHref(portal, "audit")}
-                className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-text"
-              >
-                Audit trail
-              </Link>
-            )}
-            {canCreate && (
-              <Link
-                href={lostFoundHref(portal, "new")}
-                className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
-              >
-                Report item
-              </Link>
-            )}
+            {canClaim && <Link href={lostFoundHref(portal, "my-claims")} className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-text">My claims</Link>}
+            {canModerate && <Link href={lostFoundHref(portal, "audit")} className="rounded-lg border border-border px-4 py-2 text-sm font-medium text-text">Audit trail</Link>}
+            {canCreate && <Link href={lostFoundHref(portal, "new")} className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">Report item</Link>}
           </div>
         )}
       </div>
-
-      {view === "list" && <ItemList portal={portal} />}
-      {view === "new" && isReady && canCreate && <ItemForm portal={portal} />}
-      {view === "detail" && <ItemDetail itemId={itemId} />}
-      {view === "claims" && isReady && canClaim && <ClaimList portal={portal} />}
-      {view === "audit" && isReady && canModerate && <AuditPage />}
+      {content}
     </div>
   );
 }

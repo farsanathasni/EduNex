@@ -58,6 +58,8 @@ export default function CoordinatorLayout({
 const currentPage =
   pathname === "/club-coordinator/notifications"
     ? "Notifications"
+    : pathname === "/announcement/coordinator"
+      ? "Announcements"
     : navigation.find(
         (item) =>
           pathname === item.href ||

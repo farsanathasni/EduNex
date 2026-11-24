@@ -45,6 +45,10 @@ export default function HodLayout({
       }));
 
   const pageDetails: Record<string, { title: string; subtitle: string }> = {
+    "/announcement/hod": {
+      title: "Announcements",
+      subtitle: "Stay updated with campus, department and club news",
+    },
     "/hod/notifications": {
       title: "Notifications",
       subtitle: "Stay up to date with campus activity",
