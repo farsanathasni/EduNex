@@ -50,7 +50,7 @@ const getPagination = (
 // Get announcements visible to the logged-in user.
 export const getAnnouncements = async (
   userId: string,
-  { search = "", page = 1, limit = 10 }: AnnouncementsQuery,
+  { search = "", page = 1, limit = 10, audience  }: AnnouncementsQuery,
 ) => {
   const access = await loadAccess(userId);
 
@@ -140,10 +140,15 @@ export const getAnnouncements = async (
     visibilityCondition = or(...visibilityConditions);
   }
 
-  const whereCondition = and(
-    getAnnouncementSearchCondition(search),
-    visibilityCondition,
-  );
+  const audienceCondition = audience
+  ? eq(announcements.audience, audience)
+  : undefined;
+
+const whereCondition = and(
+  getAnnouncementSearchCondition(search),
+  audienceCondition,
+  visibilityCondition,
+);
 
   const [announcementList, totalResult] = await Promise.all([
     db

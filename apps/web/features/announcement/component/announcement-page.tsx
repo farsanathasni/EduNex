@@ -1265,7 +1265,7 @@ function AnnouncementsPageContent({
     useHodDashboard(isHod);
 
   const { data: coordinatorStatus, isLoading: isCoordinatorStatusLoading } =
-    useCoordinatorStatusQuery();
+  useCoordinatorStatusQuery(isCoordinator);
 
   const assignedClubIds = useMemo(
     () =>
