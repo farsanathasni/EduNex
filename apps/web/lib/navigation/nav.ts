@@ -16,14 +16,12 @@ const HOD = ["hod", "super-admin"];
 const FACULTY = ["faculty", "super-admin"];
 
 export const NAV: NavItem[] = [
-  
   {
-  label: "Overview",
-  href: "/dashboard",
-  icon: "⌂",
-  
-  roles: ["hod"],
-},
+    label: "Overview",
+    href: "/dashboard",
+    icon: "⌂",
+    roles: ["hod"],
+  },
 
   // Shared pages
   // {
@@ -39,21 +37,19 @@ export const NAV: NavItem[] = [
     label: "Dashboard",
     href: "/principal",
     icon: "\u2302",
-    
     roles: ADMIN,
   },
   {
-  label: "Announcements",
-  href: "/announcement/principal",
-  icon: "▤",
-  roles: ADMIN,
-  permission: ["announcement", "view"],
-},
+    label: "Announcements",
+    href: "/announcement/principal",
+    icon: "▤",
+    roles: ADMIN,
+    permission: ["announcement", "view"],
+  },
   {
     label: "Staff Management",
     href: "/principal/staff",
     icon: "♙",
-    
     roles: ADMIN,
     permission: ["staff", "create"],
   },
@@ -61,7 +57,6 @@ export const NAV: NavItem[] = [
     label: "Departments",
     href: "/principal/departments",
     icon: "▦",
-    
     roles: ADMIN,
     permission: ["department", "view"],
   },
@@ -69,7 +64,6 @@ export const NAV: NavItem[] = [
     label: "College Students",
     href: "/principal/students",
     icon: "♧",
-    
     roles: ADMIN,
     permission: ["student", "view"],
   },
@@ -77,7 +71,6 @@ export const NAV: NavItem[] = [
     label: "Coordinators",
     href: "/principal/coordinators",
     icon: "★",
-    
     roles: ADMIN,
     permission: ["coordinator", "view"],
   },
@@ -85,7 +78,6 @@ export const NAV: NavItem[] = [
     label: "Clubs",
     href: "/principal/clubs",
     icon: "◈",
-    
     roles: ADMIN,
     permission: ["club", "view"],
   },
@@ -100,7 +92,6 @@ export const NAV: NavItem[] = [
     label: "College Events",
     href: "/principal/events",
     icon: "▣",
-    
     roles: ADMIN,
     permission: ["event", "view"],
   },
@@ -108,23 +99,20 @@ export const NAV: NavItem[] = [
     label: "Approvals",
     href: "/principal/approvals",
     icon: "✓",
-    
     roles: ADMIN,
     permission: ["event", "approve"],
   },
   {
-  label: "Event Attendance Reports",
-  href: "/attendance/principal",
-  icon: "✓",
-  
-  roles: ADMIN,
-  permission: ["attendance", "view"],
-},
+    label: "Event Attendance Reports",
+    href: "/attendance/principal",
+    icon: "✓",
+    roles: ADMIN,
+    permission: ["attendance", "view"],
+  },
   {
     label: "Roles & Permissions",
     href: "/principal/roles",
     icon: "⚙",
-    
     roles: ADMIN,
     permission: ["role", "view"],
   },
@@ -148,22 +136,20 @@ export const NAV: NavItem[] = [
     label: "Department Overview",
     href: "/hod/dashboard",
     icon: "⌂",
-   
     roles: HOD,
     permission: ["staff", "view"],
   },
   {
-  label: "Announcements",
-  href: "/announcement/hod",
-  icon: "▤",
-  roles: HOD,
-  permission: ["announcement", "view"],
-},
+    label: "Announcements",
+    href: "/announcement/hod",
+    icon: "▤",
+    roles: HOD,
+    permission: ["announcement", "view"],
+  },
   {
     label: "Staff Management",
     href: "/hod/staff",
     icon: "\u2659",
-  
     roles: HOD,
     permission: ["staff", "view"],
   },
@@ -171,7 +157,6 @@ export const NAV: NavItem[] = [
     label: "Students",
     href: "/hod/students",
     icon: "♧",
-  
     roles: HOD,
     permission: ["student", "view"],
   },
@@ -179,7 +164,6 @@ export const NAV: NavItem[] = [
     label: "Clubs",
     href: "/hod/clubs",
     icon: "◈",
-  
     roles: HOD,
     permission: ["club", "view"],
   },
@@ -187,7 +171,6 @@ export const NAV: NavItem[] = [
     label: "Attendance Reports",
     href: "/attendance/hod",
     icon: "✓",
-
     roles: HOD,
     permission: ["attendance", "view"],
   },
@@ -202,7 +185,6 @@ export const NAV: NavItem[] = [
     label: "Event Approvals",
     href: "/hod/approvals",
     icon: "✓",
-    
     roles: HOD,
     permission: ["event", "approve"],
   },
@@ -221,34 +203,30 @@ export const NAV: NavItem[] = [
     permission: ["lost_found", "view"],
   },
 
-  // Faculty
   // Faculty / Teacher
   {
     label: "Dashboard",
     href: "/teacher",
     icon: "⌂",
-   
     roles: FACULTY,
   },
   {
     label: "My Class",
     href: "/teacher/classes",
     icon: "▤",
-    
     roles: FACULTY,
   },
   {
-  label: "Announcements",
-  href: "/announcement/faculty",
-  icon: "▤",
-  roles: ["faculty"],
-  permission: ["announcement", "view"],
-},
+    label: "Announcements",
+    href: "/announcement/faculty",
+    icon: "▤",
+    roles: ["faculty"],
+    permission: ["announcement", "view"],
+  },
   {
     label: "My Students",
     href: "/teacher/students",
     icon: "♙",
-   
     roles: FACULTY,
     permission: ["student", "view"],
   },
@@ -256,7 +234,6 @@ export const NAV: NavItem[] = [
     label: "My Subjects",
     href: "/teacher/class-attendance",
     icon: "▤",
-  
     roles: FACULTY,
     permission: ["class_attendance", "mark"],
   },
@@ -264,7 +241,6 @@ export const NAV: NavItem[] = [
     label: "Take Attendance",
     href: "/teacher/class-attendance/take",
     icon: "✓",
-    
     roles: FACULTY,
     permission: ["class_attendance", "mark"],
   },
@@ -272,7 +248,6 @@ export const NAV: NavItem[] = [
     label: "Study Materials",
     href: "/teacher/study-materials",
     icon: "▤",
-  
     roles: FACULTY,
   },
   {
@@ -289,141 +264,122 @@ export const NAV: NavItem[] = [
     roles: FACULTY,
     permission: ["lost_found", "view"],
   },
-
-{
-  label: "Event Attendance Reports",
-  href: "/attendance/faculty",
-  icon: "✓",
-  roles: FACULTY,
-  permission: ["attendance", "view"],
-},
+  {
+    label: "Event Attendance Reports",
+    href: "/attendance/faculty",
+    icon: "✓",
+    roles: FACULTY,
+    permission: ["attendance", "view"],
+  },
 
   // Student view
-  // Student view
-{
-  label: "Dashboard",
-  href: "/student/dashboard",
-  icon: "\u2302",
- 
-  roles: ["student"],
-  mode: "student",
-},
-{
-  label: "Events",
-  href: "/student/events",
-  icon: "▣",
- 
-  roles: ["student"],
-  permission: ["event", "view"],
-  mode: "student",
-},
-{
-  label: "Announcements",
-  href: "/announcement/student",
-  icon: "▤",
-  roles: ["student"],
-  permission: ["announcement", "view"],
-},
-{
-  label: "Explore Clubs",
-  href: "/student",
-  icon: "\u25c8", roles: ["student"],
-  permission: ["club", "view"],
-  mode: "student",
-},
-{
-  label: "My Memberships",
-  href: "/student/my-memberships",
-  icon: "\u2667",
-  
-  roles: ["student"],
-  permission: ["club", "view"],
-  mode: "student",
-},
-{
-  label: "My Attendance",
-  href: "/student/class-attendance",
-  icon: "✓",
-  
-  roles: ["student"],
-  permission: ["class_attendance", "view_own"],
-  mode: "student",
-},
-{
-  label: "Study Materials",
-  href: "/student/study-materials",
-  icon: "▤",
-  
-  roles: ["student"],
-  permission: ["resource", "view"],
-  mode: "student",
-},
-{
-  label: "Issues",
-  href: "/student/issues",
-  icon: "✉",
-  roles: ["student"],
-  permission: ["issue", "view"],
-  mode: "student",
-},
-{
-  label: "Lost & Found",
-  href: "/student/lost-found",
-  icon: "⌕",
-  roles: ["student"],
-  permission: ["lost_found", "view"],
-  mode: "student",
-},
-{
-  label: "Event Attendance",
-  href: "/attendance/student",
-  icon: "✓",
-  
-  roles: ["student"],
-  permission: ["class_attendance", "view_own"],
-  mode: "student",
-},
-{
-  label: "My Attendance",
-  href: "/student/class-attendance",
-  icon: "✓",
-  
-  roles: ["student"],
-  permission: ["class_attendance", "view_own"],
-  mode: "student",
-},
-{
-  label: "My Profile",
-  href: "/student/profile",
-  icon: "☺",
-
-  roles: ["student"],
-  mode: "student",
-},
+  {
+    label: "Dashboard",
+    href: "/student/dashboard",
+    icon: "\u2302",
+    roles: ["student"],
+    mode: "student",
+  },
+  {
+    label: "Events",
+    href: "/student/events",
+    icon: "▣",
+    roles: ["student"],
+    permission: ["event", "view"],
+    mode: "student",
+  },
+  {
+    label: "Announcements",
+    href: "/announcement/student",
+    icon: "▤",
+    roles: ["student"],
+    permission: ["announcement", "view"],
+  },
+  {
+    label: "Explore Clubs",
+    href: "/student",
+    icon: "\u25c8",
+    roles: ["student"],
+    permission: ["club", "view"],
+    mode: "student",
+  },
+  {
+    label: "My Memberships",
+    href: "/student/my-memberships",
+    icon: "\u2667",
+    roles: ["student"],
+    permission: ["club", "view"],
+    mode: "student",
+  },
+  {
+    label: "My Attendance",
+    href: "/student/class-attendance",
+    icon: "✓",
+    roles: ["student"],
+    permission: ["class_attendance", "view_own"],
+    mode: "student",
+  },
+  {
+    label: "Study Materials",
+    href: "/student/study-materials",
+    icon: "▤",
+    roles: ["student"],
+    permission: ["resource", "view"],
+    mode: "student",
+  },
+  {
+    label: "Issues",
+    href: "/student/issues",
+    icon: "✉",
+    roles: ["student"],
+    permission: ["issue", "view"],
+    mode: "student",
+  },
+  {
+    label: "Lost & Found",
+    href: "/student/lost-found",
+    icon: "⌕",
+    roles: ["student"],
+    permission: ["lost_found", "view"],
+    mode: "student",
+  },
+  {
+    label: "Event Attendance",
+    href: "/attendance/student",
+    icon: "✓",
+    roles: ["student"],
+    permission: ["class_attendance", "view_own"],
+    mode: "student",
+  },
+  {
+    label: "My Profile",
+    href: "/student/profile",
+    icon: "☺",
+    roles: ["student"],
+    mode: "student",
+  },
 
   // Coordinator view
   {
     label: "My Clubs",
     href: "/club-coordinator/clubs",
     icon: "◈",
-    
     roles: ["student"],
     permission: ["club", "view"],
     mode: "coordinator",
   },
   {
-  label: "Announcements",
-  href: "/announcement/coordinator",
-  icon: "▤",
-  roles: ["student"],
-  mode: "coordinator",
-  permission: ["announcement", "view"],
-},
+    label: "Announcements",
+    href: "/announcement/coordinator",
+    icon: "▤",
+    roles: ["student"],
+    mode: "coordinator",
+    permission: ["announcement", "view"],
+  },
   {
     label: "My Club Events",
     href: "/club-coordinator/events",
     icon: "▣",
-    
     roles: ["student"],
     permission: ["event", "view"],
     mode: "coordinator",
@@ -432,7 +388,6 @@ export const NAV: NavItem[] = [
     label: "Membership Requests",
     href: "/club-coordinator/membership-requests",
     icon: "♧",
-   
     roles: ["student"],
     // permission: ["club", "update"],
     mode: "coordinator",
@@ -441,7 +396,6 @@ export const NAV: NavItem[] = [
     label: "Club Members",
     href: "/club-coordinator/members",
     icon: "♙",
-    
     roles: ["student"],
     // permission: ["club", "update"],
     mode: "coordinator",
@@ -450,7 +404,6 @@ export const NAV: NavItem[] = [
     label: "Request Event",
     href: "/club-coordinator/request-event",
     icon: "+",
-   
     roles: ["student"],
     permission: ["event", "create"],
     mode: "coordinator",
@@ -459,7 +412,6 @@ export const NAV: NavItem[] = [
     label: "My Profile",
     href: "/club-coordinator/profile",
     icon: "☺",
-    
     roles: ["student"],
     mode: "coordinator",
   },
@@ -482,7 +434,7 @@ export const isNavVisible = (
   }
 
   const roleAllowed =
-  isSuperAdmin || !item.roles || ctx.hasAnyRole(item.roles);
+    isSuperAdmin || !item.roles || ctx.hasAnyRole(item.roles);
 
   const permissionAllowed =
     !item.permission ||
@@ -493,4 +445,3 @@ export const isNavVisible = (
 
   return roleAllowed && permissionAllowed && modeAllowed;
 };
-

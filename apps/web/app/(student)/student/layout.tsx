@@ -34,11 +34,9 @@ function handleSwitchMode() {
     string,
     { title: string; subtitle: string }
   > = {
-<<<<<<< Updated upstream
+
     "/student/dashboard": {
-=======
-    "/studet/dashboard": {
->>>>>>> Stashed changes
+
       title: "Student dashboard",
       subtitle: "Your personal campus space",
     },
