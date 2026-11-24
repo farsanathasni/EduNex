@@ -10,24 +10,19 @@ import {
 } from "drizzle-orm";
 
 import { db } from "../../config/database.js";
-import {
-  announcements,
-  clubMemberships,
-} from "../../db/schema/others-schema.js";
+import {announcements,clubMemberships,} from "../../db/schema/others-schema.js";
 import { StudentProfile } from "../../db/schema/student-profile.js";
 import { coordinatorAssignments } from "../../db/schema/coordinator-schema.js";
 import { staff } from "../../db/schema/staff-schema.js";
 
-import {
-  hasRole,
-  loadAccess,
-} from "../rbac/rbac.access.js";
+import {hasRole,loadAccess,} from "../rbac/rbac.access.js";
 
 import type {
   AnnouncementsQuery,
   CreateAnnouncement,
   UpdateAnnouncement,
 } from "./announcements.validation.js";
+import { notifyMany } from "../../lib/notify.js";
 
 
 // Search announcements by title or content.
@@ -173,6 +168,106 @@ export const getAnnouncements = async (
   };
 };
 
+
+const getAnnouncementRecipientIds = async (
+  audience: "campus" | "department" | "club",
+  senderId: string,
+  departmentId: number | null,
+  clubId: number | null,
+): Promise<string[]> => {
+  let userIds: string[] = [];
+
+  // CAMPUS: All active students and active staff.
+  if (audience === "campus") {
+    const studentRows = await db
+      .select({ userId: StudentProfile.userId })
+      .from(StudentProfile)
+      .where(eq(StudentProfile.isDeleted, false));
+
+    const staffRows = await db
+      .select({ userId: staff.userId })
+      .from(staff)
+      .where(eq(staff.isActive, true));
+
+    userIds = [
+      ...studentRows.map((row) => row.userId),
+      ...staffRows.map((row) => row.userId),
+    ];
+  }
+
+  // DEPARTMENT: Students and staff in the selected department.
+  if (audience === "department" && departmentId !== null) {
+    const studentRows = await db
+      .select({ userId: StudentProfile.userId })
+      .from(StudentProfile)
+      .where(
+        and(
+          eq(StudentProfile.departmentId, departmentId),
+          eq(StudentProfile.isDeleted, false),
+        ),
+      );
+
+    const staffRows = await db
+      .select({ userId: staff.userId })
+      .from(staff)
+      .where(
+        and(
+          eq(staff.departmentId, departmentId),
+          eq(staff.isActive, true),
+        ),
+      );
+
+    userIds = [
+      ...studentRows.map((row) => row.userId),
+      ...staffRows.map((row) => row.userId),
+    ];
+  }
+
+  // CLUB: Approved members and assigned coordinators.
+  if (audience === "club" && clubId !== null) {
+    const memberRows = await db
+      .select({ userId: StudentProfile.userId })
+      .from(clubMemberships)
+      .innerJoin(
+        StudentProfile,
+        eq(clubMemberships.studentId, StudentProfile.id),
+      )
+      .where(
+        and(
+          eq(clubMemberships.clubId, clubId),
+          eq(clubMemberships.status, "approved"),
+          eq(StudentProfile.isDeleted, false),
+        ),
+      );
+
+    const coordinatorRows = await db
+      .select({ userId: StudentProfile.userId })
+      .from(coordinatorAssignments)
+      .innerJoin(
+        StudentProfile,
+        eq(coordinatorAssignments.studentId, StudentProfile.id),
+      )
+      .where(
+        and(
+          eq(coordinatorAssignments.clubId, clubId),
+          eq(StudentProfile.isDeleted, false),
+        ),
+      );
+
+    userIds = [
+      ...memberRows.map((row) => row.userId),
+      ...coordinatorRows.map((row) => row.userId),
+    ];
+  }
+
+  // Remove duplicates and exclude the announcement publisher.
+  return [
+    ...new Set(userIds.filter((id) => id !== senderId)),
+  ];
+};
+
+
+
 // Create an announcement according to the user's role and scope.
 export const createAnnouncement = async (
   userId: string,
@@ -187,6 +282,7 @@ export const createAnnouncement = async (
   let departmentId: number | null = null;
   let clubId: number | null = null;
 
+  // CAMPUS ANNOUNCEMENT
   if (data.audience === "campus") {
     // Only Super Admin can publish campus announcements.
     if (!access.isSuperAdmin) {
@@ -194,6 +290,7 @@ export const createAnnouncement = async (
     }
   }
 
+  // DEPARTMENT ANNOUNCEMENT
   if (data.audience === "department") {
     if (access.isSuperAdmin) {
       // Super Admin must select the target department.
@@ -214,11 +311,12 @@ export const createAnnouncement = async (
 
       if (!hod?.departmentId) return null;
 
-      // HOD announcements are restricted to their own department.
+      // HOD can publish only to their own department.
       departmentId = hod.departmentId;
     }
   }
 
+  // CLUB ANNOUNCEMENT
   if (data.audience === "club") {
     if (access.isSuperAdmin) {
       if (!data.clubId) return null;
@@ -260,6 +358,7 @@ export const createAnnouncement = async (
     }
   }
 
+  // CREATE ANNOUNCEMENT
   const [newAnnouncement] = await db
     .insert(announcements)
     .values({
@@ -272,6 +371,36 @@ export const createAnnouncement = async (
       publishedAt: new Date().toISOString(),
     })
     .returning();
+
+  if (!newAnnouncement) {
+    return null;
+  }
+
+  // FIND RECIPIENTS
+  const recipientIds = await getAnnouncementRecipientIds(
+    data.audience,
+    userId,
+    departmentId,
+    clubId,
+  );
+
+  // SEND NOTIFICATIONS
+  try {
+    await notifyMany(recipientIds, {
+      title: "New Announcement",
+      message: newAnnouncement.title,
+      notificationType: "announcement",
+      referenceType: "announcement",
+      referenceId: newAnnouncement.id,
+    });
+  } catch (error) {
+    // The announcement is already saved.
+    // A notification failure should not undo the announcement.
+    console.error(
+      "Failed to send announcement notifications:",
+      error,
+    );
+  }
 
   return newAnnouncement;
 };
@@ -331,6 +460,8 @@ const canManageAnnouncement = async (
   return false;
 };
 
+
+
 export const updateAnnouncement = async (
   userId: string,
   announcementId: number,
@@ -366,6 +497,8 @@ export const updateAnnouncement = async (
 
   return updatedAnnouncement;
 };
+
+
 
 export const deleteAnnouncement = async (
   userId: string,

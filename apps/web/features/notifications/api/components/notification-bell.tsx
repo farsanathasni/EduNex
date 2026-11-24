@@ -3,15 +3,24 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Bell } from "lucide-react";
-import { useMarkNotificationRead, useNotifications, useNotificationStream } from "../notification-query";
+
+import {
+  useMarkNotificationRead,
+  useNotifications,
+  useNotificationStream,
+} from "../notification-query";
+
 import type { Notification as ApiNotification } from "../notifications";
-import { getNotificationHref, NotificationRole, NOTIFICATIONS_PAGE } from "../../utils/notification-links";
+
+import {
+  getNotificationHref,
+  NOTIFICATIONS_PAGE,
+} from "../../utils/notification-links";
+
+import type { NotificationRole } from "../../utils/notification-links";
+
 import { timeAgo } from "../../utils/time-ago";
 import { NotificationListSkeleton } from "./notification-list-skeleton";
-
-
-
-
 
 const PREVIEW_COUNT = 5;
 
@@ -28,8 +37,12 @@ export function NotificationBell({ role }: { role: NotificationRole }) {
   const allPage = NOTIFICATIONS_PAGE[role];
 
   function handleItemClick(n: ApiNotification) {
-    if (!n.isRead) markRead.mutate(n.id);
+    if (!n.isRead) {
+      markRead.mutate(n.id);
+    }
+
     setOpen(false);
+
     const href = getNotificationHref(role, n);
     router.push(href ?? allPage);
   }
@@ -40,8 +53,8 @@ export function NotificationBell({ role }: { role: NotificationRole }) {
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
     >
-      {/* clicking the bell opens the full page */}
       <button
+        type="button"
         onClick={() => {
           setOpen(false);
           router.push(allPage);
@@ -50,6 +63,7 @@ export function NotificationBell({ role }: { role: NotificationRole }) {
         aria-label="Notifications"
       >
         <Bell className="h-5 w-5" />
+
         {unread > 0 && (
           <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
             {unread > 9 ? "9+" : unread}
@@ -57,7 +71,6 @@ export function NotificationBell({ role }: { role: NotificationRole }) {
         )}
       </button>
 
-      {/* pt-2 (not margin) keeps the hover area connected to the bell */}
       {open && (
         <div className="absolute right-0 z-50 w-80 pt-2">
           <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-lg">
@@ -90,6 +103,7 @@ export function NotificationBell({ role }: { role: NotificationRole }) {
             )}
 
             <button
+              type="button"
               onClick={() => {
                 setOpen(false);
                 router.push(allPage);
